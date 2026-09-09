@@ -1,3 +1,4 @@
+using System;
 using UnityEngine;
 
 namespace PickShoot
@@ -7,6 +8,8 @@ namespace PickShoot
         [SerializeField] int maxHp = 3;
         [SerializeField] float flashDuration = 0.08f;
         [SerializeField] Color flashColor = Color.white;
+
+        public event Action<EnemyHealth> Died;
 
         int current;
         float flashUntil;
@@ -43,6 +46,7 @@ namespace PickShoot
 
         void Die()
         {
+            Died?.Invoke(this);
             Destroy(gameObject);
         }
     }

@@ -272,6 +272,36 @@ namespace PickShoot
             Debug.Log("[PickShoot] 1-D 회수/재장전 세팅 완료. 씬 저장 필요.");
         }
 
+        [MenuItem("PickShoot/Setup/2-C · Setup Waves")]
+        public static void SetupWaves()
+        {
+            var enemyPrefab = AssetDatabase.LoadAssetAtPath<GameObject>(EnemyPrefabPath);
+            if (enemyPrefab == null)
+                throw new System.Exception($"[PickShoot] Enemy 프리팹 없음. '2-A · Setup Enemy' 먼저 실행. ({EnemyPrefabPath})");
+
+            var testEnemies = GameObject.Find("TestEnemies");
+            if (testEnemies != null) Object.DestroyImmediate(testEnemies);
+
+            var gm = GameObject.Find("GameManager");
+            if (gm == null) gm = new GameObject("GameManager");
+
+            var wm = gm.GetComponent<PickShoot.WaveManager>();
+            if (wm == null) wm = gm.AddComponent<PickShoot.WaveManager>();
+
+            var so = new SerializedObject(wm);
+            so.FindProperty("enemyPrefab").objectReferenceValue = enemyPrefab;
+            so.FindProperty("arenaHalfExtents").vector2Value = new Vector2(ArenaSize * 0.5f - 1f, ArenaSize * 0.5f - 1f);
+            so.FindProperty("baseEnemies").intValue = 3;
+            so.FindProperty("enemiesPerWaveIncrement").intValue = 2;
+            so.FindProperty("betweenWaveDelay").floatValue = 2f;
+            so.FindProperty("spawnInterval").floatValue = 0.5f;
+            so.FindProperty("minSpawnDistanceFromPlayer").floatValue = 5f;
+            so.ApplyModifiedProperties();
+
+            EditorSceneManager.MarkSceneDirty(EditorSceneManager.GetActiveScene());
+            Debug.Log("[PickShoot] 2-C 웨이브 세팅 완료. TestEnemies 제거됨. 씬 저장 필요.");
+        }
+
         [MenuItem("PickShoot/Setup/2-B · Setup Player Health & Death")]
         public static void SetupPlayerHealthAndDeath()
         {
