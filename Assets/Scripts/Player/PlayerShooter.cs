@@ -25,6 +25,7 @@ namespace PickShoot
 
         void Update()
         {
+            if (Time.timeScale <= 0f) return;
             var mouse = Mouse.current;
             if (mouse == null) return;
             if (!mouse.leftButton.isPressed) return;

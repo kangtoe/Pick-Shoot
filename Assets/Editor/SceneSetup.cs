@@ -272,6 +272,49 @@ namespace PickShoot
             Debug.Log("[PickShoot] 1-D 회수/재장전 세팅 완료. 씬 저장 필요.");
         }
 
+        [MenuItem("PickShoot/Setup/2-B · Setup Player Health & Death")]
+        public static void SetupPlayerHealthAndDeath()
+        {
+            var player = GameObject.Find("Player");
+            if (player == null)
+                throw new System.Exception("[PickShoot] Player 없음. '1-B · Create Player' 먼저 실행.");
+
+            var health = player.GetComponent<PickShoot.PlayerHealth>();
+            if (health == null) health = player.AddComponent<PickShoot.PlayerHealth>();
+
+            var gm = GameObject.Find("GameManager");
+            if (gm == null) gm = new GameObject("GameManager");
+
+            var overScreen = gm.GetComponent<PickShoot.GameOverScreen>();
+            if (overScreen == null) overScreen = gm.AddComponent<PickShoot.GameOverScreen>();
+
+            var so = new SerializedObject(overScreen);
+            so.FindProperty("playerHealth").objectReferenceValue = health;
+            so.ApplyModifiedProperties();
+
+            EnsureActiveSceneInBuildSettings();
+
+            EditorSceneManager.MarkSceneDirty(EditorSceneManager.GetActiveScene());
+            Debug.Log("[PickShoot] 2-B 세팅 완료. 씬 저장 필요.");
+        }
+
+        static void EnsureActiveSceneInBuildSettings()
+        {
+            var scenePath = EditorSceneManager.GetActiveScene().path;
+            if (string.IsNullOrEmpty(scenePath))
+                throw new System.Exception("[PickShoot] 활성 씬이 저장되지 않아 Build Settings 등록 불가.");
+
+            var current = EditorBuildSettings.scenes;
+            for (int i = 0; i < current.Length; i++)
+                if (current[i].path == scenePath) return;
+
+            var updated = new EditorBuildSettingsScene[current.Length + 1];
+            System.Array.Copy(current, updated, current.Length);
+            updated[current.Length] = new EditorBuildSettingsScene(scenePath, true);
+            EditorBuildSettings.scenes = updated;
+            Debug.Log($"[PickShoot] Build Settings에 씬 등록: {scenePath}");
+        }
+
         [MenuItem("PickShoot/Setup/2-A · Setup Enemy")]
         public static void SetupEnemy()
         {
