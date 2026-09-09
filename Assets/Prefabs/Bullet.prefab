@@ -171,3 +171,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::PickShoot.Bullet
   settleSpeedThreshold: 0.4
   settleTime: 0.2
+  pickupDelay: 0.2
+  damage: 1
+  knockbackForce: 6
+  postHitSpeedMultiplier: 0.6

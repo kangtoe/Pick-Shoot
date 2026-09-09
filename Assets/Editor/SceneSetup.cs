@@ -14,6 +14,7 @@ namespace PickShoot
         const string CircleSpritePath = "Assets/Art/Sprites/Circle.png";
         const string SquareSpritePath = "Assets/Art/Sprites/Square.png";
         const string BulletPrefabPath = "Assets/Prefabs/Bullet.prefab";
+        const string EnemyPrefabPath = "Assets/Prefabs/Enemy.prefab";
         const int SpriteResolution = 64;
 
         [MenuItem("PickShoot/Setup/1-A · Create Arena")]
@@ -223,10 +224,20 @@ namespace PickShoot
             col.radius = 0.5f;
             col.sharedMaterial = mat;
 
-            temp.AddComponent<PickShoot.Bullet>();
+            var bullet = temp.AddComponent<PickShoot.Bullet>();
+
+            var soBullet = new SerializedObject(bullet);
+            soBullet.FindProperty("settleSpeedThreshold").floatValue = 0.4f;
+            soBullet.FindProperty("settleTime").floatValue = 0.2f;
+            soBullet.FindProperty("pickupDelay").floatValue = 0.2f;
+            soBullet.FindProperty("damage").intValue = 1;
+            soBullet.FindProperty("knockbackForce").floatValue = 6f;
+            soBullet.FindProperty("postHitSpeedMultiplier").floatValue = 0.6f;
+            soBullet.ApplyModifiedProperties();
 
             var prefab = PrefabUtility.SaveAsPrefabAsset(temp, BulletPrefabPath);
             Object.DestroyImmediate(temp);
+            AssetDatabase.SaveAssets();
             if (prefab == null)
                 throw new System.Exception($"[PickShoot] Bullet 프리팹 저장 실패: {BulletPrefabPath}");
             return prefab;
@@ -259,6 +270,89 @@ namespace PickShoot
 
             EditorSceneManager.MarkSceneDirty(EditorSceneManager.GetActiveScene());
             Debug.Log("[PickShoot] 1-D 회수/재장전 세팅 완료. 씬 저장 필요.");
+        }
+
+        [MenuItem("PickShoot/Setup/2-A · Setup Enemy")]
+        public static void SetupEnemy()
+        {
+            int enemyLayer = EnsureLayer("Enemy");
+
+            var player = GameObject.Find("Player");
+            if (player == null)
+                throw new System.Exception("[PickShoot] Player 없음. '1-B · Create Player' 먼저 실행.");
+            if (player.tag != "Player") player.tag = "Player";
+
+            var enemyPrefab = EnsureEnemyPrefab(enemyLayer);
+
+            var container = GameObject.Find("TestEnemies");
+            if (container != null) Object.DestroyImmediate(container);
+            container = new GameObject("TestEnemies");
+
+            Vector2[] spawnPositions =
+            {
+                new Vector2( 6f,  6f),
+                new Vector2(-6f,  6f),
+                new Vector2( 0f, -7f),
+            };
+            foreach (var pos in spawnPositions)
+            {
+                var enemyGO = (GameObject)PrefabUtility.InstantiatePrefab(enemyPrefab);
+                enemyGO.transform.SetParent(container.transform, false);
+                enemyGO.transform.position = pos;
+            }
+
+            EditorSceneManager.MarkSceneDirty(EditorSceneManager.GetActiveScene());
+            Debug.Log("[PickShoot] 2-A 세팅 완료: Enemy 프리팹, Player 태그, 테스트 적 3마리.");
+        }
+
+        static GameObject EnsureEnemyPrefab(int layer)
+        {
+            var dir = Path.GetDirectoryName(EnemyPrefabPath);
+            if (!Directory.Exists(dir))
+            {
+                Directory.CreateDirectory(dir);
+                AssetDatabase.Refresh();
+            }
+
+            var circleSprite = EnsureSprite(CircleSpritePath, filled: true);
+
+            var temp = new GameObject("Enemy");
+            temp.layer = layer;
+            temp.transform.localScale = new Vector3(0.8f, 0.8f, 1f);
+
+            var sr = temp.AddComponent<SpriteRenderer>();
+            sr.sprite = circleSprite;
+            sr.color = new Color(0.9f, 0.25f, 0.25f);
+            sr.sortingOrder = 3;
+
+            var rb = temp.AddComponent<Rigidbody2D>();
+            rb.bodyType = RigidbodyType2D.Kinematic;
+            rb.gravityScale = 0f;
+            rb.interpolation = RigidbodyInterpolation2D.Interpolate;
+
+            var col = temp.AddComponent<CircleCollider2D>();
+            col.radius = 0.5f;
+
+            var movement = temp.AddComponent<PickShoot.EnemyMovement>();
+            var health = temp.AddComponent<PickShoot.EnemyHealth>();
+
+            var soMovement = new SerializedObject(movement);
+            soMovement.FindProperty("moveSpeed").floatValue = 2.5f;
+            soMovement.FindProperty("knockbackDamping").floatValue = 20f;
+            soMovement.ApplyModifiedProperties();
+
+            var soHealth = new SerializedObject(health);
+            soHealth.FindProperty("maxHp").intValue = 3;
+            soHealth.FindProperty("flashDuration").floatValue = 0.08f;
+            soHealth.FindProperty("flashColor").colorValue = Color.white;
+            soHealth.ApplyModifiedProperties();
+
+            var prefab = PrefabUtility.SaveAsPrefabAsset(temp, EnemyPrefabPath);
+            Object.DestroyImmediate(temp);
+            AssetDatabase.SaveAssets();
+            if (prefab == null)
+                throw new System.Exception($"[PickShoot] Enemy 프리팹 저장 실패: {EnemyPrefabPath}");
+            return prefab;
         }
 
         static int EnsureLayer(string layerName)

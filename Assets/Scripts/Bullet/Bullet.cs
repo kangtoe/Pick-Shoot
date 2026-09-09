@@ -8,8 +8,12 @@ namespace PickShoot
         [SerializeField] float settleSpeedThreshold = 0.4f;
         [SerializeField] float settleTime = 0.2f;
         [SerializeField] float pickupDelay = 0.2f;
+        [SerializeField] int damage = 1;
+        [SerializeField] float knockbackForce = 6f;
+        [SerializeField, Range(0f, 1f)] float postHitSpeedMultiplier = 0.6f;
 
         Rigidbody2D rb;
+        Vector2 lastVelocity;
         float slowTimer;
         float pickableAt;
         bool settled;
@@ -35,6 +39,8 @@ namespace PickShoot
         {
             if (settled) return;
 
+            lastVelocity = rb.linearVelocity;
+
             float sqr = rb.linearVelocity.sqrMagnitude;
             if (sqr < settleSpeedThreshold * settleSpeedThreshold)
             {
@@ -45,6 +51,20 @@ namespace PickShoot
             {
                 slowTimer = 0f;
             }
+        }
+
+        void OnCollisionEnter2D(Collision2D col)
+        {
+            var enemy = col.collider.GetComponent<EnemyHealth>();
+            if (enemy == null) return;
+
+            enemy.TakeDamage(damage);
+
+            var movement = col.collider.GetComponent<EnemyMovement>();
+            if (movement != null && lastVelocity.sqrMagnitude > 0.01f)
+                movement.ApplyKnockback(lastVelocity.normalized * knockbackForce);
+
+            rb.linearVelocity *= postHitSpeedMultiplier;
         }
 
         void Settle()
