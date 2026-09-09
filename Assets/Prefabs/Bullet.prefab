@@ -175,3 +175,13 @@ MonoBehaviour:
   damage: 1
   knockbackForce: 6
   postHitSpeedMultiplier: 0.6
+  wallBounceMinSpeed: 7
+  maxBounceAngleFromNormal: 75
+  bounceFlashDuration: 0.09
+  bounceFlashColor: {r: 1, g: 1, b: 1, a: 1}
+  bounceScalePulse: 1.5
+  separationRadius: 0.6
+  separationStrength: 3
+  bulletLayerMask:
+    serializedVersion: 2
+    m_Bits: 256

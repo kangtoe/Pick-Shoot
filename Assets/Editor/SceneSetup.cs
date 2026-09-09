@@ -233,6 +233,14 @@ namespace PickShoot
             soBullet.FindProperty("damage").intValue = 1;
             soBullet.FindProperty("knockbackForce").floatValue = 6f;
             soBullet.FindProperty("postHitSpeedMultiplier").floatValue = 0.6f;
+            soBullet.FindProperty("wallBounceMinSpeed").floatValue = 7f;
+            soBullet.FindProperty("maxBounceAngleFromNormal").floatValue = 75f;
+            soBullet.FindProperty("bounceFlashDuration").floatValue = 0.09f;
+            soBullet.FindProperty("bounceFlashColor").colorValue = Color.white;
+            soBullet.FindProperty("bounceScalePulse").floatValue = 1.5f;
+            soBullet.FindProperty("separationRadius").floatValue = 0.6f;
+            soBullet.FindProperty("separationStrength").floatValue = 3f;
+            soBullet.FindProperty("bulletLayerMask").intValue = 1 << layer;
             soBullet.ApplyModifiedProperties();
 
             var prefab = PrefabUtility.SaveAsPrefabAsset(temp, BulletPrefabPath);
