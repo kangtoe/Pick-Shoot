@@ -172,6 +172,11 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::PickShoot.EnemyMovement
   moveSpeed: 2.5
   knockbackDamping: 20
+  separationRadius: 0.9
+  separationStrength: 4
+  enemyLayerMask:
+    serializedVersion: 2
+    m_Bits: 512
 --- !u!114 &4328427985779134852
 MonoBehaviour:
   m_ObjectHideFlags: 0

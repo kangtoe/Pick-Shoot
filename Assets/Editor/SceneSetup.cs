@@ -412,6 +412,9 @@ namespace PickShoot
             var soMovement = new SerializedObject(movement);
             soMovement.FindProperty("moveSpeed").floatValue = 2.5f;
             soMovement.FindProperty("knockbackDamping").floatValue = 20f;
+            soMovement.FindProperty("separationRadius").floatValue = 0.9f;
+            soMovement.FindProperty("separationStrength").floatValue = 4f;
+            soMovement.FindProperty("enemyLayerMask").intValue = 1 << layer;
             soMovement.ApplyModifiedProperties();
 
             var soHealth = new SerializedObject(health);

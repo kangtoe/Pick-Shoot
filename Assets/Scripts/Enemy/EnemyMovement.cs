@@ -7,10 +7,14 @@ namespace PickShoot
     {
         [SerializeField] float moveSpeed = 2.5f;
         [SerializeField] float knockbackDamping = 20f;
+        [SerializeField] float separationRadius = 0.9f;
+        [SerializeField] float separationStrength = 4f;
+        [SerializeField] LayerMask enemyLayerMask;
 
         Rigidbody2D rb;
         Transform target;
         Vector2 knockback;
+        readonly Collider2D[] neighbors = new Collider2D[8];
 
         void Awake()
         {
@@ -43,8 +47,29 @@ namespace PickShoot
                     pursue = delta.normalized * moveSpeed;
             }
 
-            Vector2 step = (pursue + knockback) * Time.fixedDeltaTime;
+            Vector2 separation = ComputeSeparation();
+
+            Vector2 step = (pursue + separation + knockback) * Time.fixedDeltaTime;
             rb.MovePosition(rb.position + step);
+        }
+
+        Vector2 ComputeSeparation()
+        {
+            if (separationStrength <= 0f || separationRadius <= 0f) return Vector2.zero;
+
+            int count = Physics2D.OverlapCircleNonAlloc(rb.position, separationRadius, neighbors, enemyLayerMask);
+            Vector2 push = Vector2.zero;
+            for (int i = 0; i < count; i++)
+            {
+                var c = neighbors[i];
+                if (c == null || c.attachedRigidbody == rb) continue;
+                Vector2 diff = rb.position - (Vector2)c.transform.position;
+                float d = diff.magnitude;
+                if (d < 0.0001f) continue;
+                float weight = 1f - Mathf.Clamp01(d / separationRadius);
+                push += diff.normalized * weight;
+            }
+            return push * separationStrength;
         }
     }
 }
