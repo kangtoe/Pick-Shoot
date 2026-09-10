@@ -184,3 +184,4 @@ MonoBehaviour:
   bulletLayerMask:
     serializedVersion: 2
     m_Bits: 1280
+  hitEffectPrefab: {fileID: 4668340677438267285, guid: 8d6d86011fec70545b06e827a63b7d89, type: 3}

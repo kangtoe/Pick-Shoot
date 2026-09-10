@@ -192,3 +192,4 @@ MonoBehaviour:
   maxHp: 3
   flashDuration: 0.08
   flashColor: {r: 1, g: 1, b: 1, a: 1}
+  deathEffectPrefab: {fileID: 5670591326354318199, guid: 621b869db3a9bdc42b153ed8e123f1ab, type: 3}

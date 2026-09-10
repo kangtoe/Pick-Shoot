@@ -8,6 +8,7 @@ namespace PickShoot
         [SerializeField] int maxHp = 3;
         [SerializeField] float flashDuration = 0.08f;
         [SerializeField] Color flashColor = Color.white;
+        [SerializeField] GameObject deathEffectPrefab;
 
         public event Action<EnemyHealth> Died;
 
@@ -47,6 +48,8 @@ namespace PickShoot
         void Die()
         {
             Died?.Invoke(this);
+            if (deathEffectPrefab != null)
+                Instantiate(deathEffectPrefab, transform.position, Quaternion.identity);
             Destroy(gameObject);
         }
     }

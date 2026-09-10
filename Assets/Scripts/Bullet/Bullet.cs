@@ -18,6 +18,7 @@ namespace PickShoot
         [SerializeField] float separationRadius = 0.6f;
         [SerializeField] float separationStrength = 3f;
         [SerializeField] LayerMask bulletLayerMask;
+        [SerializeField] GameObject hitEffectPrefab;
 
         const string ActiveLayerName = "Bullet";
         const string InactiveLayerName = "BulletInactive";
@@ -121,6 +122,12 @@ namespace PickShoot
             var movement = col.collider.GetComponent<EnemyMovement>();
             if (movement != null && lastVelocity.sqrMagnitude > 0.01f)
                 movement.ApplyKnockback(lastVelocity.normalized * knockbackForce);
+
+            if (hitEffectPrefab != null)
+            {
+                Vector3 hitPos = col.contactCount > 0 ? (Vector3)col.GetContact(0).point : transform.position;
+                Instantiate(hitEffectPrefab, hitPos, Quaternion.identity);
+            }
 
             rb.linearVelocity *= postHitSpeedMultiplier;
         }
