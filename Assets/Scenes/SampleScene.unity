@@ -342,7 +342,8 @@ MonoBehaviour:
   ammo: {fileID: 142563683}
   pickupRadius: 0.9
   magnetRadius: 2.8
-  magnetSpeed: 6
+  magnetSpeed: 20
+  pickupEffectPrefab: {fileID: 3409978152904165771, guid: 30fe44d2a97fd13469dcaa92e650a055, type: 3}
 --- !u!114 &142563683
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1230,11 +1231,13 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PickShoot.WaveManager
   enemyPrefab: {fileID: 957819507615294952, guid: 9ef4e8c0d9d5c8c4ba6dc4adee38e79f, type: 3}
+  spawnWarningPrefab: {fileID: 2111959392048050133, guid: 8be7c360e5e6e704d8d7ef8a64e077f4, type: 3}
   arenaHalfExtents: {x: 9, y: 9}
   baseEnemies: 3
   enemiesPerWaveIncrement: 2
   betweenWaveDelay: 2
   spawnInterval: 0.5
+  spawnWarningDuration: 0.6
   minSpawnDistanceFromPlayer: 5
 --- !u!1 &1905229426
 GameObject:

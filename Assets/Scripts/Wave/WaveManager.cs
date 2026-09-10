@@ -6,11 +6,13 @@ namespace PickShoot
     public class WaveManager : MonoBehaviour
     {
         [SerializeField] GameObject enemyPrefab;
+        [SerializeField] GameObject spawnWarningPrefab;
         [SerializeField] Vector2 arenaHalfExtents = new Vector2(9f, 9f);
         [SerializeField] int baseEnemies = 3;
         [SerializeField] int enemiesPerWaveIncrement = 2;
         [SerializeField] float betweenWaveDelay = 2f;
         [SerializeField] float spawnInterval = 0.5f;
+        [SerializeField] float spawnWarningDuration = 0.6f;
         [SerializeField] float minSpawnDistanceFromPlayer = 5f;
 
         int currentWave;
@@ -47,7 +49,7 @@ namespace PickShoot
 
                 for (int i = 0; i < enemiesToSpawn; i++)
                 {
-                    SpawnOne();
+                    StartCoroutine(SpawnWithWarning());
                     yield return new WaitForSeconds(spawnInterval);
                 }
 
@@ -56,7 +58,7 @@ namespace PickShoot
             }
         }
 
-        void SpawnOne()
+        IEnumerator SpawnWithWarning()
         {
             Vector2 pos = Vector2.zero;
             for (int attempt = 0; attempt < 8; attempt++)
@@ -65,6 +67,11 @@ namespace PickShoot
                 if (Vector2.Distance(pos, player.position) >= minSpawnDistanceFromPlayer)
                     break;
             }
+
+            if (spawnWarningPrefab != null)
+                Instantiate(spawnWarningPrefab, pos, Quaternion.identity);
+
+            yield return new WaitForSeconds(spawnWarningDuration);
 
             var enemyGO = Instantiate(enemyPrefab, pos, Quaternion.identity);
             var health = enemyGO.GetComponent<EnemyHealth>();

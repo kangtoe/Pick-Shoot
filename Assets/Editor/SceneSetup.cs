@@ -17,6 +17,7 @@ namespace PickShoot
         const string EnemyPrefabPath = "Assets/Prefabs/Enemy.prefab";
         const string HitEffectPrefabPath = "Assets/Prefabs/HitEffect.prefab";
         const string DeathEffectPrefabPath = "Assets/Prefabs/DeathEffect.prefab";
+        const string SpawnWarningPrefabPath = "Assets/Prefabs/SpawnWarning.prefab";
         const int SpriteResolution = 64;
 
         [MenuItem("PickShoot/Setup/1-A · Create Arena")]
@@ -300,6 +301,10 @@ namespace PickShoot
             if (enemyPrefab == null)
                 throw new System.Exception($"[PickShoot] Enemy 프리팹 없음. '2-A · Setup Enemy' 먼저 실행. ({EnemyPrefabPath})");
 
+            var spawnWarning = EnsureWarningLabelPrefab(
+                SpawnWarningPrefabPath, "SpawnWarning", "!",
+                new Color(1f, 0.2f, 0.2f, 1f));
+
             var testEnemies = GameObject.Find("TestEnemies");
             if (testEnemies != null) Object.DestroyImmediate(testEnemies);
 
@@ -311,11 +316,13 @@ namespace PickShoot
 
             var so = new SerializedObject(wm);
             so.FindProperty("enemyPrefab").objectReferenceValue = enemyPrefab;
+            so.FindProperty("spawnWarningPrefab").objectReferenceValue = spawnWarning;
             so.FindProperty("arenaHalfExtents").vector2Value = new Vector2(ArenaSize * 0.5f - 1f, ArenaSize * 0.5f - 1f);
             so.FindProperty("baseEnemies").intValue = 3;
             so.FindProperty("enemiesPerWaveIncrement").intValue = 2;
             so.FindProperty("betweenWaveDelay").floatValue = 2f;
             so.FindProperty("spawnInterval").floatValue = 0.5f;
+            so.FindProperty("spawnWarningDuration").floatValue = 0.6f;
             so.FindProperty("minSpawnDistanceFromPlayer").floatValue = 5f;
             so.ApplyModifiedProperties();
 
@@ -357,6 +364,51 @@ namespace PickShoot
 
             AssetDatabase.SaveAssets();
             Debug.Log("[PickShoot] 2-D 피격 피드백 세팅 완료 (Hit/Death 이펙트 프리팹 + Bullet/Enemy 참조).");
+        }
+
+        static GameObject EnsureWarningLabelPrefab(string path, string name, string text, Color color)
+        {
+            var dir = Path.GetDirectoryName(path);
+            if (!Directory.Exists(dir))
+            {
+                Directory.CreateDirectory(dir);
+                AssetDatabase.Refresh();
+            }
+
+            var temp = new GameObject(name);
+
+            var tm = temp.AddComponent<TextMesh>();
+            tm.text = text;
+            tm.color = color;
+            tm.anchor = TextAnchor.MiddleCenter;
+            tm.alignment = TextAlignment.Center;
+            tm.fontSize = 64;
+            tm.characterSize = 0.15f;
+            tm.fontStyle = FontStyle.Bold;
+
+            var font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+            if (font == null) font = Resources.GetBuiltinResource<Font>("Arial.ttf");
+            if (font == null)
+                throw new System.Exception("[PickShoot] Built-in Font 로드 실패 (LegacyRuntime/Arial).");
+            tm.font = font;
+
+            var renderer = temp.GetComponent<MeshRenderer>();
+            renderer.sharedMaterial = font.material;
+            renderer.sortingOrder = 10;
+
+            var label = temp.AddComponent<PickShoot.WarningLabel>();
+            var so = new SerializedObject(label);
+            so.FindProperty("duration").floatValue = 0.6f;
+            so.FindProperty("startScale").floatValue = 0.9f;
+            so.FindProperty("endScale").floatValue = 1.3f;
+            so.FindProperty("blinkFrequency").floatValue = 8f;
+            so.ApplyModifiedProperties();
+
+            var prefab = PrefabUtility.SaveAsPrefabAsset(temp, path);
+            Object.DestroyImmediate(temp);
+            if (prefab == null)
+                throw new System.Exception($"[PickShoot] Warning label 프리팹 저장 실패: {path}");
+            return prefab;
         }
 
         static GameObject EnsureDeathParticlePrefab(string path, string name, Color color)
