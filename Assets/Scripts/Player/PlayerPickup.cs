@@ -7,7 +7,9 @@ namespace PickShoot
         [SerializeField] PlayerAmmo ammo;
         [SerializeField] float pickupRadius = 0.9f;
         [SerializeField] float magnetRadius = 2.8f;
-        [SerializeField] float magnetSpeed = 6f;
+        [SerializeField] float magnetTargetSpeed = 18f;
+        [SerializeField] float magnetBlendRate = 12f;
+        [SerializeField] GameObject pickupEffectPrefab;
 
         readonly Collider2D[] hits = new Collider2D[16];
 
@@ -31,6 +33,8 @@ namespace PickShoot
                 if (d <= pickupRadius)
                 {
                     if (!ammo.TryAdd()) return;
+                    if (pickupEffectPrefab != null)
+                        Instantiate(pickupEffectPrefab, bullet.transform.position, Quaternion.identity);
                     Destroy(bullet.gameObject);
                     continue;
                 }
@@ -41,7 +45,9 @@ namespace PickShoot
                 float span = Mathf.Max(0.0001f, magnetRadius - pickupRadius);
                 float t = Mathf.Clamp01((magnetRadius - d) / span);
                 Vector2 dir = toPlayer / Mathf.Max(0.0001f, d);
-                rb.linearVelocity += dir * magnetSpeed * t * Time.fixedDeltaTime;
+                Vector2 targetVel = dir * magnetTargetSpeed * t;
+                float alpha = 1f - Mathf.Exp(-magnetBlendRate * Time.fixedDeltaTime);
+                rb.linearVelocity = Vector2.Lerp(rb.linearVelocity, targetVel, alpha);
             }
         }
     }

@@ -18,6 +18,7 @@ namespace PickShoot
         const string HitEffectPrefabPath = "Assets/Prefabs/HitEffect.prefab";
         const string DeathEffectPrefabPath = "Assets/Prefabs/DeathEffect.prefab";
         const string SpawnWarningPrefabPath = "Assets/Prefabs/SpawnWarning.prefab";
+        const string PickupEffectPrefabPath = "Assets/Prefabs/PickupEffect.prefab";
         const int SpriteResolution = 64;
 
         [MenuItem("PickShoot/Setup/1-A · Create Arena")]
@@ -287,7 +288,8 @@ namespace PickShoot
             soPickup.FindProperty("ammo").objectReferenceValue = ammo;
             soPickup.FindProperty("pickupRadius").floatValue = 0.9f;
             soPickup.FindProperty("magnetRadius").floatValue = 2.8f;
-            soPickup.FindProperty("magnetSpeed").floatValue = 6f;
+            soPickup.FindProperty("magnetTargetSpeed").floatValue = 18f;
+            soPickup.FindProperty("magnetBlendRate").floatValue = 12f;
             soPickup.ApplyModifiedProperties();
 
             EditorSceneManager.MarkSceneDirty(EditorSceneManager.GetActiveScene());
@@ -342,6 +344,10 @@ namespace PickShoot
             var deathEffect = EnsureDeathParticlePrefab(
                 DeathEffectPrefabPath, "DeathEffect", new Color(1f, 0.35f, 0.2f, 1f));
 
+            var pickupEffect = EnsureImpactPrefab(
+                PickupEffectPrefabPath, "PickupEffect", circleSprite,
+                new Color(0.4f, 0.95f, 1f, 0.85f), duration: 0.2f, start: 0.3f, end: 1.3f);
+
             var bulletPrefab = AssetDatabase.LoadAssetAtPath<GameObject>(BulletPrefabPath);
             if (bulletPrefab == null)
                 throw new System.Exception($"[PickShoot] Bullet 프리팹 없음. '1-C · Setup Shooting' 먼저 실행. ({BulletPrefabPath})");
@@ -362,8 +368,19 @@ namespace PickShoot
             soEnemy.FindProperty("deathEffectPrefab").objectReferenceValue = deathEffect;
             soEnemy.ApplyModifiedProperties();
 
+            var player = GameObject.Find("Player");
+            if (player == null)
+                throw new System.Exception("[PickShoot] Player 없음. '1-B · Create Player' 먼저 실행.");
+            var pickup = player.GetComponent<PickShoot.PlayerPickup>();
+            if (pickup == null)
+                throw new System.Exception("[PickShoot] PlayerPickup 없음. '1-D · Setup Ammo & Pickup' 먼저 실행.");
+            var soPickup = new SerializedObject(pickup);
+            soPickup.FindProperty("pickupEffectPrefab").objectReferenceValue = pickupEffect;
+            soPickup.ApplyModifiedProperties();
+
+            EditorSceneManager.MarkSceneDirty(EditorSceneManager.GetActiveScene());
             AssetDatabase.SaveAssets();
-            Debug.Log("[PickShoot] 2-D 피격 피드백 세팅 완료 (Hit/Death 이펙트 프리팹 + Bullet/Enemy 참조).");
+            Debug.Log("[PickShoot] 2-D 피격 피드백 세팅 완료 (Hit/Death/Pickup 이펙트 프리팹 + 참조 연결).");
         }
 
         static GameObject EnsureWarningLabelPrefab(string path, string name, string text, Color color)
