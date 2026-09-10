@@ -7,9 +7,12 @@ namespace PickShoot
     {
         [SerializeField] int maxHp = 3;
         [SerializeField] float invincibilityTime = 0.8f;
+        [SerializeField] float damageFlashDuration = 0.35f;
+        [SerializeField] Color damageFlashColor = new Color(1f, 0.15f, 0.15f, 0.4f);
 
         int current;
         float invincibleUntil;
+        float damageFlashStart = -1f;
         SpriteRenderer sr;
         Color originalColor;
 
@@ -56,6 +59,7 @@ namespace PickShoot
             if (!IsAlive || IsInvincible) return false;
             current -= amount;
             invincibleUntil = Time.time + invincibilityTime;
+            damageFlashStart = Time.time;
             if (current <= 0)
             {
                 current = 0;
@@ -66,12 +70,30 @@ namespace PickShoot
 
         void OnGUI()
         {
+            DrawDamageFlash();
+
             var style = new GUIStyle(GUI.skin.label)
             {
                 fontSize = 24,
                 normal = { textColor = Color.white }
             };
             GUI.Label(new Rect(12f, 44f, 240f, 32f), $"HP    {current} / {maxHp}", style);
+        }
+
+        void DrawDamageFlash()
+        {
+            if (damageFlashStart < 0f) return;
+            float elapsed = Time.time - damageFlashStart;
+            if (elapsed >= damageFlashDuration) return;
+
+            float t = 1f - (elapsed / damageFlashDuration);
+            var col = damageFlashColor;
+            col.a *= t;
+
+            var prev = GUI.color;
+            GUI.color = col;
+            GUI.DrawTexture(new Rect(0f, 0f, Screen.width, Screen.height), Texture2D.whiteTexture);
+            GUI.color = prev;
         }
     }
 }

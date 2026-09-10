@@ -331,6 +331,13 @@ namespace PickShoot
             var health = player.GetComponent<PickShoot.PlayerHealth>();
             if (health == null) health = player.AddComponent<PickShoot.PlayerHealth>();
 
+            var soHealth = new SerializedObject(health);
+            soHealth.FindProperty("maxHp").intValue = 3;
+            soHealth.FindProperty("invincibilityTime").floatValue = 0.8f;
+            soHealth.FindProperty("damageFlashDuration").floatValue = 0.35f;
+            soHealth.FindProperty("damageFlashColor").colorValue = new Color(1f, 0.15f, 0.15f, 0.4f);
+            soHealth.ApplyModifiedProperties();
+
             var gm = GameObject.Find("GameManager");
             if (gm == null) gm = new GameObject("GameManager");
 
