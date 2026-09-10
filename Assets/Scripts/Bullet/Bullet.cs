@@ -5,9 +5,8 @@ namespace PickShoot
     [RequireComponent(typeof(Rigidbody2D))]
     public class Bullet : MonoBehaviour
     {
-        [SerializeField] float settleSpeedThreshold = 0.4f;
-        [SerializeField] float settleTime = 0.2f;
-        [SerializeField] float pickupDelay = 0.2f;
+        [SerializeField] float activeSpeedThreshold = 2f;
+        [SerializeField] float interactionDelay = 0.4f;
         [SerializeField] int damage = 1;
         [SerializeField] float knockbackForce = 6f;
         [SerializeField, Range(0f, 1f)] float postHitSpeedMultiplier = 0.6f;
@@ -20,20 +19,24 @@ namespace PickShoot
         [SerializeField] float separationStrength = 3f;
         [SerializeField] LayerMask bulletLayerMask;
 
+        const string ActiveLayerName = "Bullet";
+        const string InactiveLayerName = "BulletInactive";
+
         Rigidbody2D rb;
         SpriteRenderer sr;
         Vector2 lastVelocity;
         Vector3 baseScale;
         Color baseColor;
-        float slowTimer;
-        float pickableAt;
+        float interactableAt;
         float flashUntil;
         bool flashing;
-        bool settled;
+        int activeLayerIdx;
+        int inactiveLayerIdx;
+        bool wasActive;
         readonly Collider2D[] neighbors = new Collider2D[8];
 
-        public bool IsSettled => settled;
-        public bool IsPickable => Time.time >= pickableAt;
+        public bool IsInteractable => Time.time >= interactableAt;
+        public bool IsActive => lastVelocity.sqrMagnitude >= activeSpeedThreshold * activeSpeedThreshold;
 
         void Awake()
         {
@@ -41,15 +44,20 @@ namespace PickShoot
             sr = GetComponent<SpriteRenderer>();
             if (sr != null) baseColor = sr.color;
             baseScale = transform.localScale;
+
+            activeLayerIdx = LayerMask.NameToLayer(ActiveLayerName);
+            inactiveLayerIdx = LayerMask.NameToLayer(InactiveLayerName);
+            if (activeLayerIdx < 0 || inactiveLayerIdx < 0)
+                throw new System.Exception($"[PickShoot] 레이어 미설정: '{ActiveLayerName}' / '{InactiveLayerName}'. Setup 1-C 실행 필요.");
         }
 
         public void Launch(Vector2 velocity)
         {
-            settled = false;
-            slowTimer = 0f;
-            pickableAt = Time.time + pickupDelay;
-            rb.bodyType = RigidbodyType2D.Dynamic;
+            interactableAt = Time.time + interactionDelay;
             rb.linearVelocity = velocity;
+            lastVelocity = velocity;
+            gameObject.layer = activeLayerIdx;
+            wasActive = true;
         }
 
         void Update()
@@ -57,7 +65,7 @@ namespace PickShoot
             if (!flashing) return;
             if (Time.time < flashUntil) return;
 
-            if (sr != null && !settled) sr.color = baseColor;
+            if (sr != null) sr.color = baseColor;
             transform.localScale = baseScale;
             flashing = false;
         }
@@ -65,28 +73,16 @@ namespace PickShoot
         void FixedUpdate()
         {
             Vector2 separation = ComputeSeparation();
-
-            if (settled)
-            {
-                if (separation.sqrMagnitude > 0.0001f)
-                    rb.MovePosition(rb.position + separation * Time.fixedDeltaTime);
-                return;
-            }
-
             if (separation.sqrMagnitude > 0.0001f)
                 rb.linearVelocity += separation * Time.fixedDeltaTime;
 
             lastVelocity = rb.linearVelocity;
 
-            float sqr = rb.linearVelocity.sqrMagnitude;
-            if (sqr < settleSpeedThreshold * settleSpeedThreshold)
+            bool nowActive = IsActive;
+            if (nowActive != wasActive)
             {
-                slowTimer += Time.fixedDeltaTime;
-                if (slowTimer >= settleTime) Settle();
-            }
-            else
-            {
-                slowTimer = 0f;
+                gameObject.layer = nowActive ? activeLayerIdx : inactiveLayerIdx;
+                wasActive = nowActive;
             }
         }
 
@@ -117,6 +113,8 @@ namespace PickShoot
                 HandleWallBounce(col);
                 return;
             }
+
+            if (!IsActive) return;
 
             enemy.TakeDamage(damage);
 
@@ -174,22 +172,10 @@ namespace PickShoot
 
         void TriggerBounceEffect()
         {
-            if (settled) return;
             if (sr != null) sr.color = bounceFlashColor;
             transform.localScale = baseScale * bounceScalePulse;
             flashUntil = Time.time + bounceFlashDuration;
             flashing = true;
-        }
-
-        void Settle()
-        {
-            settled = true;
-            rb.linearVelocity = Vector2.zero;
-            rb.bodyType = RigidbodyType2D.Kinematic;
-            flashing = false;
-            transform.localScale = baseScale;
-
-            if (sr != null) sr.color = new Color(1f, 0.5f, 0.1f);
         }
     }
 }

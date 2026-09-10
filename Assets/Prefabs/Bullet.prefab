@@ -169,9 +169,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 22a4e259d8886ee4e90f9e8b2318a7bb, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PickShoot.Bullet
-  settleSpeedThreshold: 0.4
-  settleTime: 0.2
-  pickupDelay: 0.2
+  activeSpeedThreshold: 2
+  interactionDelay: 0.4
   damage: 1
   knockbackForce: 6
   postHitSpeedMultiplier: 0.6
@@ -184,4 +183,4 @@ MonoBehaviour:
   separationStrength: 3
   bulletLayerMask:
     serializedVersion: 2
-    m_Bits: 256
+    m_Bits: 1280

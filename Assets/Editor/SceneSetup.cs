@@ -166,7 +166,13 @@ namespace PickShoot
         public static void SetupShooting()
         {
             int bulletLayer = EnsureLayer("Bullet");
+            int bulletInactiveLayer = EnsureLayer("BulletInactive");
             Physics2D.IgnoreLayerCollision(bulletLayer, bulletLayer, true);
+            Physics2D.IgnoreLayerCollision(bulletInactiveLayer, bulletInactiveLayer, true);
+            Physics2D.IgnoreLayerCollision(bulletLayer, bulletInactiveLayer, true);
+            int enemyLayer = LayerMask.NameToLayer("Enemy");
+            if (enemyLayer >= 0)
+                Physics2D.IgnoreLayerCollision(bulletInactiveLayer, enemyLayer, true);
 
             var bounceMat = EnsureBounceMaterial();
             var circleSprite = EnsureSprite(CircleSpritePath, filled: true);
@@ -227,9 +233,8 @@ namespace PickShoot
             var bullet = temp.AddComponent<PickShoot.Bullet>();
 
             var soBullet = new SerializedObject(bullet);
-            soBullet.FindProperty("settleSpeedThreshold").floatValue = 0.4f;
-            soBullet.FindProperty("settleTime").floatValue = 0.2f;
-            soBullet.FindProperty("pickupDelay").floatValue = 0.2f;
+            soBullet.FindProperty("activeSpeedThreshold").floatValue = 2f;
+            soBullet.FindProperty("interactionDelay").floatValue = 0.4f;
             soBullet.FindProperty("damage").intValue = 1;
             soBullet.FindProperty("knockbackForce").floatValue = 6f;
             soBullet.FindProperty("postHitSpeedMultiplier").floatValue = 0.6f;
@@ -240,7 +245,10 @@ namespace PickShoot
             soBullet.FindProperty("bounceScalePulse").floatValue = 1.5f;
             soBullet.FindProperty("separationRadius").floatValue = 0.6f;
             soBullet.FindProperty("separationStrength").floatValue = 3f;
-            soBullet.FindProperty("bulletLayerMask").intValue = 1 << layer;
+            int inactiveLayerIdx = LayerMask.NameToLayer("BulletInactive");
+            int layerMask = 1 << layer;
+            if (inactiveLayerIdx >= 0) layerMask |= 1 << inactiveLayerIdx;
+            soBullet.FindProperty("bulletLayerMask").intValue = layerMask;
             soBullet.ApplyModifiedProperties();
 
             var prefab = PrefabUtility.SaveAsPrefabAsset(temp, BulletPrefabPath);
@@ -274,6 +282,9 @@ namespace PickShoot
 
             var soPickup = new SerializedObject(pickup);
             soPickup.FindProperty("ammo").objectReferenceValue = ammo;
+            soPickup.FindProperty("pickupRadius").floatValue = 0.9f;
+            soPickup.FindProperty("magnetRadius").floatValue = 2.8f;
+            soPickup.FindProperty("magnetSpeed").floatValue = 6f;
             soPickup.ApplyModifiedProperties();
 
             EditorSceneManager.MarkSceneDirty(EditorSceneManager.GetActiveScene());
@@ -357,6 +368,9 @@ namespace PickShoot
         public static void SetupEnemy()
         {
             int enemyLayer = EnsureLayer("Enemy");
+            int bulletInactiveLayer = LayerMask.NameToLayer("BulletInactive");
+            if (bulletInactiveLayer >= 0)
+                Physics2D.IgnoreLayerCollision(enemyLayer, bulletInactiveLayer, true);
 
             var player = GameObject.Find("Player");
             if (player == null)
