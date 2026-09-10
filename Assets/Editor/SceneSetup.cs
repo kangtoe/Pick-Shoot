@@ -5,7 +5,7 @@ using UnityEngine;
 
 namespace PickShoot
 {
-    // Phase 1 프로토타입용 씬 세팅 자동화. Phase 1 완료 후 삭제 예정.
+    // Phase 1~2 프로토타입용 씬 세팅 자동화. Phase 완료 후 삭제 예정.
     public static class SceneSetup
     {
         const float ArenaSize = 20f;
@@ -20,6 +20,8 @@ namespace PickShoot
         const string SpawnWarningPrefabPath = "Assets/Prefabs/SpawnWarning.prefab";
         const string PickupEffectPrefabPath = "Assets/Prefabs/PickupEffect.prefab";
         const int SpriteResolution = 64;
+
+        // ── 1-A · Arena ───────────────────────────────────────────
 
         [MenuItem("PickShoot/Setup/1-A · Create Arena")]
         public static void CreateArena()
@@ -114,6 +116,35 @@ namespace PickShoot
             box.sharedMaterial = mat;
         }
 
+        static void CreateBoundaryVisual(Transform parent)
+        {
+            var vis = new GameObject("BoundaryVisual");
+            vis.transform.SetParent(parent);
+
+            var lr = vis.AddComponent<LineRenderer>();
+            lr.useWorldSpace = false;
+            lr.loop = true;
+            lr.positionCount = 4;
+            float half = ArenaSize / 2f;
+            lr.SetPositions(new Vector3[]
+            {
+                new Vector3(-half, -half, 0f),
+                new Vector3( half, -half, 0f),
+                new Vector3( half,  half, 0f),
+                new Vector3(-half,  half, 0f),
+            });
+            lr.widthMultiplier = 0.1f;
+
+            var shader = Shader.Find("Sprites/Default");
+            if (shader == null)
+                throw new System.Exception("[PickShoot] 'Sprites/Default' 셰이더를 찾지 못했습니다.");
+            var lineMat = new Material(shader);
+            lr.sharedMaterial = lineMat;
+            lr.startColor = lr.endColor = Color.white;
+        }
+
+        // ── 1-B · Player ──────────────────────────────────────────
+
         [MenuItem("PickShoot/Setup/1-B · Create Player")]
         public static void CreatePlayer()
         {
@@ -165,6 +196,8 @@ namespace PickShoot
             Selection.activeGameObject = player;
             Debug.Log("[PickShoot] Player 생성 완료. 씬 저장 필요.");
         }
+
+        // ── 1-C · Shooting ────────────────────────────────────────
 
         [MenuItem("PickShoot/Setup/1-C · Setup Shooting")]
         public static void SetupShooting()
@@ -263,6 +296,8 @@ namespace PickShoot
             return prefab;
         }
 
+        // ── 1-D · Ammo & Pickup ───────────────────────────────────
+
         [MenuItem("PickShoot/Setup/1-D · Setup Ammo & Pickup")]
         public static void SetupAmmoAndPickup()
         {
@@ -296,282 +331,7 @@ namespace PickShoot
             Debug.Log("[PickShoot] 1-D 회수/재장전 세팅 완료. 씬 저장 필요.");
         }
 
-        [MenuItem("PickShoot/Setup/2-C · Setup Waves")]
-        public static void SetupWaves()
-        {
-            var enemyPrefab = AssetDatabase.LoadAssetAtPath<GameObject>(EnemyPrefabPath);
-            if (enemyPrefab == null)
-                throw new System.Exception($"[PickShoot] Enemy 프리팹 없음. '2-A · Setup Enemy' 먼저 실행. ({EnemyPrefabPath})");
-
-            var spawnWarning = EnsureWarningLabelPrefab(
-                SpawnWarningPrefabPath, "SpawnWarning", "!",
-                new Color(1f, 0.2f, 0.2f, 1f));
-
-            var testEnemies = GameObject.Find("TestEnemies");
-            if (testEnemies != null) Object.DestroyImmediate(testEnemies);
-
-            var gm = GameObject.Find("GameManager");
-            if (gm == null) gm = new GameObject("GameManager");
-
-            var wm = gm.GetComponent<PickShoot.WaveManager>();
-            if (wm == null) wm = gm.AddComponent<PickShoot.WaveManager>();
-
-            var so = new SerializedObject(wm);
-            so.FindProperty("enemyPrefab").objectReferenceValue = enemyPrefab;
-            so.FindProperty("spawnWarningPrefab").objectReferenceValue = spawnWarning;
-            so.FindProperty("arenaHalfExtents").vector2Value = new Vector2(ArenaSize * 0.5f - 1f, ArenaSize * 0.5f - 1f);
-            so.FindProperty("baseEnemies").intValue = 3;
-            so.FindProperty("enemiesPerWaveIncrement").intValue = 2;
-            so.FindProperty("betweenWaveDelay").floatValue = 2f;
-            so.FindProperty("spawnInterval").floatValue = 0.5f;
-            so.FindProperty("spawnWarningDuration").floatValue = 0.6f;
-            so.FindProperty("minSpawnDistanceFromPlayer").floatValue = 5f;
-            so.ApplyModifiedProperties();
-
-            EditorSceneManager.MarkSceneDirty(EditorSceneManager.GetActiveScene());
-            Debug.Log("[PickShoot] 2-C 웨이브 세팅 완료. TestEnemies 제거됨. 씬 저장 필요.");
-        }
-
-        [MenuItem("PickShoot/Setup/2-D · Setup Feedback Effects")]
-        public static void SetupFeedbackEffects()
-        {
-            var circleSprite = EnsureSprite(CircleSpritePath, filled: true);
-
-            var hitEffect = EnsureImpactPrefab(
-                HitEffectPrefabPath, "HitEffect", circleSprite,
-                new Color(1f, 0.85f, 0.3f, 0.85f), duration: 0.18f, start: 0.35f, end: 1.1f);
-
-            var deathEffect = EnsureDeathParticlePrefab(
-                DeathEffectPrefabPath, "DeathEffect", new Color(1f, 0.35f, 0.2f, 1f));
-
-            var pickupEffect = EnsureImpactPrefab(
-                PickupEffectPrefabPath, "PickupEffect", circleSprite,
-                new Color(0.4f, 0.95f, 1f, 0.85f), duration: 0.2f, start: 0.3f, end: 1.3f);
-
-            var bulletPrefab = AssetDatabase.LoadAssetAtPath<GameObject>(BulletPrefabPath);
-            if (bulletPrefab == null)
-                throw new System.Exception($"[PickShoot] Bullet 프리팹 없음. '1-C · Setup Shooting' 먼저 실행. ({BulletPrefabPath})");
-            var bulletComp = bulletPrefab.GetComponent<PickShoot.Bullet>();
-            if (bulletComp == null)
-                throw new System.Exception("[PickShoot] Bullet 프리팹에 Bullet 컴포넌트 없음.");
-            var soBullet = new SerializedObject(bulletComp);
-            soBullet.FindProperty("hitEffectPrefab").objectReferenceValue = hitEffect;
-            soBullet.ApplyModifiedProperties();
-
-            var enemyPrefab = AssetDatabase.LoadAssetAtPath<GameObject>(EnemyPrefabPath);
-            if (enemyPrefab == null)
-                throw new System.Exception($"[PickShoot] Enemy 프리팹 없음. '2-A · Setup Enemy' 먼저 실행. ({EnemyPrefabPath})");
-            var enemyHealthComp = enemyPrefab.GetComponent<PickShoot.EnemyHealth>();
-            if (enemyHealthComp == null)
-                throw new System.Exception("[PickShoot] Enemy 프리팹에 EnemyHealth 컴포넌트 없음.");
-            var soEnemy = new SerializedObject(enemyHealthComp);
-            soEnemy.FindProperty("deathEffectPrefab").objectReferenceValue = deathEffect;
-            soEnemy.ApplyModifiedProperties();
-
-            var player = GameObject.Find("Player");
-            if (player == null)
-                throw new System.Exception("[PickShoot] Player 없음. '1-B · Create Player' 먼저 실행.");
-            var pickup = player.GetComponent<PickShoot.PlayerPickup>();
-            if (pickup == null)
-                throw new System.Exception("[PickShoot] PlayerPickup 없음. '1-D · Setup Ammo & Pickup' 먼저 실행.");
-            var soPickup = new SerializedObject(pickup);
-            soPickup.FindProperty("pickupEffectPrefab").objectReferenceValue = pickupEffect;
-            soPickup.ApplyModifiedProperties();
-
-            EditorSceneManager.MarkSceneDirty(EditorSceneManager.GetActiveScene());
-            AssetDatabase.SaveAssets();
-            Debug.Log("[PickShoot] 2-D 피격 피드백 세팅 완료 (Hit/Death/Pickup 이펙트 프리팹 + 참조 연결).");
-        }
-
-        static GameObject EnsureWarningLabelPrefab(string path, string name, string text, Color color)
-        {
-            var dir = Path.GetDirectoryName(path);
-            if (!Directory.Exists(dir))
-            {
-                Directory.CreateDirectory(dir);
-                AssetDatabase.Refresh();
-            }
-
-            var temp = new GameObject(name);
-
-            var tm = temp.AddComponent<TextMesh>();
-            tm.text = text;
-            tm.color = color;
-            tm.anchor = TextAnchor.MiddleCenter;
-            tm.alignment = TextAlignment.Center;
-            tm.fontSize = 64;
-            tm.characterSize = 0.15f;
-            tm.fontStyle = FontStyle.Bold;
-
-            var font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
-            if (font == null) font = Resources.GetBuiltinResource<Font>("Arial.ttf");
-            if (font == null)
-                throw new System.Exception("[PickShoot] Built-in Font 로드 실패 (LegacyRuntime/Arial).");
-            tm.font = font;
-
-            var renderer = temp.GetComponent<MeshRenderer>();
-            renderer.sharedMaterial = font.material;
-            renderer.sortingOrder = 10;
-
-            var label = temp.AddComponent<PickShoot.WarningLabel>();
-            var so = new SerializedObject(label);
-            so.FindProperty("duration").floatValue = 0.6f;
-            so.FindProperty("startScale").floatValue = 0.9f;
-            so.FindProperty("endScale").floatValue = 1.3f;
-            so.FindProperty("blinkFrequency").floatValue = 8f;
-            so.ApplyModifiedProperties();
-
-            var prefab = PrefabUtility.SaveAsPrefabAsset(temp, path);
-            Object.DestroyImmediate(temp);
-            if (prefab == null)
-                throw new System.Exception($"[PickShoot] Warning label 프리팹 저장 실패: {path}");
-            return prefab;
-        }
-
-        static GameObject EnsureDeathParticlePrefab(string path, string name, Color color)
-        {
-            var dir = Path.GetDirectoryName(path);
-            if (!Directory.Exists(dir))
-            {
-                Directory.CreateDirectory(dir);
-                AssetDatabase.Refresh();
-            }
-
-            var temp = new GameObject(name);
-            var ps = temp.AddComponent<ParticleSystem>();
-
-            var main = ps.main;
-            main.duration = 0.6f;
-            main.loop = false;
-            main.playOnAwake = true;
-            main.startLifetime = 0.45f;
-            main.startSpeed = 7f;
-            main.startSize = 0.18f;
-            main.startColor = color;
-            main.simulationSpace = ParticleSystemSimulationSpace.World;
-            main.gravityModifier = 0f;
-            main.maxParticles = 60;
-            main.stopAction = ParticleSystemStopAction.Destroy;
-
-            var emission = ps.emission;
-            emission.enabled = true;
-            emission.rateOverTime = 0f;
-            emission.SetBursts(new[] { new ParticleSystem.Burst(0f, 28) });
-
-            var shape = ps.shape;
-            shape.enabled = true;
-            shape.shapeType = ParticleSystemShapeType.Circle;
-            shape.radius = 0.25f;
-            shape.radiusThickness = 0f;
-
-            var colorOverLifetime = ps.colorOverLifetime;
-            colorOverLifetime.enabled = true;
-            var gradient = new Gradient();
-            gradient.SetKeys(
-                new[] { new GradientColorKey(color, 0f), new GradientColorKey(color, 1f) },
-                new[] { new GradientAlphaKey(1f, 0f), new GradientAlphaKey(0f, 1f) });
-            colorOverLifetime.color = new ParticleSystem.MinMaxGradient(gradient);
-
-            var sizeOverLifetime = ps.sizeOverLifetime;
-            sizeOverLifetime.enabled = true;
-            var sizeCurve = new AnimationCurve();
-            sizeCurve.AddKey(0f, 1f);
-            sizeCurve.AddKey(1f, 0.2f);
-            sizeOverLifetime.size = new ParticleSystem.MinMaxCurve(1f, sizeCurve);
-
-            var renderer = temp.GetComponent<ParticleSystemRenderer>();
-            renderer.renderMode = ParticleSystemRenderMode.Billboard;
-            renderer.sortingOrder = 8;
-            var particleMat = AssetDatabase.GetBuiltinExtraResource<Material>("Default-Particle.mat");
-            if (particleMat == null)
-                throw new System.Exception("[PickShoot] Default-Particle 재질 로드 실패.");
-            renderer.sharedMaterial = particleMat;
-
-            var prefab = PrefabUtility.SaveAsPrefabAsset(temp, path);
-            Object.DestroyImmediate(temp);
-            if (prefab == null)
-                throw new System.Exception($"[PickShoot] Death 파티클 프리팹 저장 실패: {path}");
-            return prefab;
-        }
-
-        static GameObject EnsureImpactPrefab(string path, string name, Sprite sprite, Color color, float duration, float start, float end)
-        {
-            var dir = Path.GetDirectoryName(path);
-            if (!Directory.Exists(dir))
-            {
-                Directory.CreateDirectory(dir);
-                AssetDatabase.Refresh();
-            }
-
-            var temp = new GameObject(name);
-            var sr = temp.AddComponent<SpriteRenderer>();
-            sr.sprite = sprite;
-            sr.color = color;
-            sr.sortingOrder = 8;
-
-            var impact = temp.AddComponent<PickShoot.Impact>();
-            var so = new SerializedObject(impact);
-            so.FindProperty("duration").floatValue = duration;
-            so.FindProperty("startScale").floatValue = start;
-            so.FindProperty("endScale").floatValue = end;
-            so.ApplyModifiedProperties();
-
-            var prefab = PrefabUtility.SaveAsPrefabAsset(temp, path);
-            Object.DestroyImmediate(temp);
-            if (prefab == null)
-                throw new System.Exception($"[PickShoot] 이펙트 프리팹 저장 실패: {path}");
-            return prefab;
-        }
-
-        [MenuItem("PickShoot/Setup/2-B · Setup Player Health & Death")]
-        public static void SetupPlayerHealthAndDeath()
-        {
-            var player = GameObject.Find("Player");
-            if (player == null)
-                throw new System.Exception("[PickShoot] Player 없음. '1-B · Create Player' 먼저 실행.");
-
-            var health = player.GetComponent<PickShoot.PlayerHealth>();
-            if (health == null) health = player.AddComponent<PickShoot.PlayerHealth>();
-
-            var soHealth = new SerializedObject(health);
-            soHealth.FindProperty("maxHp").intValue = 3;
-            soHealth.FindProperty("invincibilityTime").floatValue = 0.8f;
-            soHealth.FindProperty("damageFlashDuration").floatValue = 0.35f;
-            soHealth.FindProperty("damageFlashColor").colorValue = new Color(1f, 0.15f, 0.15f, 0.4f);
-            soHealth.ApplyModifiedProperties();
-
-            var gm = GameObject.Find("GameManager");
-            if (gm == null) gm = new GameObject("GameManager");
-
-            var overScreen = gm.GetComponent<PickShoot.GameOverScreen>();
-            if (overScreen == null) overScreen = gm.AddComponent<PickShoot.GameOverScreen>();
-
-            var so = new SerializedObject(overScreen);
-            so.FindProperty("playerHealth").objectReferenceValue = health;
-            so.ApplyModifiedProperties();
-
-            EnsureActiveSceneInBuildSettings();
-
-            EditorSceneManager.MarkSceneDirty(EditorSceneManager.GetActiveScene());
-            Debug.Log("[PickShoot] 2-B 세팅 완료. 씬 저장 필요.");
-        }
-
-        static void EnsureActiveSceneInBuildSettings()
-        {
-            var scenePath = EditorSceneManager.GetActiveScene().path;
-            if (string.IsNullOrEmpty(scenePath))
-                throw new System.Exception("[PickShoot] 활성 씬이 저장되지 않아 Build Settings 등록 불가.");
-
-            var current = EditorBuildSettings.scenes;
-            for (int i = 0; i < current.Length; i++)
-                if (current[i].path == scenePath) return;
-
-            var updated = new EditorBuildSettingsScene[current.Length + 1];
-            System.Array.Copy(current, updated, current.Length);
-            updated[current.Length] = new EditorBuildSettingsScene(scenePath, true);
-            EditorBuildSettings.scenes = updated;
-            Debug.Log($"[PickShoot] Build Settings에 씬 등록: {scenePath}");
-        }
+        // ── 2-A · Enemy ───────────────────────────────────────────
 
         [MenuItem("PickShoot/Setup/2-A · Setup Enemy")]
         public static void SetupEnemy()
@@ -662,6 +422,291 @@ namespace PickShoot
             return prefab;
         }
 
+        // ── 2-B · Player Health & Death ───────────────────────────
+
+        [MenuItem("PickShoot/Setup/2-B · Setup Player Health & Death")]
+        public static void SetupPlayerHealthAndDeath()
+        {
+            var player = GameObject.Find("Player");
+            if (player == null)
+                throw new System.Exception("[PickShoot] Player 없음. '1-B · Create Player' 먼저 실행.");
+
+            var health = player.GetComponent<PickShoot.PlayerHealth>();
+            if (health == null) health = player.AddComponent<PickShoot.PlayerHealth>();
+
+            var soHealth = new SerializedObject(health);
+            soHealth.FindProperty("maxHp").intValue = 3;
+            soHealth.FindProperty("invincibilityTime").floatValue = 0.8f;
+            soHealth.FindProperty("damageFlashDuration").floatValue = 0.35f;
+            soHealth.FindProperty("damageFlashColor").colorValue = new Color(1f, 0.15f, 0.15f, 0.4f);
+            soHealth.ApplyModifiedProperties();
+
+            var gm = GameObject.Find("GameManager");
+            if (gm == null) gm = new GameObject("GameManager");
+
+            var overScreen = gm.GetComponent<PickShoot.GameOverScreen>();
+            if (overScreen == null) overScreen = gm.AddComponent<PickShoot.GameOverScreen>();
+
+            var so = new SerializedObject(overScreen);
+            so.FindProperty("playerHealth").objectReferenceValue = health;
+            so.ApplyModifiedProperties();
+
+            EnsureActiveSceneInBuildSettings();
+
+            EditorSceneManager.MarkSceneDirty(EditorSceneManager.GetActiveScene());
+            Debug.Log("[PickShoot] 2-B 세팅 완료. 씬 저장 필요.");
+        }
+
+        static void EnsureActiveSceneInBuildSettings()
+        {
+            var scenePath = EditorSceneManager.GetActiveScene().path;
+            if (string.IsNullOrEmpty(scenePath))
+                throw new System.Exception("[PickShoot] 활성 씬이 저장되지 않아 Build Settings 등록 불가.");
+
+            var current = EditorBuildSettings.scenes;
+            for (int i = 0; i < current.Length; i++)
+                if (current[i].path == scenePath) return;
+
+            var updated = new EditorBuildSettingsScene[current.Length + 1];
+            System.Array.Copy(current, updated, current.Length);
+            updated[current.Length] = new EditorBuildSettingsScene(scenePath, true);
+            EditorBuildSettings.scenes = updated;
+            Debug.Log($"[PickShoot] Build Settings에 씬 등록: {scenePath}");
+        }
+
+        // ── 2-C · Waves ───────────────────────────────────────────
+
+        [MenuItem("PickShoot/Setup/2-C · Setup Waves")]
+        public static void SetupWaves()
+        {
+            var enemyPrefab = AssetDatabase.LoadAssetAtPath<GameObject>(EnemyPrefabPath);
+            if (enemyPrefab == null)
+                throw new System.Exception($"[PickShoot] Enemy 프리팹 없음. '2-A · Setup Enemy' 먼저 실행. ({EnemyPrefabPath})");
+
+            var spawnWarning = EnsureWarningLabelPrefab(
+                SpawnWarningPrefabPath, "SpawnWarning", "!",
+                new Color(1f, 0.2f, 0.2f, 1f));
+
+            var testEnemies = GameObject.Find("TestEnemies");
+            if (testEnemies != null) Object.DestroyImmediate(testEnemies);
+
+            var gm = GameObject.Find("GameManager");
+            if (gm == null) gm = new GameObject("GameManager");
+
+            var wm = gm.GetComponent<PickShoot.WaveManager>();
+            if (wm == null) wm = gm.AddComponent<PickShoot.WaveManager>();
+
+            var so = new SerializedObject(wm);
+            so.FindProperty("enemyPrefab").objectReferenceValue = enemyPrefab;
+            so.FindProperty("spawnWarningPrefab").objectReferenceValue = spawnWarning;
+            so.FindProperty("arenaHalfExtents").vector2Value = new Vector2(ArenaSize * 0.5f - 1f, ArenaSize * 0.5f - 1f);
+            so.FindProperty("baseEnemies").intValue = 3;
+            so.FindProperty("enemiesPerWaveIncrement").intValue = 2;
+            so.FindProperty("betweenWaveDelay").floatValue = 2f;
+            so.FindProperty("spawnInterval").floatValue = 0.5f;
+            so.FindProperty("spawnWarningDuration").floatValue = 0.6f;
+            so.FindProperty("minSpawnDistanceFromPlayer").floatValue = 5f;
+            so.ApplyModifiedProperties();
+
+            EditorSceneManager.MarkSceneDirty(EditorSceneManager.GetActiveScene());
+            Debug.Log("[PickShoot] 2-C 웨이브 세팅 완료. TestEnemies 제거됨. 씬 저장 필요.");
+        }
+
+        static GameObject EnsureWarningLabelPrefab(string path, string name, string text, Color color)
+        {
+            var dir = Path.GetDirectoryName(path);
+            if (!Directory.Exists(dir))
+            {
+                Directory.CreateDirectory(dir);
+                AssetDatabase.Refresh();
+            }
+
+            var temp = new GameObject(name);
+
+            var tm = temp.AddComponent<TextMesh>();
+            tm.text = text;
+            tm.color = color;
+            tm.anchor = TextAnchor.MiddleCenter;
+            tm.alignment = TextAlignment.Center;
+            tm.fontSize = 64;
+            tm.characterSize = 0.15f;
+            tm.fontStyle = FontStyle.Bold;
+
+            var font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+            if (font == null) font = Resources.GetBuiltinResource<Font>("Arial.ttf");
+            if (font == null)
+                throw new System.Exception("[PickShoot] Built-in Font 로드 실패 (LegacyRuntime/Arial).");
+            tm.font = font;
+
+            var renderer = temp.GetComponent<MeshRenderer>();
+            renderer.sharedMaterial = font.material;
+            renderer.sortingOrder = 10;
+
+            var label = temp.AddComponent<PickShoot.WarningLabel>();
+            var so = new SerializedObject(label);
+            so.FindProperty("duration").floatValue = 0.6f;
+            so.FindProperty("startScale").floatValue = 0.9f;
+            so.FindProperty("endScale").floatValue = 1.3f;
+            so.FindProperty("blinkFrequency").floatValue = 8f;
+            so.ApplyModifiedProperties();
+
+            var prefab = PrefabUtility.SaveAsPrefabAsset(temp, path);
+            Object.DestroyImmediate(temp);
+            if (prefab == null)
+                throw new System.Exception($"[PickShoot] Warning label 프리팹 저장 실패: {path}");
+            return prefab;
+        }
+
+        // ── 2-D · Feedback Effects ────────────────────────────────
+
+        [MenuItem("PickShoot/Setup/2-D · Setup Feedback Effects")]
+        public static void SetupFeedbackEffects()
+        {
+            var circleSprite = EnsureSprite(CircleSpritePath, filled: true);
+
+            var hitEffect = EnsureImpactPrefab(
+                HitEffectPrefabPath, "HitEffect", circleSprite,
+                new Color(1f, 0.85f, 0.3f, 0.85f), duration: 0.18f, start: 0.35f, end: 1.1f);
+
+            var deathEffect = EnsureDeathParticlePrefab(
+                DeathEffectPrefabPath, "DeathEffect", new Color(1f, 0.35f, 0.2f, 1f));
+
+            var pickupEffect = EnsureImpactPrefab(
+                PickupEffectPrefabPath, "PickupEffect", circleSprite,
+                new Color(0.4f, 0.95f, 1f, 0.85f), duration: 0.2f, start: 0.3f, end: 1.3f);
+
+            var bulletPrefab = AssetDatabase.LoadAssetAtPath<GameObject>(BulletPrefabPath);
+            if (bulletPrefab == null)
+                throw new System.Exception($"[PickShoot] Bullet 프리팹 없음. '1-C · Setup Shooting' 먼저 실행. ({BulletPrefabPath})");
+            var bulletComp = bulletPrefab.GetComponent<PickShoot.Bullet>();
+            if (bulletComp == null)
+                throw new System.Exception("[PickShoot] Bullet 프리팹에 Bullet 컴포넌트 없음.");
+            var soBullet = new SerializedObject(bulletComp);
+            soBullet.FindProperty("hitEffectPrefab").objectReferenceValue = hitEffect;
+            soBullet.ApplyModifiedProperties();
+
+            var enemyPrefab = AssetDatabase.LoadAssetAtPath<GameObject>(EnemyPrefabPath);
+            if (enemyPrefab == null)
+                throw new System.Exception($"[PickShoot] Enemy 프리팹 없음. '2-A · Setup Enemy' 먼저 실행. ({EnemyPrefabPath})");
+            var enemyHealthComp = enemyPrefab.GetComponent<PickShoot.EnemyHealth>();
+            if (enemyHealthComp == null)
+                throw new System.Exception("[PickShoot] Enemy 프리팹에 EnemyHealth 컴포넌트 없음.");
+            var soEnemy = new SerializedObject(enemyHealthComp);
+            soEnemy.FindProperty("deathEffectPrefab").objectReferenceValue = deathEffect;
+            soEnemy.ApplyModifiedProperties();
+
+            var player = GameObject.Find("Player");
+            if (player == null)
+                throw new System.Exception("[PickShoot] Player 없음. '1-B · Create Player' 먼저 실행.");
+            var pickup = player.GetComponent<PickShoot.PlayerPickup>();
+            if (pickup == null)
+                throw new System.Exception("[PickShoot] PlayerPickup 없음. '1-D · Setup Ammo & Pickup' 먼저 실행.");
+            var soPickup = new SerializedObject(pickup);
+            soPickup.FindProperty("pickupEffectPrefab").objectReferenceValue = pickupEffect;
+            soPickup.ApplyModifiedProperties();
+
+            EditorSceneManager.MarkSceneDirty(EditorSceneManager.GetActiveScene());
+            AssetDatabase.SaveAssets();
+            Debug.Log("[PickShoot] 2-D 피격 피드백 세팅 완료 (Hit/Death/Pickup 이펙트 프리팹 + 참조 연결).");
+        }
+
+        static GameObject EnsureImpactPrefab(string path, string name, Sprite sprite, Color color, float duration, float start, float end)
+        {
+            var dir = Path.GetDirectoryName(path);
+            if (!Directory.Exists(dir))
+            {
+                Directory.CreateDirectory(dir);
+                AssetDatabase.Refresh();
+            }
+
+            var temp = new GameObject(name);
+            var sr = temp.AddComponent<SpriteRenderer>();
+            sr.sprite = sprite;
+            sr.color = color;
+            sr.sortingOrder = 8;
+
+            var impact = temp.AddComponent<PickShoot.Impact>();
+            var so = new SerializedObject(impact);
+            so.FindProperty("duration").floatValue = duration;
+            so.FindProperty("startScale").floatValue = start;
+            so.FindProperty("endScale").floatValue = end;
+            so.ApplyModifiedProperties();
+
+            var prefab = PrefabUtility.SaveAsPrefabAsset(temp, path);
+            Object.DestroyImmediate(temp);
+            if (prefab == null)
+                throw new System.Exception($"[PickShoot] 이펙트 프리팹 저장 실패: {path}");
+            return prefab;
+        }
+
+        static GameObject EnsureDeathParticlePrefab(string path, string name, Color color)
+        {
+            var dir = Path.GetDirectoryName(path);
+            if (!Directory.Exists(dir))
+            {
+                Directory.CreateDirectory(dir);
+                AssetDatabase.Refresh();
+            }
+
+            var temp = new GameObject(name);
+            var ps = temp.AddComponent<ParticleSystem>();
+
+            var main = ps.main;
+            main.duration = 0.6f;
+            main.loop = false;
+            main.playOnAwake = true;
+            main.startLifetime = 0.45f;
+            main.startSpeed = 7f;
+            main.startSize = 0.18f;
+            main.startColor = color;
+            main.simulationSpace = ParticleSystemSimulationSpace.World;
+            main.gravityModifier = 0f;
+            main.maxParticles = 60;
+            main.stopAction = ParticleSystemStopAction.Destroy;
+
+            var emission = ps.emission;
+            emission.enabled = true;
+            emission.rateOverTime = 0f;
+            emission.SetBursts(new[] { new ParticleSystem.Burst(0f, 28) });
+
+            var shape = ps.shape;
+            shape.enabled = true;
+            shape.shapeType = ParticleSystemShapeType.Circle;
+            shape.radius = 0.25f;
+            shape.radiusThickness = 0f;
+
+            var colorOverLifetime = ps.colorOverLifetime;
+            colorOverLifetime.enabled = true;
+            var gradient = new Gradient();
+            gradient.SetKeys(
+                new[] { new GradientColorKey(color, 0f), new GradientColorKey(color, 1f) },
+                new[] { new GradientAlphaKey(1f, 0f), new GradientAlphaKey(0f, 1f) });
+            colorOverLifetime.color = new ParticleSystem.MinMaxGradient(gradient);
+
+            var sizeOverLifetime = ps.sizeOverLifetime;
+            sizeOverLifetime.enabled = true;
+            var sizeCurve = new AnimationCurve();
+            sizeCurve.AddKey(0f, 1f);
+            sizeCurve.AddKey(1f, 0.2f);
+            sizeOverLifetime.size = new ParticleSystem.MinMaxCurve(1f, sizeCurve);
+
+            var renderer = temp.GetComponent<ParticleSystemRenderer>();
+            renderer.renderMode = ParticleSystemRenderMode.Billboard;
+            renderer.sortingOrder = 8;
+            var particleMat = AssetDatabase.GetBuiltinExtraResource<Material>("Default-Particle.mat");
+            if (particleMat == null)
+                throw new System.Exception("[PickShoot] Default-Particle 재질 로드 실패.");
+            renderer.sharedMaterial = particleMat;
+
+            var prefab = PrefabUtility.SaveAsPrefabAsset(temp, path);
+            Object.DestroyImmediate(temp);
+            if (prefab == null)
+                throw new System.Exception($"[PickShoot] Death 파티클 프리팹 저장 실패: {path}");
+            return prefab;
+        }
+
+        // ── 공통 유틸 ─────────────────────────────────────────────
+
         static int EnsureLayer(string layerName)
         {
             int existing = LayerMask.NameToLayer(layerName);
@@ -737,33 +782,6 @@ namespace PickShoot
             if (sprite == null)
                 throw new System.Exception($"[PickShoot] 스프라이트 로드 실패: {path}");
             return sprite;
-        }
-
-        static void CreateBoundaryVisual(Transform parent)
-        {
-            var vis = new GameObject("BoundaryVisual");
-            vis.transform.SetParent(parent);
-
-            var lr = vis.AddComponent<LineRenderer>();
-            lr.useWorldSpace = false;
-            lr.loop = true;
-            lr.positionCount = 4;
-            float half = ArenaSize / 2f;
-            lr.SetPositions(new Vector3[]
-            {
-                new Vector3(-half, -half, 0f),
-                new Vector3( half, -half, 0f),
-                new Vector3( half,  half, 0f),
-                new Vector3(-half,  half, 0f),
-            });
-            lr.widthMultiplier = 0.1f;
-
-            var shader = Shader.Find("Sprites/Default");
-            if (shader == null)
-                throw new System.Exception("[PickShoot] 'Sprites/Default' 셰이더를 찾지 못했습니다.");
-            var lineMat = new Material(shader);
-            lr.sharedMaterial = lineMat;
-            lr.startColor = lr.endColor = Color.white;
         }
     }
 }
