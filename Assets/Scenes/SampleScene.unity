@@ -133,10 +133,9 @@ GameObject:
   - component: {fileID: 142563677}
   - component: {fileID: 142563676}
   - component: {fileID: 142563675}
-  - component: {fileID: 142563681}
-  - component: {fileID: 142563683}
   - component: {fileID: 142563682}
   - component: {fileID: 142563684}
+  - component: {fileID: 142563685}
   m_Layer: 0
   m_Name: Player
   m_TagString: Player
@@ -310,23 +309,6 @@ Transform:
   - {fileID: 974361577}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!114 &142563681
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 142563674}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: f55d847422d9da74b8ed6adfce9fc3a2, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::PickShoot.PlayerShooter
-  bulletPrefab: {fileID: 7760557527274733243, guid: 57519a25e825ef34ba52cad75d73bf68, type: 3}
-  muzzle: {fileID: 974361577}
-  ammo: {fileID: 142563683}
-  bulletSpeed: 14
-  fireCooldown: 0.2
 --- !u!114 &142563682
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -339,24 +321,11 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 33ef5c342f60ce84f9dc5d7225f36c9e, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PickShoot.PlayerPickup
-  ammo: {fileID: 142563683}
   pickupRadius: 0.9
   magnetRadius: 2.8
-  magnetSpeed: 20
+  magnetTargetSpeed: 18
+  magnetBlendRate: 12
   pickupEffectPrefab: {fileID: 3409978152904165771, guid: 30fe44d2a97fd13469dcaa92e650a055, type: 3}
---- !u!114 &142563683
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 142563674}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 41dac551edeefd542a51cede4780d3f0, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::PickShoot.PlayerAmmo
-  maxAmmo: 6
 --- !u!114 &142563684
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -373,6 +342,21 @@ MonoBehaviour:
   invincibilityTime: 0.8
   damageFlashDuration: 0.35
   damageFlashColor: {r: 1, g: 0.15, b: 0.15, a: 0.4}
+--- !u!114 &142563685
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 142563674}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 582844c375c9b9740841041602609608, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::PickShoot.PlayerWeapons
+  muzzle: {fileID: 974361577}
+  startingWeapons:
+  - {fileID: 11400000, guid: 5d504b5a584fe1f45a2d1fc8867d4291, type: 2}
 --- !u!21 &351953604
 Material:
   serializedVersion: 8

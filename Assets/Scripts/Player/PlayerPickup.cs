@@ -4,7 +4,6 @@ namespace PickShoot
 {
     public class PlayerPickup : MonoBehaviour
     {
-        [SerializeField] PlayerAmmo ammo;
         [SerializeField] float pickupRadius = 0.9f;
         [SerializeField] float magnetRadius = 2.8f;
         [SerializeField] float magnetTargetSpeed = 18f;
@@ -12,12 +11,6 @@ namespace PickShoot
         [SerializeField] GameObject pickupEffectPrefab;
 
         readonly Collider2D[] hits = new Collider2D[16];
-
-        void Awake()
-        {
-            if (ammo == null)
-                throw new System.Exception("[PickShoot] PlayerPickup.ammo 미할당.");
-        }
 
         void FixedUpdate()
         {
@@ -32,7 +25,10 @@ namespace PickShoot
 
                 if (d <= pickupRadius)
                 {
-                    if (!ammo.TryAdd()) return;
+                    var owner = bullet.OwnerWeapon;
+                    if (owner == null)
+                        throw new System.Exception("[PickShoot] 회수 대상 Bullet에 OwnerWeapon이 null. 발사 경로에서 귀속이 누락되었습니다.");
+                    if (!owner.TryAddAmmo()) return;
                     if (pickupEffectPrefab != null)
                         Instantiate(pickupEffectPrefab, bullet.transform.position, Quaternion.identity);
                     Destroy(bullet.gameObject);

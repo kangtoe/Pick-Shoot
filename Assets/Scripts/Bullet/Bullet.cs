@@ -9,8 +9,6 @@ namespace PickShoot
         [SerializeField] float interactionDelay = 0.4f;
         [SerializeField] float sustainDuration = 0.5f;
         [SerializeField] float decayLinearDamping = 5f;
-        [SerializeField] int damage = 1;
-        [SerializeField] float knockbackForce = 6f;
         [SerializeField, Range(0f, 1f)] float postHitSpeedMultiplier = 0.6f;
         [SerializeField] float wallBounceMinSpeed = 7f;
         [SerializeField, Range(0f, 89f)] float maxBounceAngleFromNormal = 75f;
@@ -38,10 +36,14 @@ namespace PickShoot
         int activeLayerIdx;
         int inactiveLayerIdx;
         bool wasActive;
+        Weapon ownerWeapon;
+        int damage;
+        float knockbackForce;
         readonly Collider2D[] neighbors = new Collider2D[8];
 
         public bool IsInteractable => Time.time >= interactableAt;
         public bool IsActive => lastVelocity.sqrMagnitude >= activeSpeedThreshold * activeSpeedThreshold;
+        public Weapon OwnerWeapon => ownerWeapon;
 
         void Awake()
         {
@@ -53,11 +55,17 @@ namespace PickShoot
             activeLayerIdx = LayerMask.NameToLayer(ActiveLayerName);
             inactiveLayerIdx = LayerMask.NameToLayer(InactiveLayerName);
             if (activeLayerIdx < 0 || inactiveLayerIdx < 0)
-                throw new System.Exception($"[PickShoot] 레이어 미설정: '{ActiveLayerName}' / '{InactiveLayerName}'. Setup 1-C 실행 필요.");
+                throw new System.Exception($"[PickShoot] 레이어 미설정: '{ActiveLayerName}' / '{InactiveLayerName}'. Project Settings > Tags and Layers에서 추가 필요.");
         }
 
-        public void Launch(Vector2 velocity)
+        public void Launch(Vector2 velocity, Weapon owner, int damage, float knockbackForce)
         {
+            if (owner == null)
+                throw new System.Exception("[PickShoot] Bullet.Launch: owner Weapon이 null. 탄환은 반드시 무기에 귀속되어야 회수 시 탄창 충전이 가능합니다.");
+            ownerWeapon = owner;
+            this.damage = damage;
+            this.knockbackForce = knockbackForce;
+
             interactableAt = Time.time + interactionDelay;
             sustainEndAt = Time.time + sustainDuration;
             sustaining = true;
