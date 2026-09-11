@@ -7,6 +7,8 @@ namespace PickShoot
     {
         [SerializeField] float activeSpeedThreshold = 2f;
         [SerializeField] float interactionDelay = 0.4f;
+        [SerializeField] float sustainDuration = 0.5f;
+        [SerializeField] float decayLinearDamping = 5f;
         [SerializeField] int damage = 1;
         [SerializeField] float knockbackForce = 6f;
         [SerializeField, Range(0f, 1f)] float postHitSpeedMultiplier = 0.6f;
@@ -29,6 +31,8 @@ namespace PickShoot
         Vector3 baseScale;
         Color baseColor;
         float interactableAt;
+        float sustainEndAt;
+        bool sustaining;
         float flashUntil;
         bool flashing;
         int activeLayerIdx;
@@ -55,6 +59,9 @@ namespace PickShoot
         public void Launch(Vector2 velocity)
         {
             interactableAt = Time.time + interactionDelay;
+            sustainEndAt = Time.time + sustainDuration;
+            sustaining = true;
+            rb.linearDamping = 0f;
             rb.linearVelocity = velocity;
             lastVelocity = velocity;
             gameObject.layer = activeLayerIdx;
@@ -73,6 +80,12 @@ namespace PickShoot
 
         void FixedUpdate()
         {
+            if (sustaining && Time.time >= sustainEndAt)
+            {
+                rb.linearDamping = decayLinearDamping;
+                sustaining = false;
+            }
+
             Vector2 separation = ComputeSeparation();
             if (separation.sqrMagnitude > 0.0001f)
                 rb.linearVelocity += separation * Time.fixedDeltaTime;
