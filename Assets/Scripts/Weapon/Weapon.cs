@@ -2,17 +2,28 @@ using UnityEngine;
 
 namespace PickShoot
 {
-    // 무기 인스턴스 런타임 상태. WeaponData(정의) + 현재 탄창 + 다음 준비 시각.
+    // 무기 인스턴스 런타임 상태. WeaponData(정의) + 현재 탄창 + 다음 준비 시각 + 레벨.
+    // 강화는 자루 단위 레벨업 단일 축 (GDD §7.3). 레벨업 시 3항목이 함께 상승한다:
+    //   damage ×1.5, cooldown ×0.75, maxAmmo +2 (각 레벨업당 누적).
+    // 새로 획득한 자루는 항상 Lv.1로 시작.
     public class Weapon
     {
+        public const float LevelDamageMultiplier = 1.5f;
+        public const float LevelCooldownMultiplier = 0.75f;
+        public const int LevelMaxAmmoAdd = 2;
+
         readonly WeaponData data;
+        int level = 1;
         int currentAmmo;
         float nextReadyTime;
 
         public WeaponData Data => data;
+        public int Level => level;
         public int CurrentAmmo => currentAmmo;
-        public int MaxAmmo => data.MaxAmmo;
+        public int MaxAmmo => data.MaxAmmo + (level - 1) * LevelMaxAmmoAdd;
         public float NextReadyTime => nextReadyTime;
+        public int EffectiveDamage => Mathf.Max(1, Mathf.RoundToInt(data.Damage * Mathf.Pow(LevelDamageMultiplier, level - 1)));
+        public float EffectiveCooldown => Mathf.Max(0.01f, data.Cooldown * Mathf.Pow(LevelCooldownMultiplier, level - 1));
 
         public Weapon(WeaponData data)
         {
@@ -21,7 +32,7 @@ namespace PickShoot
             if (data.BulletPrefab == null)
                 throw new System.Exception($"[PickShoot] WeaponData '{data.DisplayName}'에 BulletPrefab 미할당.");
             this.data = data;
-            currentAmmo = data.MaxAmmo;
+            currentAmmo = MaxAmmo;
             nextReadyTime = 0f;
         }
 
@@ -35,10 +46,10 @@ namespace PickShoot
         public void Fire(Vector3 muzzlePos, Vector2 fireDirection, Collider2D shooterCollider, float now)
         {
             if (!CanFire(now))
-                throw new System.Exception($"[PickShoot] Weapon.Fire 호출됐지만 CanFire가 false. weapon={data.DisplayName}, now={now}, nextReadyTime={nextReadyTime}, ammo={currentAmmo}/{data.MaxAmmo}");
+                throw new System.Exception($"[PickShoot] Weapon.Fire 호출됐지만 CanFire가 false. weapon={data.DisplayName} Lv{level}, now={now}, nextReadyTime={nextReadyTime}, ammo={currentAmmo}/{MaxAmmo}");
 
             currentAmmo -= data.AmmoPerShot;
-            nextReadyTime = now + data.Cooldown;
+            nextReadyTime = now + EffectiveCooldown;
 
             int shots = data.ProjectilesPerShot;
             float spread = data.SpreadAngleDegrees;
@@ -63,16 +74,23 @@ namespace PickShoot
                 if (shooterCollider != null)
                     Physics2D.IgnoreCollision(shooterCollider, bulletCol, true);
 
-                bullet.Launch(dir * data.BulletSpeed, this, data.Damage, data.KnockbackForce);
+                bullet.Launch(dir * data.BulletSpeed, this, EffectiveDamage, data.KnockbackForce);
             }
         }
 
         // 회수 시 이 무기의 탄창에 1발 추가. 이미 가득 찼으면 false.
         public bool TryAddAmmo()
         {
-            if (currentAmmo >= data.MaxAmmo) return false;
+            if (currentAmmo >= MaxAmmo) return false;
             currentAmmo++;
             return true;
+        }
+
+        // 자루 단위 레벨업 (GDD §7.3). 최대 탄약 상승분만큼 현재 탄약도 함께 충전한다.
+        public void LevelUp()
+        {
+            level++;
+            currentAmmo = Mathf.Min(currentAmmo + LevelMaxAmmoAdd, MaxAmmo);
         }
     }
 }

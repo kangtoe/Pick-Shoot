@@ -15,6 +15,7 @@ namespace PickShoot
         [SerializeField, Range(0f, 180f)] float spreadAngleDegrees = 0f;
         [SerializeField] int damage = 1;
         [SerializeField] float knockbackForce = 6f;
+        [SerializeField] Color visualColor = Color.white;
 
         public string DisplayName => displayName;
         public Bullet BulletPrefab => bulletPrefab;
@@ -26,5 +27,6 @@ namespace PickShoot
         public float SpreadAngleDegrees => spreadAngleDegrees;
         public int Damage => damage;
         public float KnockbackForce => knockbackForce;
+        public Color VisualColor => visualColor;
     }
 }

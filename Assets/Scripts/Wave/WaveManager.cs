@@ -7,6 +7,7 @@ namespace PickShoot
     {
         [SerializeField] GameObject enemyPrefab;
         [SerializeField] GameObject spawnWarningPrefab;
+        [SerializeField] UpgradeManager upgradeManager;
         [SerializeField] Vector2 arenaHalfExtents = new Vector2(9f, 9f);
         [SerializeField] int baseEnemies = 3;
         [SerializeField] int enemiesPerWaveIncrement = 2;
@@ -55,6 +56,9 @@ namespace PickShoot
 
                 while (enemiesKilled < enemiesToSpawn)
                     yield return null;
+
+                if (upgradeManager != null)
+                    yield return upgradeManager.PresentAndWait();
             }
         }
 
