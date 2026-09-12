@@ -1,12 +1,17 @@
+using System.Collections;
 using UnityEngine;
 using UnityEngine.InputSystem;
 using UnityEngine.SceneManagement;
 
 namespace PickShoot
 {
+    // OnGUI가 PlayerHealth의 데미지 플래시(붉은 오버레이) 위에 그려지도록
+    // 실행 순서를 뒤로 밀어 마지막에 렌더링되게 한다.
+    [DefaultExecutionOrder(100)]
     public class GameOverScreen : MonoBehaviour
     {
         [SerializeField] PlayerHealth playerHealth;
+        [SerializeField] float gameOverDelay = 1f;
 
         bool gameOver;
         Texture2D overlayTex;
@@ -26,8 +31,13 @@ namespace PickShoot
 
         void OnPlayerDied()
         {
+            StartCoroutine(ShowAfterDelay());
+        }
+
+        IEnumerator ShowAfterDelay()
+        {
+            yield return new WaitForSeconds(gameOverDelay);
             gameOver = true;
-            Time.timeScale = 0f;
         }
 
         void Update()
@@ -40,7 +50,6 @@ namespace PickShoot
 
         void Restart()
         {
-            Time.timeScale = 1f;
             var scene = SceneManager.GetActiveScene();
             SceneManager.LoadScene(scene.buildIndex);
         }

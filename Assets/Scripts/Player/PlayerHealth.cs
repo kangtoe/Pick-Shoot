@@ -9,6 +9,7 @@ namespace PickShoot
         [SerializeField] float invincibilityTime = 0.8f;
         [SerializeField] float damageFlashDuration = 0.35f;
         [SerializeField] Color damageFlashColor = new Color(1f, 0.15f, 0.15f, 0.4f);
+        [SerializeField] GameObject deathEffectPrefab;
 
         int current;
         float invincibleUntil;
@@ -64,6 +65,9 @@ namespace PickShoot
             {
                 current = 0;
                 Died?.Invoke();
+                if (deathEffectPrefab != null)
+                    Instantiate(deathEffectPrefab, transform.position, Quaternion.identity);
+                Destroy(gameObject);
             }
             return true;
         }
