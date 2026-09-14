@@ -63,8 +63,8 @@ namespace PickShoot
         {
             if (owner == null)
                 throw new System.Exception("[PickShoot] Bullet.Launch: owner Weapon이 null. 탄환은 반드시 무기에 귀속되어야 회수 시 탄창 충전이 가능합니다.");
-            if (maxBounces < 1)
-                throw new System.Exception($"[PickShoot] Bullet.Launch: maxBounces는 1 이상이어야 합니다. 전달값={maxBounces}");
+            if (maxBounces < 0)
+                throw new System.Exception($"[PickShoot] Bullet.Launch: maxBounces는 0 이상이어야 합니다. 전달값={maxBounces}");
             if (penetration < 0)
                 throw new System.Exception($"[PickShoot] Bullet.Launch: penetration은 0 이상이어야 합니다. 전달값={penetration}");
             ownerWeapon = owner;
@@ -73,6 +73,15 @@ namespace PickShoot
             remainingBounces = maxBounces;
             remainingPenetration = penetration;
 
+            // 발사한 무기의 색을 탄환 색으로 반영 (baseColor는 튕김 flash 복원용).
+            if (sr != null)
+            {
+                baseColor = owner.Data.VisualColor;
+                sr.color = baseColor;
+            }
+
+            // 발사 직후는 항상 튕김 페이즈. 첫 충돌 시점에 남은 튕김 카운트를 보고
+            // 튕기거나(>0) 그 자리에서 정착(=0)한다.
             active = true;
             rb.linearDamping = 0f;
             rb.linearVelocity = velocity;
@@ -126,17 +135,27 @@ namespace PickShoot
             Vector2 vel = rb.linearVelocity;
             if (Vector2.Dot(vel, normal) >= 0f) return; // 이미 안쪽으로 향함 → 튕기지 않음.
 
-            Vector2 reflected = Vector2.Reflect(vel, normal);
-            Vector2 clampedDir = ClampDirectionToNormalCone(reflected.normalized, normal);
-            float outSpeed = Mathf.Max(reflected.magnitude, wallBounceMinSpeed);
-            rb.linearVelocity = clampedDir * outSpeed;
-
-            // 위치를 viewport 안으로 되돌려 재튕김 방지.
+            // 위치는 어느 분기든 viewport 안으로 복귀시켜 재검출 방지.
             Vector3 clampedVp = new Vector3(Mathf.Clamp01(vp.x), Mathf.Clamp01(vp.y), vp.z);
             rb.position = mainCam.ViewportToWorldPoint(clampedVp);
 
-            TriggerBounceEffect();
-            DecrementBounce();
+            if (remainingBounces > 0)
+            {
+                Vector2 reflected = Vector2.Reflect(vel, normal);
+                Vector2 clampedDir = ClampDirectionToNormalCone(reflected.normalized, normal);
+                float outSpeed = Mathf.Max(reflected.magnitude, wallBounceMinSpeed);
+                rb.linearVelocity = clampedDir * outSpeed;
+                TriggerBounceEffect();
+                DecrementBounce();
+            }
+            else
+            {
+                // 튕김 카운트 소진 → 화면 가장자리에서 정착. 법선 방향 성분만 제거해
+                // 접선 방향으로만 미끄러지다 감속으로 정지 (화면 안쪽에 자연스럽게 붙는다).
+                float inward = Vector2.Dot(vel, normal);
+                rb.linearVelocity = vel - normal * inward;
+                active = false;
+            }
         }
 
         Vector2 ComputeSeparation()
@@ -169,8 +188,16 @@ namespace PickShoot
                 return;
             }
 
-            HandleWallBounce(col);
-            DecrementBounce();
+            if (remainingBounces > 0)
+            {
+                HandleWallBounce(col);
+                DecrementBounce();
+            }
+            else
+            {
+                // 튕김 카운트 소진 → 접촉 지점에서 정착. 물리엔진 반사에 관성 맡기고 감속.
+                active = false;
+            }
         }
 
         void HandleEnemyHit(Collision2D col, EnemyHealth enemy)
@@ -192,12 +219,18 @@ namespace PickShoot
                 // 관통 카운트 남음 → 통과. 속도·방향 유지, 튕김 카운트 미소모.
                 remainingPenetration--;
                 rb.linearVelocity = lastVelocity;
+                return;
+            }
+
+            // 관통 소진 → 벽과 동일 규칙.
+            if (remainingBounces > 0)
+            {
+                HandleWallBounce(col);
+                DecrementBounce();
             }
             else
             {
-                // 관통 소진 → 벽과 동일하게 튕김 + 튕김 카운트 소비.
-                HandleWallBounce(col);
-                DecrementBounce();
+                active = false;
             }
         }
 
