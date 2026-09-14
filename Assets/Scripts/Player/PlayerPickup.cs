@@ -18,7 +18,7 @@ namespace PickShoot
             for (int i = 0; i < count; i++)
             {
                 var bullet = hits[i].GetComponent<Bullet>();
-                if (bullet == null || !bullet.IsInteractable) continue;
+                if (bullet == null || !bullet.IsSettled) continue;
 
                 Vector2 toPlayer = (Vector2)transform.position - (Vector2)bullet.transform.position;
                 float d = toPlayer.magnitude;

@@ -1,4 +1,5 @@
 using UnityEngine;
+using UnityEngine.Serialization;
 
 namespace PickShoot
 {
@@ -15,6 +16,8 @@ namespace PickShoot
         [SerializeField, Range(0f, 180f)] float spreadAngleDegrees = 0f;
         [SerializeField] int damage = 1;
         [SerializeField] float knockbackForce = 6f;
+        [SerializeField, Min(1), FormerlySerializedAs("maxEnemyHits")] int maxBounces = 1;
+        [SerializeField, Min(1)] int penetration = 1;
         [SerializeField] Color visualColor = Color.white;
 
         public string DisplayName => displayName;
@@ -27,6 +30,8 @@ namespace PickShoot
         public float SpreadAngleDegrees => spreadAngleDegrees;
         public int Damage => damage;
         public float KnockbackForce => knockbackForce;
+        public int MaxBounces => maxBounces;
+        public int Penetration => penetration;
         public Color VisualColor => visualColor;
     }
 }

@@ -5,11 +5,7 @@ namespace PickShoot
     [RequireComponent(typeof(Rigidbody2D))]
     public class Bullet : MonoBehaviour
     {
-        [SerializeField] float activeSpeedThreshold = 2f;
-        [SerializeField] float interactionDelay = 0.4f;
-        [SerializeField] float sustainDuration = 0.5f;
         [SerializeField] float decayLinearDamping = 5f;
-        [SerializeField, Range(0f, 1f)] float postHitSpeedMultiplier = 0.6f;
         [SerializeField] float wallBounceMinSpeed = 7f;
         [SerializeField, Range(0f, 89f)] float maxBounceAngleFromNormal = 75f;
         [SerializeField] float bounceFlashDuration = 0.09f;
@@ -23,14 +19,13 @@ namespace PickShoot
         const string ActiveLayerName = "Bullet";
         const string InactiveLayerName = "BulletInactive";
 
+        Camera mainCam;
         Rigidbody2D rb;
         SpriteRenderer sr;
         Vector2 lastVelocity;
         Vector3 baseScale;
         Color baseColor;
-        float interactableAt;
-        float sustainEndAt;
-        bool sustaining;
+        bool active;
         float flashUntil;
         bool flashing;
         int activeLayerIdx;
@@ -39,10 +34,13 @@ namespace PickShoot
         Weapon ownerWeapon;
         int damage;
         float knockbackForce;
+        int remainingBounces;
+        int penetration;
+        int enemyHitInCycle;
         readonly Collider2D[] neighbors = new Collider2D[8];
 
-        public bool IsInteractable => Time.time >= interactableAt;
-        public bool IsActive => lastVelocity.sqrMagnitude >= activeSpeedThreshold * activeSpeedThreshold;
+        // active=true: 튕김 페이즈 (속도·충돌판정 유지). active=false: 정착 (감속·픽업·Inactive 레이어).
+        public bool IsSettled => !active;
         public Weapon OwnerWeapon => ownerWeapon;
 
         void Awake()
@@ -52,23 +50,32 @@ namespace PickShoot
             if (sr != null) baseColor = sr.color;
             baseScale = transform.localScale;
 
+            mainCam = Camera.main;
+            if (mainCam == null)
+                throw new System.Exception("[PickShoot] MainCamera가 필요합니다 (탄환 카메라 가장자리 튕김용).");
+
             activeLayerIdx = LayerMask.NameToLayer(ActiveLayerName);
             inactiveLayerIdx = LayerMask.NameToLayer(InactiveLayerName);
             if (activeLayerIdx < 0 || inactiveLayerIdx < 0)
                 throw new System.Exception($"[PickShoot] 레이어 미설정: '{ActiveLayerName}' / '{InactiveLayerName}'. Project Settings > Tags and Layers에서 추가 필요.");
         }
 
-        public void Launch(Vector2 velocity, Weapon owner, int damage, float knockbackForce)
+        public void Launch(Vector2 velocity, Weapon owner, int damage, float knockbackForce, int maxBounces, int penetration)
         {
             if (owner == null)
                 throw new System.Exception("[PickShoot] Bullet.Launch: owner Weapon이 null. 탄환은 반드시 무기에 귀속되어야 회수 시 탄창 충전이 가능합니다.");
+            if (maxBounces < 1)
+                throw new System.Exception($"[PickShoot] Bullet.Launch: maxBounces는 1 이상이어야 합니다. 전달값={maxBounces}");
+            if (penetration < 1)
+                throw new System.Exception($"[PickShoot] Bullet.Launch: penetration은 1 이상이어야 합니다. 전달값={penetration}");
             ownerWeapon = owner;
             this.damage = damage;
             this.knockbackForce = knockbackForce;
+            remainingBounces = maxBounces;
+            this.penetration = penetration;
+            enemyHitInCycle = 0;
 
-            interactableAt = Time.time + interactionDelay;
-            sustainEndAt = Time.time + sustainDuration;
-            sustaining = true;
+            active = true;
             rb.linearDamping = 0f;
             rb.linearVelocity = velocity;
             lastVelocity = velocity;
@@ -88,11 +95,10 @@ namespace PickShoot
 
         void FixedUpdate()
         {
-            if (sustaining && Time.time >= sustainEndAt)
-            {
+            if (active) HandleCameraEdgeBounce();
+
+            if (!active)
                 rb.linearDamping = decayLinearDamping;
-                sustaining = false;
-            }
 
             Vector2 separation = ComputeSeparation();
             if (separation.sqrMagnitude > 0.0001f)
@@ -100,12 +106,39 @@ namespace PickShoot
 
             lastVelocity = rb.linearVelocity;
 
-            bool nowActive = IsActive;
-            if (nowActive != wasActive)
+            if (active != wasActive)
             {
-                gameObject.layer = nowActive ? activeLayerIdx : inactiveLayerIdx;
-                wasActive = nowActive;
+                gameObject.layer = active ? activeLayerIdx : inactiveLayerIdx;
+                wasActive = active;
             }
+        }
+
+        void HandleCameraEdgeBounce()
+        {
+            Vector3 vp = mainCam.WorldToViewportPoint(rb.position);
+            Vector2 normal = Vector2.zero;
+            if (vp.x < 0f) normal += Vector2.right;
+            else if (vp.x > 1f) normal += Vector2.left;
+            if (vp.y < 0f) normal += Vector2.up;
+            else if (vp.y > 1f) normal += Vector2.down;
+
+            if (normal.sqrMagnitude < 0.0001f) return;
+            normal.Normalize();
+
+            Vector2 vel = rb.linearVelocity;
+            if (Vector2.Dot(vel, normal) >= 0f) return; // 이미 안쪽으로 향함 → 튕기지 않음.
+
+            Vector2 reflected = Vector2.Reflect(vel, normal);
+            Vector2 clampedDir = ClampDirectionToNormalCone(reflected.normalized, normal);
+            float outSpeed = Mathf.Max(reflected.magnitude, wallBounceMinSpeed);
+            rb.linearVelocity = clampedDir * outSpeed;
+
+            // 위치를 viewport 안으로 되돌려 재튕김 방지.
+            Vector3 clampedVp = new Vector3(Mathf.Clamp01(vp.x), Mathf.Clamp01(vp.y), vp.z);
+            rb.position = mainCam.ViewportToWorldPoint(clampedVp);
+
+            TriggerBounceEffect();
+            DecrementBounce();
         }
 
         Vector2 ComputeSeparation()
@@ -129,15 +162,21 @@ namespace PickShoot
 
         void OnCollisionEnter2D(Collision2D col)
         {
+            if (!active) return;
+
             var enemy = col.collider.GetComponent<EnemyHealth>();
-            if (enemy == null)
+            if (enemy != null)
             {
-                HandleWallBounce(col);
+                HandleEnemyHit(col, enemy);
                 return;
             }
 
-            if (!IsActive) return;
+            HandleWallBounce(col);
+            DecrementBounce();
+        }
 
+        void HandleEnemyHit(Collision2D col, EnemyHealth enemy)
+        {
             enemy.TakeDamage(damage);
 
             var movement = col.collider.GetComponent<EnemyMovement>();
@@ -150,7 +189,19 @@ namespace PickShoot
                 Instantiate(hitEffectPrefab, hitPos, Quaternion.identity);
             }
 
-            rb.linearVelocity *= postHitSpeedMultiplier;
+            enemyHitInCycle++;
+            if (enemyHitInCycle < penetration)
+            {
+                // 관통: 물리 반작용을 상쇄하고 속도·방향 유지. 카운트 소비 없음.
+                rb.linearVelocity = lastVelocity;
+            }
+            else
+            {
+                // 사이클의 N번째 적 적중 → 튕김: 접점 법선으로 반사 + 카운트 소비 + 사이클 리셋.
+                HandleWallBounce(col);
+                DecrementBounce();
+                enemyHitInCycle = 0;
+            }
         }
 
         void HandleWallBounce(Collision2D col)
@@ -173,6 +224,13 @@ namespace PickShoot
             bool boosted = preOverrideVel.magnitude < wallBounceMinSpeed
                 || Vector2.Dot(preOverrideVel.normalized, clampedDir) < 0.98f;
             if (boosted) TriggerBounceEffect();
+        }
+
+        void DecrementBounce()
+        {
+            remainingBounces--;
+            if (remainingBounces <= 0)
+                active = false;
         }
 
         Vector2 AverageContactNormal(Collision2D col)
