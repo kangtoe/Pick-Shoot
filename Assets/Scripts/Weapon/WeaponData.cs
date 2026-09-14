@@ -17,7 +17,7 @@ namespace PickShoot
         [SerializeField] int damage = 1;
         [SerializeField] float knockbackForce = 6f;
         [SerializeField, Min(1), FormerlySerializedAs("maxEnemyHits")] int maxBounces = 1;
-        [SerializeField, Min(1)] int penetration = 1;
+        [SerializeField, Min(0)] int penetration = 0;
         [SerializeField] Color visualColor = Color.white;
 
         public string DisplayName => displayName;

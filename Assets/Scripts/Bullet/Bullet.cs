@@ -35,8 +35,7 @@ namespace PickShoot
         int damage;
         float knockbackForce;
         int remainingBounces;
-        int penetration;
-        int enemyHitInCycle;
+        int remainingPenetration;
         readonly Collider2D[] neighbors = new Collider2D[8];
 
         // active=true: 튕김 페이즈 (속도·충돌판정 유지). active=false: 정착 (감속·픽업·Inactive 레이어).
@@ -66,14 +65,13 @@ namespace PickShoot
                 throw new System.Exception("[PickShoot] Bullet.Launch: owner Weapon이 null. 탄환은 반드시 무기에 귀속되어야 회수 시 탄창 충전이 가능합니다.");
             if (maxBounces < 1)
                 throw new System.Exception($"[PickShoot] Bullet.Launch: maxBounces는 1 이상이어야 합니다. 전달값={maxBounces}");
-            if (penetration < 1)
-                throw new System.Exception($"[PickShoot] Bullet.Launch: penetration은 1 이상이어야 합니다. 전달값={penetration}");
+            if (penetration < 0)
+                throw new System.Exception($"[PickShoot] Bullet.Launch: penetration은 0 이상이어야 합니다. 전달값={penetration}");
             ownerWeapon = owner;
             this.damage = damage;
             this.knockbackForce = knockbackForce;
             remainingBounces = maxBounces;
-            this.penetration = penetration;
-            enemyHitInCycle = 0;
+            remainingPenetration = penetration;
 
             active = true;
             rb.linearDamping = 0f;
@@ -189,18 +187,17 @@ namespace PickShoot
                 Instantiate(hitEffectPrefab, hitPos, Quaternion.identity);
             }
 
-            enemyHitInCycle++;
-            if (enemyHitInCycle < penetration)
+            if (remainingPenetration > 0)
             {
-                // 관통: 물리 반작용을 상쇄하고 속도·방향 유지. 카운트 소비 없음.
+                // 관통 카운트 남음 → 통과. 속도·방향 유지, 튕김 카운트 미소모.
+                remainingPenetration--;
                 rb.linearVelocity = lastVelocity;
             }
             else
             {
-                // 사이클의 N번째 적 적중 → 튕김: 접점 법선으로 반사 + 카운트 소비 + 사이클 리셋.
+                // 관통 소진 → 벽과 동일하게 튕김 + 튕김 카운트 소비.
                 HandleWallBounce(col);
                 DecrementBounce();
-                enemyHitInCycle = 0;
             }
         }
 
