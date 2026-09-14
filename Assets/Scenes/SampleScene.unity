@@ -1158,6 +1158,8 @@ MonoBehaviour:
   weapons: {fileID: 142563685}
   weaponPool:
   - {fileID: 11400000, guid: 5d504b5a584fe1f45a2d1fc8867d4291, type: 2}
+  - {fileID: 11400000, guid: c1a2b3d4e5f6789012345abcdef01234, type: 2}
+  - {fileID: 11400000, guid: d2b3c4e5f6a789b012345cdef6789abc, type: 2}
   cardsToShow: 3
 --- !u!1 &1905229426
 GameObject:

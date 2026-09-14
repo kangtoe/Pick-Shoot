@@ -22,4 +22,6 @@ MonoBehaviour:
   spreadAngleDegrees: 0
   damage: 1
   knockbackForce: 6
+  maxBounces: 0
+  penetration: 0
   visualColor: {r: 1, g: 0.75, b: 0.2, a: 1}
