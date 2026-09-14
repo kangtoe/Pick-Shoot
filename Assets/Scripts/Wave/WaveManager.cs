@@ -26,6 +26,7 @@ namespace PickShoot
         int pendingWarnings;
         readonly List<EnemyHealth> spawnedEnemies = new List<EnemyHealth>();
         Transform player;
+        PlayerPickup playerPickup;
 
         public int CurrentWave => currentWave;
         public float WaveTimeRemaining => waveTimeRemaining;
@@ -39,6 +40,9 @@ namespace PickShoot
             if (p == null)
                 throw new System.Exception("[PickShoot] Player 태그 오브젝트 없음.");
             player = p.transform;
+            playerPickup = p.GetComponent<PlayerPickup>();
+            if (playerPickup == null)
+                throw new System.Exception("[PickShoot] Player에 PlayerPickup 컴포넌트 없음 (웨이브 클리어 sweep에 필요).");
 
             StartCoroutine(RunWaves());
         }
@@ -80,7 +84,9 @@ namespace PickShoot
 
                 DestroyAllEnemies();
 
-                yield return new WaitForSeconds(upgradeDelay);
+                // 웨이브 클리어 연출: 필드에 남은 탄환을 sweep으로 회수한다.
+                // upgradeDelay 구간에 병합 — 시각 연출과 카드 등장 사이 리듬.
+                yield return playerPickup.SweepAll(upgradeDelay);
 
                 if (!CanSpawn()) yield break;
                 if (upgradeManager != null)

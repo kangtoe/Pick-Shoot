@@ -42,6 +42,10 @@ namespace PickShoot
         public bool IsSettled => !active;
         public Weapon OwnerWeapon => ownerWeapon;
 
+        // 웨이브 클리어 sweep 등에서 튕김 페이즈를 강제 종료해 회수 대상으로 만든다.
+        // FixedUpdate가 다음 프레임에 damping·layer를 정착 상태로 반영한다.
+        public void ForceSettle() => active = false;
+
         void Awake()
         {
             rb = GetComponent<Rigidbody2D>();
