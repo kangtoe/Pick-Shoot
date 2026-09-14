@@ -19,11 +19,14 @@ namespace PickShoot
         [SerializeField] float weaponVisualScale = 0.3f;
         [SerializeField] int weaponSortingOrder = 6;
         [SerializeField, Min(0f)] float globalShotInterval = 0.1f;
+        [SerializeField, Min(0f)] float ringMaxAngularSpeed = 720f;
 
         Collider2D myCollider;
+        Transform ringPivot;
         readonly List<Weapon> slots = new List<Weapon>(MaxSlots);
         readonly List<Transform> slotVisuals = new List<Transform>(MaxSlots);
         float nextGlobalShotTime;
+        float currentRingAngleDeg;
 
         public IReadOnlyList<Weapon> Slots => slots;
         public bool HasEmptySlot => slots.Count < MaxSlots;
@@ -39,6 +42,11 @@ namespace PickShoot
                 throw new System.Exception("[PickShoot] PlayerWeapons.startingWeapons가 비어 있음. 최소 1자루의 WeaponData가 필요합니다.");
             if (startingWeapons.Count > MaxSlots)
                 throw new System.Exception($"[PickShoot] PlayerWeapons.startingWeapons가 최대 슬롯({MaxSlots})을 초과.");
+
+            ringPivot = new GameObject("WeaponRingPivot").transform;
+            ringPivot.SetParent(transform, false);
+            currentRingAngleDeg = transform.eulerAngles.z;
+            ringPivot.rotation = Quaternion.Euler(0f, 0f, currentRingAngleDeg);
 
             for (int i = 0; i < startingWeapons.Count; i++)
             {
@@ -72,7 +80,7 @@ namespace PickShoot
         Transform CreateVisual(WeaponData data)
         {
             var go = new GameObject($"Weapon_{data.DisplayName}");
-            go.transform.SetParent(transform, false);
+            go.transform.SetParent(ringPivot, false);
             go.transform.localScale = new Vector3(weaponVisualScale, weaponVisualScale, 1f);
             var sr = go.AddComponent<SpriteRenderer>();
             sr.sprite = weaponSprite;
@@ -102,6 +110,11 @@ namespace PickShoot
 
         void Update()
         {
+            // 링은 플레이어 조준각을 최대 각속도로 따라간다 → 스냅이 아닌 약간의 지연.
+            float targetAngleDeg = transform.eulerAngles.z;
+            currentRingAngleDeg = Mathf.MoveTowardsAngle(currentRingAngleDeg, targetAngleDeg, ringMaxAngularSpeed * Time.deltaTime);
+            ringPivot.rotation = Quaternion.Euler(0f, 0f, currentRingAngleDeg);
+
             if (Time.timeScale <= 0f) return;
             var mouse = Mouse.current;
             if (mouse == null) return;
@@ -125,7 +138,7 @@ namespace PickShoot
             if (bestIdx < 0) return;
 
             Vector3 pos = slotVisuals[bestIdx].position;
-            Vector2 dir = transform.right;
+            Vector2 dir = ringPivot.right;
             slots[bestIdx].Fire(pos, dir, myCollider, now);
             nextGlobalShotTime = now + globalShotInterval;
         }
