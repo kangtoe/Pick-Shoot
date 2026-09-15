@@ -95,17 +95,32 @@ namespace PickShoot
             // 자루 수에 따른 sub-linear arc 확장 (GDD §7.2).
             // arcExponent < 1 → 자루가 늘수록 총 arc 증가폭이 점차 줄어듦.
             float totalArc = n <= 1 ? 0f : arcBaseDegrees * Mathf.Pow(n - 1, arcExponent);
+            float step = n <= 1 ? 0f : totalArc / (n - 1);
             for (int i = 0; i < n; i++)
             {
-                // 조준 방향(local +x, 0°) 중심 부채꼴로 대칭 분포.
-                // n=1: 0°, n>=2: [-arc/2, +arc/2] 균등.
-                float angleDeg = n == 1 ? 0f : -totalArc * 0.5f + totalArc * i / (n - 1);
+                // 조준 방향(local +x, 0°) 중심 부채꼴로 대칭 분포하되,
+                // 슬롯은 중앙부터 좌우 번갈아 바깥으로 배정 (Weapons §2).
+                // 슬롯 1 이후는 홀수→한쪽, 짝수→반대쪽으로 고정되어 추가 시 좌우가 뒤바뀌지 않는다.
+                // 짝수 자루면 정중앙 자리가 없으므로 슬롯 0은 안쪽 한 자리로 반 칸 비켜난다.
+                float angleDeg = step * CenterOutOffset(i, n);
                 float rad = angleDeg * Mathf.Deg2Rad;
                 slotVisuals[i].localPosition = new Vector3(
                     Mathf.Cos(rad) * ringRadius,
                     Mathf.Sin(rad) * ringRadius,
                     0f);
             }
+        }
+
+        // 슬롯 인덱스 → 중앙 기준 칸 단위 오프셋 (양수: 조준 기준 왼쪽, 음수: 오른쪽).
+        // 홀수 n: 0, -1, +1, -2, +2 ...   짝수 n: +0.5, -0.5, +1.5, -1.5 ...
+        static float CenterOutOffset(int slotIndex, int slotCount)
+        {
+            bool odd = (slotIndex & 1) == 1;
+            float sign = odd ? -1f : 1f;
+            float magnitude = slotCount % 2 == 0
+                ? slotIndex / 2 + 0.5f
+                : (slotIndex + 1) / 2;
+            return sign * magnitude;
         }
 
         void Update()
