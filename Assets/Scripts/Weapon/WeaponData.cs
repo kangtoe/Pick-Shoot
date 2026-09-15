@@ -14,7 +14,7 @@ namespace PickShoot
         [SerializeField, Min(1)] int ammoPerShot = 1;
         [SerializeField, Min(1)] int projectilesPerShot = 1;
         [SerializeField, Range(0f, 180f)] float spreadAngleDegrees = 0f;
-        [SerializeField] int damage = 1;
+        [SerializeField] int damage = 10;
         [SerializeField] float knockbackForce = 6f;
         [SerializeField, Min(0), FormerlySerializedAs("maxEnemyHits")] int maxBounces = 0;
         [SerializeField, Min(0)] int penetration = 0;

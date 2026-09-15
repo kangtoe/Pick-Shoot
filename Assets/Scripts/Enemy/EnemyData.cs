@@ -6,7 +6,7 @@ namespace PickShoot
     public class EnemyData : ScriptableObject
     {
         [SerializeField] string displayName = "Enemy";
-        [SerializeField, Min(1)] int maxHp = 3;
+        [SerializeField, Min(1)] int maxHp = 30;
         [SerializeField, Min(0f)] float moveSpeed = 2.5f;
 
         public string DisplayName => displayName;

@@ -20,7 +20,7 @@ MonoBehaviour:
   ammoPerShot: 1
   projectilesPerShot: 1
   spreadAngleDegrees: 0
-  damage: 3
+  damage: 30
   knockbackForce: 8
   maxBounces: 0
   penetration: 1
