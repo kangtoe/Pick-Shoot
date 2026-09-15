@@ -13,5 +13,5 @@ MonoBehaviour:
   m_Name: EnemyData_Tank
   m_EditorClassIdentifier: Assembly-CSharp::PickShoot.EnemyData
   displayName: Tank
-  maxHp: 10
+  maxHp: 5
   moveSpeed: 1.2

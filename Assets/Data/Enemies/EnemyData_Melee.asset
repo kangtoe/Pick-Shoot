@@ -13,5 +13,5 @@ MonoBehaviour:
   m_Name: EnemyData_Melee
   m_EditorClassIdentifier: Assembly-CSharp::PickShoot.EnemyData
   displayName: Melee
-  maxHp: 3
+  maxHp: 1
   moveSpeed: 2.5
