@@ -6,7 +6,15 @@ namespace PickShoot
 {
     public class WaveManager : MonoBehaviour
     {
-        [SerializeField] GameObject enemyPrefab;
+        [System.Serializable]
+        public class WaveSpawnEntry
+        {
+            public GameObject prefab;
+            [Min(1)] public int unlockWave = 1;
+            [Min(0f)] public float weight = 1f;
+        }
+
+        [SerializeField] WaveSpawnEntry[] waveEntries;
         [SerializeField] GameObject spawnWarningPrefab;
         [SerializeField] UpgradeManager upgradeManager;
         [SerializeField] Vector2 arenaHalfExtents = new Vector2(9f, 9f);
@@ -33,8 +41,11 @@ namespace PickShoot
 
         void Start()
         {
-            if (enemyPrefab == null)
-                throw new System.Exception("[PickShoot] WaveManager.enemyPrefab 미설정.");
+            if (waveEntries == null || waveEntries.Length == 0)
+                throw new System.Exception("[PickShoot] WaveManager.waveEntries 미설정.");
+            for (int i = 0; i < waveEntries.Length; i++)
+                if (waveEntries[i] == null || waveEntries[i].prefab == null)
+                    throw new System.Exception($"[PickShoot] WaveManager.waveEntries[{i}].prefab 미설정.");
 
             var p = GameObject.FindWithTag("Player");
             if (p == null)
@@ -99,6 +110,9 @@ namespace PickShoot
 
         IEnumerator SpawnWithWarning()
         {
+            var prefab = PickEnemyPrefab();
+            if (prefab == null) yield break;
+
             Vector2 pos = Vector2.zero;
             for (int attempt = 0; attempt < 8; attempt++)
             {
@@ -118,11 +132,36 @@ namespace PickShoot
             if (!waveActive) yield break;
             if (!CanSpawn()) yield break;
 
-            var enemy = Instantiate(enemyPrefab, pos, Quaternion.identity);
+            var enemy = Instantiate(prefab, pos, Quaternion.identity);
             var health = enemy.GetComponent<EnemyHealth>();
             if (health == null)
-                throw new System.Exception("[PickShoot] Enemy 프리팹에 EnemyHealth 없음.");
+                throw new System.Exception($"[PickShoot] Enemy 프리팹({prefab.name})에 EnemyHealth 없음.");
             spawnedEnemies.Add(health);
+        }
+
+        // 현재 웨이브에서 등장 가능한 프리팹 중 가중치 기반 랜덤 선택.
+        // 등장 이후 웨이브에서도 이전 적은 계속 등장한다 (Enemies §5).
+        GameObject PickEnemyPrefab()
+        {
+            float totalWeight = 0f;
+            for (int i = 0; i < waveEntries.Length; i++)
+            {
+                var e = waveEntries[i];
+                if (currentWave < e.unlockWave) continue;
+                totalWeight += e.weight;
+            }
+            if (totalWeight <= 0f)
+                throw new System.Exception($"[PickShoot] Wave {currentWave}에서 스폰 가능한 적 프리팹이 없음.");
+
+            float pick = Random.value * totalWeight;
+            for (int i = 0; i < waveEntries.Length; i++)
+            {
+                var e = waveEntries[i];
+                if (currentWave < e.unlockWave) continue;
+                pick -= e.weight;
+                if (pick <= 0f) return e.prefab;
+            }
+            return waveEntries[waveEntries.Length - 1].prefab;
         }
 
         // 활성 적 + 스폰 대기 중인 워닝 수. 대기 중인 워닝을 포함해야 cap을 순간적으로 초과하지 않음.

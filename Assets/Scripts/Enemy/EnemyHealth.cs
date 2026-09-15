@@ -4,7 +4,7 @@ namespace PickShoot
 {
     public class EnemyHealth : MonoBehaviour
     {
-        [SerializeField] int maxHp = 3;
+        [SerializeField] EnemyData data;
         [SerializeField] float flashDuration = 0.08f;
         [SerializeField] Color flashColor = Color.white;
         [SerializeField] GameObject deathEffectPrefab;
@@ -16,7 +16,9 @@ namespace PickShoot
 
         void Awake()
         {
-            current = maxHp;
+            if (data == null)
+                throw new System.Exception($"[PickShoot] EnemyHealth.data 미설정 ({name}).");
+            current = data.MaxHp;
             sr = GetComponent<SpriteRenderer>();
             if (sr != null) originalColor = sr.color;
         }

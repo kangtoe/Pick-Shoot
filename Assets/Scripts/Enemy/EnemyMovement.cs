@@ -5,7 +5,7 @@ namespace PickShoot
     [RequireComponent(typeof(Rigidbody2D))]
     public class EnemyMovement : MonoBehaviour
     {
-        [SerializeField] float moveSpeed = 2.5f;
+        [SerializeField] EnemyData data;
         [SerializeField] float knockbackDamping = 20f;
         [SerializeField] float separationRadius = 0.9f;
         [SerializeField] float separationStrength = 4f;
@@ -14,10 +14,14 @@ namespace PickShoot
         Rigidbody2D rb;
         Transform target;
         Vector2 knockback;
+        float moveSpeed;
         readonly Collider2D[] neighbors = new Collider2D[8];
 
         void Awake()
         {
+            if (data == null)
+                throw new System.Exception($"[PickShoot] EnemyMovement.data 미설정 ({name}).");
+            moveSpeed = data.MoveSpeed;
             rb = GetComponent<Rigidbody2D>();
         }
 
