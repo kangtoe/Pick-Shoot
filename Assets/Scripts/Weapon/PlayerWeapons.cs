@@ -16,7 +16,6 @@ namespace PickShoot
         [SerializeField] float ringRadius = 1.0f;
         [SerializeField] float arcBaseDegrees = 30f;
         [SerializeField, Range(0f, 1f)] float arcExponent = 0.7f;
-        [SerializeField] float weaponVisualScale = 0.3f;
         [SerializeField] int weaponSortingOrder = 6;
         [SerializeField, Min(0f)] float globalShotInterval = 0.1f;
         [SerializeField, Min(0f)] float ringMaxAngularSpeed = 720f;
@@ -84,7 +83,6 @@ namespace PickShoot
         {
             var go = new GameObject($"Weapon_{data.DisplayName}");
             go.transform.SetParent(ringPivot, false);
-            go.transform.localScale = new Vector3(weaponVisualScale, weaponVisualScale, 1f);
             var sr = go.AddComponent<SpriteRenderer>();
             sr.sprite = data.WeaponSprite;
             sr.sortingOrder = weaponSortingOrder;
