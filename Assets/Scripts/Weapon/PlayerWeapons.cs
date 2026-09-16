@@ -95,6 +95,21 @@ namespace PickShoot
             RearrangeRing();
         }
 
+        // 마지막 슬롯의 무기를 버린다. 게임 흐름에는 버리기가 없고 디버그 도구(DebugToolsWindow)가 링 테스트용으로 쓴다.
+        // 최소 1자루는 유지한다 (Weapons §2 시작 슬롯 1). 그 무기가 쏜 탄환은 계속 그 Weapon 객체에 귀속돼 회수돼도 링에는 영향 없다.
+        public void RemoveLastWeapon()
+        {
+            if (slots.Count <= 1)
+                throw new System.Exception("[PickShoot] PlayerWeapons.RemoveLastWeapon: 슬롯이 1개뿐이라 버릴 수 없음. 호출자가 Slots.Count > 1을 먼저 검증해야 함.");
+            int last = slots.Count - 1;
+            Destroy(slotVisuals[last].gameObject);
+            slots.RemoveAt(last);
+            slotVisuals.RemoveAt(last);
+            slotRenderers.RemoveAt(last);
+            slotRecoil.RemoveAt(last);
+            RearrangeRing();
+        }
+
         void AddSlot(WeaponData data)
         {
             slots.Add(new Weapon(data));
