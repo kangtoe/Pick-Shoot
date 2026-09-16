@@ -13,7 +13,7 @@ namespace PickShoot
     // 매 프레임 RearrangeRing이 위치를 덮어써도 반동이 살아남기 때문.
     public class PlayerWeapons : MonoBehaviour
     {
-        public const int MaxSlots = 4;
+        public const int MaxSlots = 12;
 
         [SerializeField] List<WeaponData> startingWeapons = new List<WeaponData>();
         [SerializeField] float ringRadius = 1.0f;
@@ -119,7 +119,7 @@ namespace PickShoot
 
         void LateUpdate()
         {
-            // 인스펙터에서 arc 파라미터를 튜닝하면 즉시 반영. 슬롯 4자루 이하라 비용 무시할 수준.
+            // 인스펙터에서 arc 파라미터를 튜닝하면 즉시 반영. 슬롯 12자루 이하라 비용 무시할 수준.
             RearrangeRing();
 
             // 반동은 발사 프레임에 최대치를 보여준 뒤 지수 감쇠로 복귀 (급히 밀렸다가 갈수록 천천히 제자리).
