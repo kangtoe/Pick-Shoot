@@ -7,6 +7,7 @@ namespace PickShoot
         [SerializeField] EnemyData data;
         [SerializeField] float flashDuration = 0.08f;
         [SerializeField] Color flashColor = Color.white;
+        [SerializeField] Color damageNumberColor = Color.white;
         [SerializeField] GameObject deathEffectPrefab;
         [SerializeField] AudioClip hitClip;
         [SerializeField] AudioClip deathClip;
@@ -43,8 +44,17 @@ namespace PickShoot
             if (current <= 0) return;
             current -= amount;
             flashUntil = Time.time + flashDuration;
+            DamageNumbers.Show(DamageNumberOrigin(), amount, damageNumberColor);
             if (current <= 0) Die(playSound: true);
             else if (hitClip != null) SoundPlayer.Play(hitClip);
+        }
+
+        // 데미지 숫자는 피격당한 스프라이트의 위쪽 가장자리에서 떠오른다.
+        Vector3 DamageNumberOrigin()
+        {
+            var p = transform.position;
+            if (sr != null) p.y = sr.bounds.max.y;
+            return p;
         }
 
         // 외부에서 강제 사망 (예: 웨이브 종료 시 잔존 적 정리).

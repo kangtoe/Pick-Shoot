@@ -9,6 +9,7 @@ namespace PickShoot
         [SerializeField] float invincibilityTime = 0.8f;
         [SerializeField] float damageFlashDuration = 0.35f;
         [SerializeField] Color damageFlashColor = new Color(1f, 0.15f, 0.15f, 0.4f);
+        [SerializeField] Color damageNumberColor = new Color(1f, 0.2f, 0.2f);
         [SerializeField] GameObject deathEffectPrefab;
         [SerializeField] AudioClip hurtClip;
         [SerializeField] AudioClip deathClip;
@@ -63,6 +64,7 @@ namespace PickShoot
             current -= amount;
             invincibleUntil = Time.time + invincibilityTime;
             damageFlashStart = Time.time;
+            DamageNumbers.Show(DamageNumberOrigin(), amount, damageNumberColor);
             if (current <= 0)
             {
                 current = 0;
@@ -77,6 +79,14 @@ namespace PickShoot
                 SoundPlayer.Play(hurtClip);
             }
             return true;
+        }
+
+        // 데미지 숫자는 피격당한 스프라이트의 위쪽 가장자리에서 떠오른다.
+        Vector3 DamageNumberOrigin()
+        {
+            var p = transform.position;
+            if (sr != null) p.y = sr.bounds.max.y;
+            return p;
         }
 
         void OnGUI()
