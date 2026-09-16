@@ -23,6 +23,10 @@ namespace PickShoot
         [Header("Presentation")]
         [SerializeField] Sprite weaponSprite;
         [SerializeField] AudioClip shootClip;
+        // 무기 중심에서 총구 화염이 뜨는 지점까지의 거리 (스프라이트 +x 방향, 월드 단위).
+        [SerializeField, Min(0f)] float muzzleOffset = 0.5f;
+        // 반동 연출 배율. PlayerWeapons의 반동 거리·각도에 곱한다 (무거운 무기일수록 크게).
+        [SerializeField, Min(0f)] float recoilStrength = 1f;
 
         public string DisplayName => displayName;
         public Bullet BulletPrefab => bulletPrefab;
@@ -39,5 +43,7 @@ namespace PickShoot
         public Color VisualColor => visualColor;
         public Sprite WeaponSprite => weaponSprite;
         public AudioClip ShootClip => shootClip;
+        public float MuzzleOffset => muzzleOffset;
+        public float RecoilStrength => recoilStrength;
     }
 }

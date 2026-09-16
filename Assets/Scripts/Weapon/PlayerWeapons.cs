@@ -8,6 +8,8 @@ namespace PickShoot
     // 각 무기는 플레이어를 중심으로 하는 원형 링 위에 균등 분포로 배치되며,
     // 링은 조준 방향(PlayerAiming.AimAngleDeg)을 따라 자연스럽게 회전한다 (GDD §7.2).
     // 무기 스프라이트는 오른쪽(+x)을 향해 그려져 있으므로, 왼쪽을 조준할 때는 상하 반전해 거꾸로 보이지 않게 한다.
+    // 발사 연출(반동 킥·총구 화염)도 여기서 담당한다. 무기 비주얼을 소유하는 곳이 링 위치와 반동 오프셋을 함께 계산해야
+    // 매 프레임 RearrangeRing이 위치를 덮어써도 반동이 살아남기 때문.
     public class PlayerWeapons : MonoBehaviour
     {
         public const int MaxSlots = 4;
@@ -20,14 +22,24 @@ namespace PickShoot
         [SerializeField, Min(0f)] float globalShotInterval = 0.1f;
         [SerializeField, Min(0f)] float ringMaxAngularSpeed = 720f;
 
+        [Header("Fire Feedback")]
+        [SerializeField] MuzzleFlash muzzleFlashPrefab;
+        [SerializeField, Range(0f, 1f)] float muzzleFlashWhiteBlend = 0.4f;
+        [SerializeField, Min(0f)] float recoilDistance = 0.15f;
+        [SerializeField, Min(0f)] float recoilAngleDegrees = 10f;
+        [SerializeField, Min(0f)] float recoilReturnSpeed = 18f;
+
         Collider2D myCollider;
         PlayerAiming aiming;
         Transform ringPivot;
         readonly List<Weapon> slots = new List<Weapon>(MaxSlots);
         readonly List<Transform> slotVisuals = new List<Transform>(MaxSlots);
         readonly List<SpriteRenderer> slotRenderers = new List<SpriteRenderer>(MaxSlots);
+        // 슬롯별 반동 킥 잔량 (0 = 제자리). 발사 시 WeaponData.RecoilStrength로 세팅되고 지수 감쇠로 복귀.
+        readonly List<float> slotRecoil = new List<float>(MaxSlots);
         float nextGlobalShotTime;
         float currentRingAngleDeg;
+        bool facingLeft;
 
         public IReadOnlyList<Weapon> Slots => slots;
         public bool HasEmptySlot => slots.Count < MaxSlots;
@@ -44,6 +56,8 @@ namespace PickShoot
                 throw new System.Exception("[PickShoot] PlayerWeapons.startingWeapons가 비어 있음. 최소 1자루의 WeaponData가 필요합니다.");
             if (startingWeapons.Count > MaxSlots)
                 throw new System.Exception($"[PickShoot] PlayerWeapons.startingWeapons가 최대 슬롯({MaxSlots})을 초과.");
+            if (muzzleFlashPrefab == null)
+                throw new System.Exception("[PickShoot] PlayerWeapons.muzzleFlashPrefab 미할당. 씬의 PlayerWeapons에 MuzzleFlash 프리팹(컴포넌트 참조) 필요.");
 
             ringPivot = new GameObject("WeaponRingPivot").transform;
             ringPivot.SetParent(transform, false);
@@ -55,8 +69,7 @@ namespace PickShoot
                 var data = startingWeapons[i];
                 if (data == null)
                     throw new System.Exception($"[PickShoot] PlayerWeapons.startingWeapons[{i}]가 null.");
-                slots.Add(new Weapon(data));
-                slotVisuals.Add(CreateVisual(data));
+                AddSlot(data);
             }
             RearrangeRing();
         }
@@ -68,15 +81,26 @@ namespace PickShoot
                 throw new System.Exception("[PickShoot] PlayerWeapons.AddWeapon: data가 null.");
             if (!HasEmptySlot)
                 throw new System.Exception($"[PickShoot] PlayerWeapons.AddWeapon: 슬롯 가득 참 ({MaxSlots}). 호출자가 HasEmptySlot을 먼저 검증해야 함.");
+            AddSlot(data);
+            RearrangeRing();
+        }
+
+        void AddSlot(WeaponData data)
+        {
             slots.Add(new Weapon(data));
             slotVisuals.Add(CreateVisual(data));
-            RearrangeRing();
+            slotRecoil.Add(0f);
         }
 
         void LateUpdate()
         {
             // 인스펙터에서 arc 파라미터를 튜닝하면 즉시 반영. 슬롯 4자루 이하라 비용 무시할 수준.
             RearrangeRing();
+
+            // 반동은 발사 프레임에 최대치를 보여준 뒤 지수 감쇠로 복귀 (급히 밀렸다가 갈수록 천천히 제자리).
+            float decay = Mathf.Exp(-recoilReturnSpeed * Time.deltaTime);
+            for (int i = 0; i < slotRecoil.Count; i++)
+                slotRecoil[i] = slotRecoil[i] < 0.01f ? 0f : slotRecoil[i] * decay;
         }
 
         Transform CreateVisual(WeaponData data)
@@ -97,6 +121,8 @@ namespace PickShoot
             // arcExponent < 1 → 자루가 늘수록 총 arc 증가폭이 점차 줄어듦.
             float totalArc = n <= 1 ? 0f : arcBaseDegrees * Mathf.Pow(n - 1, arcExponent);
             float step = n <= 1 ? 0f : totalArc / (n - 1);
+            // 왼쪽 조준 시 스프라이트가 상하 반전돼 있으므로 "총구가 위로 들리는" 회전 방향도 뒤집는다.
+            float recoilTiltSign = facingLeft ? -1f : 1f;
             for (int i = 0; i < n; i++)
             {
                 // 조준 방향(local +x, 0°) 중심 부채꼴로 대칭 분포하되,
@@ -105,10 +131,13 @@ namespace PickShoot
                 // 짝수 자루면 정중앙 자리가 없으므로 슬롯 0은 안쪽 한 자리로 반 칸 비켜난다.
                 float angleDeg = step * CenterOutOffset(i, n);
                 float rad = angleDeg * Mathf.Deg2Rad;
+                // 반동: 모든 무기가 local +x로 쏘므로 킥은 local -x로 밀리고, 총구가 살짝 들린다.
+                float kick = slotRecoil[i];
                 slotVisuals[i].localPosition = new Vector3(
-                    Mathf.Cos(rad) * ringRadius,
+                    Mathf.Cos(rad) * ringRadius - kick * recoilDistance,
                     Mathf.Sin(rad) * ringRadius,
                     0f);
+                slotVisuals[i].localRotation = Quaternion.Euler(0f, 0f, kick * recoilAngleDegrees * recoilTiltSign);
             }
         }
 
@@ -131,7 +160,7 @@ namespace PickShoot
             currentRingAngleDeg = Mathf.MoveTowardsAngle(currentRingAngleDeg, targetAngleDeg, ringMaxAngularSpeed * Time.deltaTime);
             ringPivot.rotation = Quaternion.Euler(0f, 0f, currentRingAngleDeg);
 
-            bool facingLeft = Mathf.Cos(currentRingAngleDeg * Mathf.Deg2Rad) < 0f;
+            facingLeft = Mathf.Cos(currentRingAngleDeg * Mathf.Deg2Rad) < 0f;
             for (int i = 0; i < slotRenderers.Count; i++)
                 slotRenderers[i].flipY = facingLeft;
 
@@ -160,7 +189,20 @@ namespace PickShoot
             Vector3 pos = slotVisuals[bestIdx].position;
             Vector2 dir = ringPivot.right;
             slots[bestIdx].Fire(pos, dir, myCollider, now);
+            PlayFireFeedback(bestIdx);
             nextGlobalShotTime = now + globalShotInterval;
+        }
+
+        // 발사 연출: 반동 킥 세팅 + 무기 비주얼의 자식으로 총구 화염 생성.
+        // 자식으로 두면 이동·링 회전·반동을 그대로 따라가서 화염이 총구에서 떨어져 보이지 않는다.
+        void PlayFireFeedback(int slotIndex)
+        {
+            var data = slots[slotIndex].Data;
+            slotRecoil[slotIndex] = data.RecoilStrength;
+
+            var flash = Instantiate(muzzleFlashPrefab, slotVisuals[slotIndex]);
+            flash.transform.localPosition = new Vector3(data.MuzzleOffset, 0f, 0f);
+            flash.Tint(Color.Lerp(data.VisualColor, Color.white, muzzleFlashWhiteBlend));
         }
 
         void OnGUI()

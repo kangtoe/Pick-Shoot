@@ -365,6 +365,7 @@ MonoBehaviour:
   weaponVisualScale: 0.8
   weaponSortingOrder: 6
   globalShotInterval: 0.1
+  muzzleFlashPrefab: {fileID: 336630422492088379, guid: 115b22096cc34412babd65a4b958b1fd, type: 3}
 --- !u!21 &351953604
 Material:
   serializedVersion: 8
