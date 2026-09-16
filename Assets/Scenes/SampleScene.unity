@@ -136,6 +136,7 @@ GameObject:
   - component: {fileID: 142563682}
   - component: {fileID: 142563684}
   - component: {fileID: 142563685}
+  - component: {fileID: 142563686}
   m_Layer: 0
   m_Name: Player
   m_TagString: Player
@@ -371,6 +372,23 @@ MonoBehaviour:
   recoilDistance: 0.15
   recoilAngleDegrees: 10
   recoilReturnSpeed: 18
+--- !u!114 &142563686
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 142563674}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a43c715f32644acf8ae6b906ace5e729, type: 3}
+  m_Name:
+  m_EditorClassIdentifier: Assembly-CSharp::PickShoot.SpriteWalkCycle
+  frames:
+  - {fileID: -3617217171684107962, guid: 8c4fc863c2ecf7c42830eb859ffede55, type: 3}
+  - {fileID: 166411858142596255, guid: 8c4fc863c2ecf7c42830eb859ffede55, type: 3}
+  strideLength: 0.6
+  idleSpeed: 0.3
 --- !u!1 &358240299
 GameObject:
   m_ObjectHideFlags: 0

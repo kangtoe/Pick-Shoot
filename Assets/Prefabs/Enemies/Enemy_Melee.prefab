@@ -14,6 +14,7 @@ GameObject:
   - component: {fileID: 5338020534085001359}
   - component: {fileID: 8195759361348815576}
   - component: {fileID: 4328427985779134852}
+  - component: {fileID: 3633091571525180294}
   m_Layer: 9
   m_Name: Enemy_Melee
   m_TagString: Untagged
@@ -195,3 +196,20 @@ MonoBehaviour:
   deathEffectPrefab: {fileID: 5670591326354318199, guid: 621b869db3a9bdc42b153ed8e123f1ab, type: 3}
   hitClip: {fileID: 8300000, guid: 0b892b20090e74f4e9bdbd2239bd8d59, type: 3}
   deathClip: {fileID: 8300000, guid: ea87281d6691b8340a8a02116df30d6f, type: 3}
+--- !u!114 &3633091571525180294
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 957819507615294952}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a43c715f32644acf8ae6b906ace5e729, type: 3}
+  m_Name:
+  m_EditorClassIdentifier: Assembly-CSharp::PickShoot.SpriteWalkCycle
+  frames:
+  - {fileID: -2308092827561568864, guid: 0d43f266f11dd8c43927b7935aefa50e, type: 3}
+  - {fileID: 3941918172136616185, guid: 0d43f266f11dd8c43927b7935aefa50e, type: 3}
+  strideLength: 0.5
+  idleSpeed: 0.3
