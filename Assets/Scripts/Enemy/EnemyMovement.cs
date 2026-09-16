@@ -2,7 +2,11 @@ using UnityEngine;
 
 namespace PickShoot
 {
+    // 플레이어 추적 이동. 스프라이트는 회전하지 않고 플레이어가 왼쪽에 있으면 좌우 반전해 항상 플레이어를 향한다
+    // (시트의 적은 플레이어·무기와 같이 오른쪽을 보고 그려져 있다). 플레이어와 x가 거의 같을 때는
+    // 반전이 매 프레임 뒤집히지 않도록 데드존 안에서는 마지막 방향을 유지한다.
     [RequireComponent(typeof(Rigidbody2D))]
+    [RequireComponent(typeof(SpriteRenderer))]
     public class EnemyMovement : MonoBehaviour
     {
         [SerializeField] EnemyData data;
@@ -10,8 +14,10 @@ namespace PickShoot
         [SerializeField] float separationRadius = 0.9f;
         [SerializeField] float separationStrength = 4f;
         [SerializeField] LayerMask enemyLayerMask;
+        [SerializeField, Min(0f)] float facingDeadZone = 0.1f; // 플레이어와의 x 차이가 이보다 작으면 방향 유지
 
         Rigidbody2D rb;
+        SpriteRenderer sr;
         Transform target;
         Vector2 knockback;
         float moveSpeed;
@@ -23,6 +29,7 @@ namespace PickShoot
                 throw new System.Exception($"[PickShoot] EnemyMovement.data 미설정 ({name}).");
             moveSpeed = data.MoveSpeed;
             rb = GetComponent<Rigidbody2D>();
+            sr = GetComponent<SpriteRenderer>();
         }
 
         void Start()
@@ -49,12 +56,19 @@ namespace PickShoot
                 Vector2 delta = (Vector2)target.position - rb.position;
                 if (delta.sqrMagnitude > 0.0001f)
                     pursue = delta.normalized * moveSpeed;
+                FacePlayer(delta.x);
             }
 
             Vector2 separation = ComputeSeparation();
 
             Vector2 step = (pursue + separation + knockback) * Time.fixedDeltaTime;
             rb.MovePosition(rb.position + step);
+        }
+
+        void FacePlayer(float dx)
+        {
+            if (Mathf.Abs(dx) < facingDeadZone) return;
+            sr.flipX = dx < 0f;
         }
 
         Vector2 ComputeSeparation()
