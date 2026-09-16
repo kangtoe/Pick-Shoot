@@ -16,6 +16,7 @@ namespace PickShoot
 
         [SerializeField] List<WeaponData> startingWeapons = new List<WeaponData>();
         [SerializeField] float ringRadius = 1.0f;
+        [SerializeField, Min(0f)] float ringRadiusPerExtraWeapon = 0.1f;
         [SerializeField] float arcBaseDegrees = 30f;
         [SerializeField, Range(0f, 1f)] float arcExponent = 0.7f;
         [SerializeField] int weaponSortingOrder = 6;
@@ -130,6 +131,8 @@ namespace PickShoot
             // arcExponent < 1 → 자루가 늘수록 총 arc 증가폭이 점차 줄어듦.
             float totalArc = n <= 1 ? 0f : arcBaseDegrees * Mathf.Pow(n - 1, arcExponent);
             float step = n <= 1 ? 0f : totalArc / (n - 1);
+            // 자루가 늘수록 부채꼴 안 간격이 좁아지므로 반경을 자루당 일정량 키워 무기끼리 겹치는 걸 완화한다 (Weapons §2).
+            float radius = ringRadius + ringRadiusPerExtraWeapon * (n - 1);
             // 왼쪽 조준 시 스프라이트가 상하 반전돼 있으므로 "총구가 위로 들리는" 회전 방향도 뒤집는다.
             float recoilTiltSign = facingLeft ? -1f : 1f;
             for (int i = 0; i < n; i++)
@@ -143,8 +146,8 @@ namespace PickShoot
                 // 반동: 모든 무기가 local +x로 쏘므로 킥은 local -x로 밀리고, 총구가 살짝 들린다.
                 float kick = slotRecoil[i];
                 slotVisuals[i].localPosition = new Vector3(
-                    Mathf.Cos(rad) * ringRadius - kick * recoilDistance,
-                    Mathf.Sin(rad) * ringRadius,
+                    Mathf.Cos(rad) * radius - kick * recoilDistance,
+                    Mathf.Sin(rad) * radius,
                     0f);
                 slotVisuals[i].localRotation = Quaternion.Euler(0f, 0f, kick * recoilAngleDegrees * recoilTiltSign);
             }
