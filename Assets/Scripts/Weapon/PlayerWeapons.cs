@@ -17,7 +17,7 @@ namespace PickShoot
 
         [SerializeField] List<WeaponData> startingWeapons = new List<WeaponData>();
         [SerializeField] float ringRadius = 1.0f;
-        [SerializeField, Min(0f)] float ringRadiusPerExtraWeapon = 0.1f;
+        [SerializeField, Min(0f)] float ringRadiusPerExtraWeapon = 0.04f;
         [SerializeField] float arcBaseDegrees = 30f;
         [SerializeField, Range(0f, 1f)] float arcExponent = 0.7f;
         [SerializeField] int weaponSortingOrder = 6;
