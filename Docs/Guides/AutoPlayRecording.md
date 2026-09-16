@@ -57,5 +57,6 @@ Game view 크기 복원은 공개 API가 없어 reflection: `UnityEditor.GameVie
 | 사람이 Play를 눌렀는데 봇이 돌고 해상도가 바뀜 | 이전 `record.active`가 남아 다음 플레이 진입을 가로챔 → 시작 전 삭제 |
 | Game view 크기가 커스텀 항목으로 남음 | 복원 reflection 실패 → 드롭다운에서 되돌리고 커스텀 항목 제거 |
 | 로그에 `loaded. isPlaying=False`가 세션 도중 섞임 | AssetImportWorker 프로세스가 같은 로그에 쓰는 것 → 무시 |
+| 씬 파일을 외부(스크립트)에서 고친 뒤 리프레시가 멈춤 | 열린 씬이 바뀌면 "The open scene(s) have been modified externally" 모달이 뜬다 → 다이얼로그의 `Reload` 버튼에 `PostMessage(WM_COMMAND)`를 보내 누른다(포커스 불필요). 처음부터 포커스 없이 리프레시하려면 폴링 스크립트에 요청 파일 → `AssetDatabase.Refresh()` 명령을 넣어 둔다 |
 
 Claude Code로 운용할 때: "예외 없이 멈춤"이면 코드보다 먼저 창 가려짐을 의심하고, `System.Drawing.Graphics.CopyFromScreen`으로 실제 화면을 캡처해 확인하는 것이 가장 빠르다.
