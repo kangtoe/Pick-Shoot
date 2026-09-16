@@ -4,6 +4,10 @@ using UnityEngine;
 
 namespace PickShoot
 {
+    // 웨이브 진행 단계. HUD가 배너 문구를 고르고, 스폰 코루틴이 웨이브 종료 후 스폰을 막는 데 쓴다.
+    //   Idle: 첫 웨이브 전 / Countdown: 번호는 올랐고 스폰 시작 대기 / Active: 스폰 중 / Cleared: 시간 종료 후 정리·업그레이드 선택 중
+    public enum WavePhase { Idle, Countdown, Active, Cleared }
+
     public class WaveManager : MonoBehaviour
     {
         [System.Serializable]
@@ -29,8 +33,9 @@ namespace PickShoot
         [SerializeField] int maxEnemiesPerWaveIncrement = 2;
 
         int currentWave;
+        float currentWaveDuration;
         float waveTimeRemaining;
-        bool waveActive;
+        WavePhase phase = WavePhase.Idle;
         int pendingWarnings;
         readonly List<EnemyHealth> spawnedEnemies = new List<EnemyHealth>();
         Transform player;
@@ -38,6 +43,9 @@ namespace PickShoot
         PlayerHealth playerHealth;
 
         public int CurrentWave => currentWave;
+        public WavePhase Phase => phase;
+        // 현재 웨이브의 전체 지속시간. HUD 타이머 바의 분모.
+        public float WaveDuration => currentWaveDuration;
         public float WaveTimeRemaining => waveTimeRemaining;
 
         void Start()
@@ -68,9 +76,12 @@ namespace PickShoot
             {
                 if (!CanSpawn()) yield break;
                 currentWave++;
-                float waveDuration = baseWaveDuration + (currentWave - 1) * waveDurationIncrement;
+                currentWaveDuration = baseWaveDuration + (currentWave - 1) * waveDurationIncrement;
+                if (currentWaveDuration <= 0f)
+                    throw new System.Exception($"[PickShoot] Wave {currentWave}의 지속시간이 0 이하 ({currentWaveDuration}). baseWaveDuration·waveDurationIncrement 확인.");
                 int maxAlive = baseMaxEnemies + (currentWave - 1) * maxEnemiesPerWaveIncrement;
-                waveTimeRemaining = waveDuration;
+                waveTimeRemaining = currentWaveDuration;
+                phase = WavePhase.Countdown;
 
                 yield return new WaitForSeconds(betweenWaveDelay);
 
@@ -78,28 +89,24 @@ namespace PickShoot
                 // 매 웨이브는 온전한 체력으로 시작한다 (GDD §3.3).
                 playerHealth.RestoreFull();
 
-                waveActive = true;
+                phase = WavePhase.Active;
                 float elapsed = 0f;
                 float nextSpawnAt = 0f;
-                while (elapsed < waveDuration)
+                while (elapsed < currentWaveDuration)
                 {
-                    if (!CanSpawn())
-                    {
-                        waveActive = false;
-                        yield break;
-                    }
+                    if (!CanSpawn()) yield break;
                     if (elapsed >= nextSpawnAt)
                     {
                         if (CountCommittedEnemies() < maxAlive)
                             StartCoroutine(SpawnWithWarning());
                         nextSpawnAt += spawnInterval;
                     }
-                    waveTimeRemaining = waveDuration - elapsed;
+                    waveTimeRemaining = currentWaveDuration - elapsed;
                     yield return null;
                     elapsed += Time.deltaTime;
                 }
                 waveTimeRemaining = 0f;
-                waveActive = false;
+                phase = WavePhase.Cleared;
 
                 DestroyAllEnemies();
 
@@ -137,7 +144,7 @@ namespace PickShoot
             yield return new WaitForSeconds(spawnWarningDuration);
             pendingWarnings--;
 
-            if (!waveActive) yield break;
+            if (phase != WavePhase.Active) yield break;
             if (!CanSpawn()) yield break;
 
             var enemy = Instantiate(prefab, pos, Quaternion.identity);
@@ -200,12 +207,6 @@ namespace PickShoot
                 2 => new Vector2( arenaHalfExtents.x, y),
                 _ => new Vector2(-arenaHalfExtents.x, y),
             };
-        }
-
-        void OnGUI()
-        {
-            if (currentWave <= 0) return;
-            GUI.Label(new Rect(12, 80, 300, 24), $"Wave {currentWave}   Time {waveTimeRemaining:F1}s");
         }
     }
 }

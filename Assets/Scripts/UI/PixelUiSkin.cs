@@ -14,6 +14,15 @@ namespace PickShoot
             public Sprite[] tiles = new Sprite[9];
         }
 
+        // 가로 바(진행 바 프레임·채움) 조각: 왼쪽 끝, 가운데(반복), 오른쪽 끝.
+        [System.Serializable]
+        public class BarStrip
+        {
+            public Sprite left;
+            public Sprite mid;
+            public Sprite right;
+        }
+
         // 시트에 그려진 비트맵 글꼴. glyphs[i]가 characters[i]의 스프라이트.
         // glyphLeft/glyphWidth는 타일 안에서 실제 픽셀이 있는 가로 구간(텍셀) — 가변폭 배치용.
         [System.Serializable]
@@ -40,6 +49,15 @@ namespace PickShoot
         [SerializeField] Sprite iconBullet;
         [SerializeField] Sprite iconChevronUp;
         [SerializeField] Sprite iconArrowUp;
+        // 진행 바: 흰 테두리 프레임과, 같은 자리에 겹쳐 그리면 안쪽에 맞는 붉은 채움.
+        [SerializeField] BarStrip barFrame;
+        [SerializeField] BarStrip barFillRed;
+        // 한 칸짜리 바(핍): 붉게 찬 칸·빈 칸. HUD 체력 표시용.
+        [SerializeField] Sprite barCellRed;
+        [SerializeField] Sprite barCellEmpty;
+        // 테두리 없는 작은 탄환(탄약 핍)과 붉은 X(탄약 부족 표시).
+        [SerializeField] Sprite iconBulletPlain;
+        [SerializeField] Sprite iconCross;
 
         public int TileSize => tileSize;
         public NineSlice PanelBlue => panelBlue;
@@ -52,6 +70,12 @@ namespace PickShoot
         public Sprite IconBullet => iconBullet;
         public Sprite IconChevronUp => iconChevronUp;
         public Sprite IconArrowUp => iconArrowUp;
+        public BarStrip BarFrame => barFrame;
+        public BarStrip BarFillRed => barFillRed;
+        public Sprite BarCellRed => barCellRed;
+        public Sprite BarCellEmpty => barCellEmpty;
+        public Sprite IconBulletPlain => iconBulletPlain;
+        public Sprite IconCross => iconCross;
 
         // 누락된 참조를 필드 이름까지 지목해 예외로 알린다. 사용하는 쪽이 Awake에서 호출.
         public void Validate()
@@ -66,6 +90,12 @@ namespace PickShoot
             if (iconBullet == null) throw Missing(nameof(iconBullet));
             if (iconChevronUp == null) throw Missing(nameof(iconChevronUp));
             if (iconArrowUp == null) throw Missing(nameof(iconArrowUp));
+            ValidateBarStrip(barFrame, nameof(barFrame));
+            ValidateBarStrip(barFillRed, nameof(barFillRed));
+            if (barCellRed == null) throw Missing(nameof(barCellRed));
+            if (barCellEmpty == null) throw Missing(nameof(barCellEmpty));
+            if (iconBulletPlain == null) throw Missing(nameof(iconBulletPlain));
+            if (iconCross == null) throw Missing(nameof(iconCross));
         }
 
         System.Exception Missing(string field)
@@ -80,6 +110,14 @@ namespace PickShoot
             for (int i = 0; i < 9; i++)
                 if (slice.tiles[i] == null)
                     throw Missing($"{field}.tiles[{i}]");
+        }
+
+        void ValidateBarStrip(BarStrip strip, string field)
+        {
+            if (strip == null) throw Missing(field);
+            if (strip.left == null) throw Missing($"{field}.left");
+            if (strip.mid == null) throw Missing($"{field}.mid");
+            if (strip.right == null) throw Missing($"{field}.right");
         }
 
         void ValidateFont(BitmapFont font, string field)

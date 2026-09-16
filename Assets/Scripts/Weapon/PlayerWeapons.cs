@@ -4,7 +4,7 @@ using UnityEngine.InputSystem;
 
 namespace PickShoot
 {
-    // 플레이어의 다중 무기 슬롯 관리자. 사격 입력 처리·발사 우선순위 결정·HUD 표시.
+    // 플레이어의 다중 무기 슬롯 관리자. 사격 입력 처리·발사 우선순위 결정. 슬롯·탄약 표시는 GameHud가 Slots를 읽어 그린다.
     // 각 무기는 플레이어를 중심으로 하는 원형 링 위에 균등 분포로 배치되며,
     // 링은 조준 방향(PlayerAiming.AimAngleDeg)을 따라 자연스럽게 회전한다 (GDD §7.2).
     // 무기 스프라이트는 오른쪽(+x)을 향해 그려져 있으므로, 왼쪽을 조준할 때는 상하 반전해 거꾸로 보이지 않게 한다.
@@ -43,6 +43,15 @@ namespace PickShoot
 
         public IReadOnlyList<Weapon> Slots => slots;
         public bool HasEmptySlot => slots.Count < MaxSlots;
+
+        // 슬롯이 링에서 조준 기준 왼쪽(반시계) 부채꼴에 있는가. 정중앙(홀수 자루의 슬롯 1)은 왼쪽으로 친다.
+        // GameHud가 무기 표시를 화면 하단 좌우 패널로 나누는 기준.
+        public bool IsOnLeftOfAim(int slotIndex)
+        {
+            if (slotIndex < 0 || slotIndex >= slots.Count)
+                throw new System.Exception($"[PickShoot] PlayerWeapons.IsOnLeftOfAim: slotIndex {slotIndex}가 범위 밖 (슬롯 {slots.Count}개).");
+            return CenterOutOffset(slotIndex, slots.Count) >= 0f;
+        }
 
         void Awake()
         {
@@ -203,23 +212,6 @@ namespace PickShoot
             var flash = Instantiate(muzzleFlashPrefab, slotVisuals[slotIndex]);
             flash.transform.localPosition = new Vector3(data.MuzzleOffset, 0f, 0f);
             flash.Tint(Color.Lerp(data.VisualColor, Color.white, muzzleFlashWhiteBlend));
-        }
-
-        void OnGUI()
-        {
-            var style = new GUIStyle(GUI.skin.label)
-            {
-                fontSize = 20,
-                normal = { textColor = Color.white }
-            };
-            float y = 8f;
-            for (int i = 0; i < slots.Count; i++)
-            {
-                var w = slots[i];
-                GUI.Label(new Rect(12f, y, 360f, 28f),
-                    $"[{i + 1}] {w.Data.DisplayName} Lv.{w.Level}  {w.CurrentAmmo} / {w.MaxAmmo}", style);
-                y += 24f;
-            }
         }
     }
 }

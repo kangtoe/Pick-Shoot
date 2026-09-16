@@ -51,6 +51,49 @@ namespace PickShoot
             DrawSprite(tiles[8], new Rect(r.xMax - t, r.yMax - t, t, t));
         }
 
+        // 바를 양 끝 타일 반쪽씩으로 줄일 때의 최소 폭(텍셀). 반쪽 4텍셀 = 흰 선 1 + 테두리 2 + 안쪽 1.
+        public const int MinBarWidthTexels = 8;
+
+        // 가로 바. 양 끝은 타일 원본 크기, 가운데는 mid 타일을 반복해 채운다.
+        // 폭이 타일 2개보다 좁으면 왼쪽 끝 타일의 왼쪽 부분과 오른쪽 끝 타일의 오른쪽 부분을 반씩 잘라 붙인다 (MinBarWidthTexels 이상).
+        // cutRows(짝수)만큼 타일 가운데 행을 잘라내 세로로 얇게 그릴 수 있다 — 위·아래 (tileSize - cutRows)/2행씩만 그린다.
+        // r.height는 (tileSize - cutRows) * scale이어야 한다.
+        public static void DrawBarStrip(PixelUiSkin.BarStrip strip, Rect r, int tileSize, int scale, int cutRows = 0)
+        {
+            if (cutRows < 0 || cutRows >= tileSize || (cutRows & 1) != 0)
+                throw new System.Exception($"[PickShoot] PixelGui.DrawBarStrip: cutRows({cutRows})는 0 이상 {tileSize} 미만의 짝수여야 함.");
+            float t = tileSize * scale;
+            if (r.width < MinBarWidthTexels * scale)
+                throw new System.Exception($"[PickShoot] PixelGui.DrawBarStrip: 폭({r.width})이 최소 폭({MinBarWidthTexels * scale})보다 작음.");
+            int keep = (tileSize - cutRows) / 2;
+            float expectedH = 2 * keep * scale;
+            if (!Mathf.Approximately(r.height, expectedH))
+                throw new System.Exception($"[PickShoot] PixelGui.DrawBarStrip: 높이({r.height})가 (tileSize - cutRows) * scale({expectedH})와 다름.");
+            float keepV = keep / (float)tileSize;
+            float sliceH = keep * scale;
+            DrawStripRow(strip, new Rect(r.x, r.y, r.width, sliceH), t, 0f, keepV);
+            DrawStripRow(strip, new Rect(r.x, r.y + sliceH, r.width, sliceH), t, 1f - keepV, 1f);
+        }
+
+        // 바 한 줄: 타일의 세로 구간 [top, bottom](0~1)만 잘라 왼쪽 끝·가운데 반복·오른쪽 끝을 그린다.
+        static void DrawStripRow(PixelUiSkin.BarStrip strip, Rect r, float t, float top, float bottom)
+        {
+            if (r.width < 2f * t)
+            {
+                float half = r.width / 2f;
+                DrawSpritePart(strip.left, new Rect(r.x, r.y, half, r.height), 0f, top, half / t, bottom);
+                DrawSpritePart(strip.right, new Rect(r.x + half, r.y, half, r.height), 1f - half / t, top, 1f, bottom);
+                return;
+            }
+            DrawSpritePart(strip.left, new Rect(r.x, r.y, t, r.height), 0f, top, 1f, bottom);
+            for (float x = r.x + t; x < r.xMax - t; x += t)
+            {
+                float w = Mathf.Min(t, r.xMax - t - x);
+                DrawSpritePart(strip.mid, new Rect(x, r.y, w, r.height), 0f, top, w / t, bottom);
+            }
+            DrawSpritePart(strip.right, new Rect(r.xMax - t, r.y, t, r.height), 0f, top, 1f, bottom);
+        }
+
         public static int MeasureText(PixelUiSkin.BitmapFont font, string text, int scale)
         {
             int width = 0;

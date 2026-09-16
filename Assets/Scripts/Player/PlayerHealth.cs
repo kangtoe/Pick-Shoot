@@ -97,16 +97,10 @@ namespace PickShoot
             return p;
         }
 
+        // 체력 수치 표시는 GameHud가 맡는다. 여기서는 전체 화면 피격 플래시만 그린다.
         void OnGUI()
         {
             DrawDamageFlash();
-
-            var style = new GUIStyle(GUI.skin.label)
-            {
-                fontSize = 24,
-                normal = { textColor = Color.white }
-            };
-            GUI.Label(new Rect(12f, 44f, 240f, 32f), $"HP    {current} / {maxHp}", style);
         }
 
         void DrawDamageFlash()
