@@ -3,200 +3,125 @@ guid: 4f2ba46ac711e1e4698a9d155c120788
 TextureImporter:
   internalIDToNameTable:
   - first:
-      213: -1453350334737186109
-    second: tilemap_packed_0
+      213: 3895382220136359853
+    second: weapons_0
   - first:
-      213: -5773244093850934461
-    second: tilemap_packed_1
+      213: 5752084263097590222
+    second: weapons_1
   - first:
-      213: -7397652778513525935
-    second: tilemap_packed_2
+      213: 4044960238834004323
+    second: weapons_2
   - first:
-      213: -4657764202658221571
-    second: tilemap_packed_3
+      213: 2279028096176847569
+    second: weapons_3
   - first:
-      213: -3333449033900058284
-    second: tilemap_packed_4
+      213: -2890129855074309821
+    second: weapons_4
   - first:
-      213: -6373955360715321419
-    second: tilemap_packed_5
+      213: -3967626027433897753
+    second: weapons_5
   - first:
-      213: 7454484266408833828
-    second: tilemap_packed_6
+      213: 1266027606452622727
+    second: weapons_6
   - first:
-      213: -1409608323598810497
-    second: tilemap_packed_7
+      213: 5835505589488180157
+    second: weapons_7
   - first:
-      213: 6766204184792930467
-    second: tilemap_packed_8
+      213: 6641471146128650364
+    second: weapons_8
   - first:
-      213: -6825893594525092589
-    second: tilemap_packed_9
+      213: -761673295786546872
+    second: weapons_9
   - first:
-      213: 8654281846431810975
-    second: tilemap_packed_10
+      213: -4858957943617100156
+    second: weapons_10
   - first:
-      213: -8419292424465274708
-    second: tilemap_packed_11
+      213: 2100895645735257587
+    second: weapons_11
   - first:
-      213: 3425605258711615321
-    second: tilemap_packed_12
+      213: 2887967350570432116
+    second: weapons_12
   - first:
-      213: -575958652271738017
-    second: tilemap_packed_13
+      213: 8095193427007661221
+    second: weapons_13
   - first:
-      213: -7486966618002133862
-    second: tilemap_packed_14
+      213: 4245797204900626106
+    second: weapons_14
   - first:
-      213: 7351026898981361674
-    second: tilemap_packed_15
+      213: -1095343037476934928
+    second: weapons_15
   - first:
-      213: -5896583775246068787
-    second: tilemap_packed_16
+      213: -2445702230441355021
+    second: weapons_16
   - first:
-      213: 2477165178263458841
-    second: tilemap_packed_17
+      213: -3735265542980202142
+    second: weapons_17
   - first:
-      213: -5288467643486806036
-    second: tilemap_packed_18
+      213: 8308227270044109331
+    second: weapons_18
   - first:
-      213: 8397989551524518093
-    second: tilemap_packed_19
+      213: 8336481611674304958
+    second: weapons_19
   - first:
-      213: 1724406721867405357
-    second: tilemap_packed_20
+      213: -989349870976136002
+    second: weapons_20
   - first:
-      213: 2772701748520179734
-    second: tilemap_packed_21
+      213: 5099726481312904465
+    second: weapons_21
   - first:
-      213: -8536881040180527926
-    second: tilemap_packed_22
+      213: 3823059533447181782
+    second: weapons_22
   - first:
-      213: 268298554507707185
-    second: tilemap_packed_23
+      213: -6023951366351232879
+    second: weapons_23
   - first:
-      213: 400168491753690432
-    second: tilemap_packed_24
+      213: -8449535363673692691
+    second: weapons_24
   - first:
-      213: 4156198131015929367
-    second: tilemap_packed_25
+      213: 7851607771849482131
+    second: weapons_25
   - first:
-      213: 1841318695426966024
-    second: tilemap_packed_26
+      213: 7528809932096144314
+    second: weapons_26
   - first:
-      213: 6481843683198900548
-    second: tilemap_packed_27
+      213: -6213369518360484650
+    second: weapons_27
   - first:
-      213: 676389156815778814
-    second: tilemap_packed_28
+      213: 3100036408744029131
+    second: weapons_28
   - first:
-      213: -6784488196640772561
-    second: tilemap_packed_29
+      213: -7001239988187065354
+    second: weapons_29
   - first:
-      213: -1922718596493688381
-    second: tilemap_packed_30
+      213: 8174508395635640825
+    second: weapons_30
   - first:
-      213: 2193850121719815593
-    second: tilemap_packed_31
+      213: -3747114113136332743
+    second: weapons_31
   - first:
-      213: 3878058476398093058
-    second: tilemap_packed_32
+      213: -2055608806126403356
+    second: weapons_32
   - first:
-      213: 659562857678726857
-    second: tilemap_packed_33
+      213: 76356673682683413
+    second: weapons_33
   - first:
-      213: -2109526591982821652
-    second: tilemap_packed_34
+      213: 5732107245335084552
+    second: weapons_34
   - first:
-      213: -688962450749631956
-    second: tilemap_packed_35
+      213: -7959197657336272770
+    second: weapons_35
   - first:
-      213: -5392623065878854326
-    second: tilemap_packed_36
+      213: 4482743522181232021
+    second: weapons_36
   - first:
-      213: -5428961434384607821
-    second: tilemap_packed_37
+      213: -3488487325568546433
+    second: weapons_37
   - first:
-      213: 8370045735175484773
-    second: tilemap_packed_38
+      213: 7968433632987459760
+    second: weapons_38
   - first:
-      213: -1350529663752499361
-    second: tilemap_packed_39
-  - first:
-      213: 7176334326959469849
-    second: tilemap_packed_40
-  - first:
-      213: -3808225004935048808
-    second: tilemap_packed_41
-  - first:
-      213: 5732307694499621417
-    second: tilemap_packed_42
-  - first:
-      213: 3306685679501119899
-    second: tilemap_packed_43
-  - first:
-      213: 5499604176112497311
-    second: tilemap_packed_44
-  - first:
-      213: 5287519128651476915
-    second: tilemap_packed_45
-  - first:
-      213: 300111219152401311
-    second: tilemap_packed_46
-  - first:
-      213: 2206169814674520342
-    second: tilemap_packed_47
-  - first:
-      213: 7820271134184854335
-    second: tilemap_packed_48
-  - first:
-      213: -4509013335239166420
-    second: tilemap_packed_49
-  - first:
-      213: -4970067154865029653
-    second: tilemap_packed_50
-  - first:
-      213: -2452500989543857958
-    second: tilemap_packed_51
-  - first:
-      213: -5337296085697385273
-    second: tilemap_packed_52
-  - first:
-      213: 2658747906679183987
-    second: tilemap_packed_53
-  - first:
-      213: -5766062063545882839
-    second: tilemap_packed_54
-  - first:
-      213: 6296481076110622113
-    second: tilemap_packed_55
-  - first:
-      213: 5825491608552330040
-    second: tilemap_packed_56
-  - first:
-      213: 5343863954073821178
-    second: tilemap_packed_57
-  - first:
-      213: 2128294600738411159
-    second: tilemap_packed_58
-  - first:
-      213: 3043803401794877445
-    second: tilemap_packed_59
-  - first:
-      213: 4549779110591665459
-    second: tilemap_packed_60
-  - first:
-      213: 4268319000540810990
-    second: tilemap_packed_61
-  - first:
-      213: -8033118869560179231
-    second: tilemap_packed_62
-  - first:
-      213: 2634133814080737943
-    second: tilemap_packed_63
-  - first:
-      213: -2779089278662059567
-    second: tilemap_packed_64
+      213: -8963225989260116466
+    second: weapons_39
   externalObjects: {}
   serializedVersion: 13
   mipmaps:
@@ -229,7 +154,7 @@ TextureImporter:
   maxTextureSize: 2048
   textureSettings:
     serializedVersion: 2
-    filterMode: 1
+    filterMode: 0
     aniso: 1
     mipBias: 0
     wrapU: 1
@@ -240,10 +165,10 @@ TextureImporter:
   compressionQuality: 50
   spriteMode: 2
   spriteExtrude: 1
-  spriteMeshType: 1
+  spriteMeshType: 0
   alignment: 0
   spritePivot: {x: 0.5, y: 0.5}
-  spritePixelsToUnits: 100
+  spritePixelsToUnits: 16
   spriteBorder: {x: 0, y: 0, z: 0, w: 0}
   spriteGenerateFallbackPhysicsShape: 1
   alphaUsage: 1
@@ -267,7 +192,7 @@ TextureImporter:
     maxTextureSize: 2048
     resizeAlgorithm: 0
     textureFormat: -1
-    textureCompression: 1
+    textureCompression: 0
     compressionQuality: 50
     crunchedCompression: 0
     allowsAlphaSplitting: 0
@@ -280,7 +205,7 @@ TextureImporter:
     maxTextureSize: 2048
     resizeAlgorithm: 0
     textureFormat: -1
-    textureCompression: 1
+    textureCompression: 0
     compressionQuality: 50
     crunchedCompression: 0
     allowsAlphaSplitting: 0
@@ -293,7 +218,7 @@ TextureImporter:
     maxTextureSize: 2048
     resizeAlgorithm: 0
     textureFormat: -1
-    textureCompression: 1
+    textureCompression: 0
     compressionQuality: 50
     crunchedCompression: 0
     allowsAlphaSplitting: 0
@@ -305,1514 +230,939 @@ TextureImporter:
     serializedVersion: 2
     sprites:
     - serializedVersion: 2
-      name: tilemap_packed_0
+      name: weapons_0
       rect:
         serializedVersion: 2
-        x: 7
-        y: 79
-        width: 11
-        height: 10
+        x: 0
+        y: 72
+        width: 24
+        height: 24
       alignment: 0
-      pivot: {x: 0, y: 0}
+      pivot: {x: 0.5, y: 0.5}
       border: {x: 0, y: 0, z: 0, w: 0}
-      customData: 
+      customData:
       outline: []
       physicsShape: []
       tessellationDetail: -1
       bones: []
-      spriteID: 3c28bcb1299a4dbe0800000000000000
-      internalID: -1453350334737186109
+      spriteID: c69e036c15964814af9ddc91ccfafc18
+      internalID: 3895382220136359853
       vertices: []
-      indices: 
+      indices:
       edges: []
       weights: []
     - serializedVersion: 2
-      name: tilemap_packed_1
+      name: weapons_1
       rect:
         serializedVersion: 2
-        x: 29
-        y: 79
-        width: 14
-        height: 10
+        x: 24
+        y: 72
+        width: 24
+        height: 24
       alignment: 0
-      pivot: {x: 0, y: 0}
+      pivot: {x: 0.5, y: 0.5}
       border: {x: 0, y: 0, z: 0, w: 0}
-      customData: 
+      customData:
       outline: []
       physicsShape: []
       tessellationDetail: -1
       bones: []
-      spriteID: 343a468a51151efa0800000000000000
-      internalID: -5773244093850934461
+      spriteID: 1c51a66961b1d46aa343a64e20bb8404
+      internalID: 5752084263097590222
       vertices: []
-      indices: 
+      indices:
       edges: []
       weights: []
     - serializedVersion: 2
-      name: tilemap_packed_2
+      name: weapons_2
       rect:
         serializedVersion: 2
-        x: 52
-        y: 77
-        width: 16
-        height: 14
+        x: 48
+        y: 72
+        width: 24
+        height: 24
       alignment: 0
-      pivot: {x: 0, y: 0}
+      pivot: {x: 0.5, y: 0.5}
       border: {x: 0, y: 0, z: 0, w: 0}
-      customData: 
+      customData:
       outline: []
       physicsShape: []
       tessellationDetail: -1
       bones: []
-      spriteID: 153150d0ef1465990800000000000000
-      internalID: -7397652778513525935
+      spriteID: 17db7e14d98dc8877e66761b7b3a2e3f
+      internalID: 4044960238834004323
       vertices: []
-      indices: 
+      indices:
       edges: []
       weights: []
     - serializedVersion: 2
-      name: tilemap_packed_3
+      name: weapons_3
       rect:
         serializedVersion: 2
         x: 72
-        y: 77
+        y: 72
         width: 24
-        height: 14
+        height: 24
       alignment: 0
-      pivot: {x: 0, y: 0}
+      pivot: {x: 0.5, y: 0.5}
       border: {x: 0, y: 0, z: 0, w: 0}
-      customData: 
+      customData:
       outline: []
       physicsShape: []
       tessellationDetail: -1
       bones: []
-      spriteID: df1b605b22c4c5fb0800000000000000
-      internalID: -4657764202658221571
+      spriteID: ef60ffcdc530ebe4b858024f448c2724
+      internalID: 2279028096176847569
       vertices: []
-      indices: 
+      indices:
       edges: []
       weights: []
     - serializedVersion: 2
-      name: tilemap_packed_4
+      name: weapons_4
       rect:
         serializedVersion: 2
-        x: 98
-        y: 78
-        width: 20
-        height: 13
+        x: 96
+        y: 72
+        width: 24
+        height: 24
       alignment: 0
-      pivot: {x: 0, y: 0}
+      pivot: {x: 0.5, y: 0.5}
       border: {x: 0, y: 0, z: 0, w: 0}
-      customData: 
+      customData:
       outline: []
       physicsShape: []
       tessellationDetail: -1
       bones: []
-      spriteID: 4599489d3c53db1d0800000000000000
-      internalID: -3333449033900058284
+      spriteID: 1309be6c1a23c5d8d41469b33f5b63a1
+      internalID: -2890129855074309821
       vertices: []
-      indices: 
+      indices:
       edges: []
       weights: []
     - serializedVersion: 2
-      name: tilemap_packed_5
+      name: weapons_5
       rect:
         serializedVersion: 2
-        x: 121
-        y: 77
-        width: 22
-        height: 14
+        x: 120
+        y: 72
+        width: 24
+        height: 24
       alignment: 0
-      pivot: {x: 0, y: 0}
+      pivot: {x: 0.5, y: 0.5}
       border: {x: 0, y: 0, z: 0, w: 0}
-      customData: 
+      customData:
       outline: []
       physicsShape: []
       tessellationDetail: -1
       bones: []
-      spriteID: 5bfcd5ebe592b87a0800000000000000
-      internalID: -6373955360715321419
+      spriteID: 60b9600d80ea28177925ab87f20e95b3
+      internalID: -3967626027433897753
       vertices: []
-      indices: 
+      indices:
       edges: []
       weights: []
     - serializedVersion: 2
-      name: tilemap_packed_6
+      name: weapons_6
       rect:
         serializedVersion: 2
-        x: 148
-        y: 77
-        width: 17
-        height: 13
+        x: 144
+        y: 72
+        width: 24
+        height: 24
       alignment: 0
-      pivot: {x: 0, y: 0}
+      pivot: {x: 0.5, y: 0.5}
       border: {x: 0, y: 0, z: 0, w: 0}
-      customData: 
+      customData:
       outline: []
       physicsShape: []
       tessellationDetail: -1
       bones: []
-      spriteID: 423790bd1f5a37760800000000000000
-      internalID: 7454484266408833828
+      spriteID: 826dc7013630e1747512bbd922fdad72
+      internalID: 1266027606452622727
       vertices: []
-      indices: 
+      indices:
       edges: []
       weights: []
     - serializedVersion: 2
-      name: tilemap_packed_7
+      name: weapons_7
       rect:
         serializedVersion: 2
-        x: 170
-        y: 79
-        width: 20
-        height: 11
+        x: 168
+        y: 72
+        width: 24
+        height: 24
       alignment: 0
-      pivot: {x: 0, y: 0}
+      pivot: {x: 0.5, y: 0.5}
       border: {x: 0, y: 0, z: 0, w: 0}
-      customData: 
+      customData:
       outline: []
       physicsShape: []
       tessellationDetail: -1
       bones: []
-      spriteID: f728577b2b0107ce0800000000000000
-      internalID: -1409608323598810497
+      spriteID: 5aea14a9b2b86a85d617036b78b382fc
+      internalID: 5835505589488180157
       vertices: []
-      indices: 
+      indices:
       edges: []
       weights: []
     - serializedVersion: 2
-      name: tilemap_packed_8
+      name: weapons_8
       rect:
         serializedVersion: 2
-        x: 199
-        y: 77
-        width: 10
-        height: 15
+        x: 192
+        y: 72
+        width: 24
+        height: 24
       alignment: 0
-      pivot: {x: 0, y: 0}
+      pivot: {x: 0.5, y: 0.5}
       border: {x: 0, y: 0, z: 0, w: 0}
-      customData: 
+      customData:
       outline: []
       physicsShape: []
       tessellationDetail: -1
       bones: []
-      spriteID: 3a818507bd266ed50800000000000000
-      internalID: 6766204184792930467
+      spriteID: dbec196fdd8c8c39c5846a06d8788592
+      internalID: 6641471146128650364
       vertices: []
-      indices: 
+      indices:
       edges: []
       weights: []
     - serializedVersion: 2
-      name: tilemap_packed_9
+      name: weapons_9
       rect:
         serializedVersion: 2
-        x: 221
-        y: 73
-        width: 17
-        height: 21
+        x: 216
+        y: 72
+        width: 24
+        height: 24
       alignment: 0
-      pivot: {x: 0, y: 0}
+      pivot: {x: 0.5, y: 0.5}
       border: {x: 0, y: 0, z: 0, w: 0}
-      customData: 
+      customData:
       outline: []
       physicsShape: []
       tessellationDetail: -1
       bones: []
-      spriteID: 315b7bfd0fd8541a0800000000000000
-      internalID: -6825893594525092589
+      spriteID: 93b92051813055af00fe0d22689f79ca
+      internalID: -761673295786546872
       vertices: []
-      indices: 
+      indices:
       edges: []
       weights: []
     - serializedVersion: 2
-      name: tilemap_packed_10
+      name: weapons_10
       rect:
         serializedVersion: 2
-        x: 6
-        y: 54
-        width: 12
-        height: 11
+        x: 0
+        y: 48
+        width: 24
+        height: 24
       alignment: 0
-      pivot: {x: 0, y: 0}
+      pivot: {x: 0.5, y: 0.5}
       border: {x: 0, y: 0, z: 0, w: 0}
-      customData: 
+      customData:
       outline: []
       physicsShape: []
       tessellationDetail: -1
       bones: []
-      spriteID: f950eaaac7f2a1870800000000000000
-      internalID: 8654281846431810975
+      spriteID: 766cd6e5aafbb6940d0bf65dbc744665
+      internalID: -4858957943617100156
       vertices: []
-      indices: 
+      indices:
       edges: []
       weights: []
     - serializedVersion: 2
-      name: tilemap_packed_11
+      name: weapons_11
       rect:
         serializedVersion: 2
-        x: 28
-        y: 54
-        width: 15
-        height: 11
+        x: 24
+        y: 48
+        width: 24
+        height: 24
       alignment: 0
-      pivot: {x: 0, y: 0}
+      pivot: {x: 0.5, y: 0.5}
       border: {x: 0, y: 0, z: 0, w: 0}
-      customData: 
+      customData:
       outline: []
       physicsShape: []
       tessellationDetail: -1
       bones: []
-      spriteID: ca82c93b52aa82b80800000000000000
-      internalID: -8419292424465274708
+      spriteID: adfd8a69bae1c63d7d11c73d6da3b6e7
+      internalID: 2100895645735257587
       vertices: []
-      indices: 
+      indices:
       edges: []
       weights: []
     - serializedVersion: 2
-      name: tilemap_packed_12
+      name: weapons_12
       rect:
         serializedVersion: 2
-        x: 51
-        y: 52
-        width: 18
-        height: 16
+        x: 48
+        y: 48
+        width: 24
+        height: 24
       alignment: 0
-      pivot: {x: 0, y: 0}
+      pivot: {x: 0.5, y: 0.5}
       border: {x: 0, y: 0, z: 0, w: 0}
-      customData: 
+      customData:
       outline: []
       physicsShape: []
       tessellationDetail: -1
       bones: []
-      spriteID: 957473a45d13a8f20800000000000000
-      internalID: 3425605258711615321
+      spriteID: c6c4901b9875d5d3dc776082d1322c0e
+      internalID: 2887967350570432116
       vertices: []
-      indices: 
+      indices:
       edges: []
       weights: []
     - serializedVersion: 2
-      name: tilemap_packed_13
+      name: weapons_13
       rect:
         serializedVersion: 2
         x: 72
-        y: 53
+        y: 48
         width: 24
-        height: 14
+        height: 24
       alignment: 0
-      pivot: {x: 0, y: 0}
+      pivot: {x: 0.5, y: 0.5}
       border: {x: 0, y: 0, z: 0, w: 0}
-      customData: 
+      customData:
       outline: []
       physicsShape: []
       tessellationDetail: -1
       bones: []
-      spriteID: f53c70648a8c108f0800000000000000
-      internalID: -575958652271738017
+      spriteID: ac806dc82ff6c159113ca52487925fbe
+      internalID: 8095193427007661221
       vertices: []
-      indices: 
+      indices:
       edges: []
       weights: []
     - serializedVersion: 2
-      name: tilemap_packed_14
+      name: weapons_14
       rect:
         serializedVersion: 2
-        x: 98
-        y: 54
-        width: 20
-        height: 14
+        x: 96
+        y: 48
+        width: 24
+        height: 24
       alignment: 0
-      pivot: {x: 0, y: 0}
+      pivot: {x: 0.5, y: 0.5}
       border: {x: 0, y: 0, z: 0, w: 0}
-      customData: 
+      customData:
       outline: []
       physicsShape: []
       tessellationDetail: -1
       bones: []
-      spriteID: a9c66c05783f81890800000000000000
-      internalID: -7486966618002133862
+      spriteID: 7cb7fcdf5ee517cd4ea7dc01e5025542
+      internalID: 4245797204900626106
       vertices: []
-      indices: 
+      indices:
       edges: []
       weights: []
     - serializedVersion: 2
-      name: tilemap_packed_15
+      name: weapons_15
       rect:
         serializedVersion: 2
-        x: 121
-        y: 53
-        width: 22
-        height: 14
+        x: 120
+        y: 48
+        width: 24
+        height: 24
       alignment: 0
-      pivot: {x: 0, y: 0}
+      pivot: {x: 0.5, y: 0.5}
       border: {x: 0, y: 0, z: 0, w: 0}
-      customData: 
+      customData:
       outline: []
       physicsShape: []
       tessellationDetail: -1
       bones: []
-      spriteID: a0810286408140660800000000000000
-      internalID: 7351026898981361674
+      spriteID: 55fe29e6ac6d44dde0d1301fa63907be
+      internalID: -1095343037476934928
       vertices: []
-      indices: 
+      indices:
       edges: []
       weights: []
     - serializedVersion: 2
-      name: tilemap_packed_16
+      name: weapons_16
       rect:
         serializedVersion: 2
-        x: 146
-        y: 53
-        width: 20
-        height: 14
+        x: 144
+        y: 48
+        width: 24
+        height: 24
       alignment: 0
-      pivot: {x: 0, y: 0}
+      pivot: {x: 0.5, y: 0.5}
       border: {x: 0, y: 0, z: 0, w: 0}
-      customData: 
+      customData:
       outline: []
       physicsShape: []
       tessellationDetail: -1
       bones: []
-      spriteID: dc350204c402b2ea0800000000000000
-      internalID: -5896583775246068787
+      spriteID: b4441f655145bc5f4d6c2baf2dd70949
+      internalID: -2445702230441355021
       vertices: []
-      indices: 
+      indices:
       edges: []
       weights: []
     - serializedVersion: 2
-      name: tilemap_packed_17
+      name: weapons_17
       rect:
         serializedVersion: 2
-        x: 170
-        y: 55
-        width: 20
-        height: 13
+        x: 168
+        y: 48
+        width: 24
+        height: 24
       alignment: 0
-      pivot: {x: 0, y: 0}
+      pivot: {x: 0.5, y: 0.5}
       border: {x: 0, y: 0, z: 0, w: 0}
-      customData: 
+      customData:
       outline: []
       physicsShape: []
       tessellationDetail: -1
       bones: []
-      spriteID: 9145c54ea98a06220800000000000000
-      internalID: 2477165178263458841
+      spriteID: 4c511d4be7864a1b54925e64e74963e6
+      internalID: -3735265542980202142
       vertices: []
-      indices: 
+      indices:
       edges: []
       weights: []
     - serializedVersion: 2
-      name: tilemap_packed_18
+      name: weapons_18
       rect:
         serializedVersion: 2
-        x: 200
-        y: 51
-        width: 9
-        height: 18
+        x: 192
+        y: 48
+        width: 24
+        height: 24
       alignment: 0
-      pivot: {x: 0, y: 0}
+      pivot: {x: 0.5, y: 0.5}
       border: {x: 0, y: 0, z: 0, w: 0}
-      customData: 
+      customData:
       outline: []
       physicsShape: []
       tessellationDetail: -1
       bones: []
-      spriteID: cef52df92b69b96b0800000000000000
-      internalID: -5288467643486806036
+      spriteID: 23c1925a0a1192845aa3b268f0be89cc
+      internalID: 8308227270044109331
       vertices: []
-      indices: 
+      indices:
       edges: []
       weights: []
     - serializedVersion: 2
-      name: tilemap_packed_19
+      name: weapons_19
       rect:
         serializedVersion: 2
-        x: 219
-        y: 49
-        width: 18
-        height: 22
+        x: 216
+        y: 48
+        width: 24
+        height: 24
       alignment: 0
-      pivot: {x: 0, y: 0}
+      pivot: {x: 0.5, y: 0.5}
       border: {x: 0, y: 0, z: 0, w: 0}
-      customData: 
+      customData:
       outline: []
       physicsShape: []
       tessellationDetail: -1
       bones: []
-      spriteID: dc89f0ea007ab8470800000000000000
-      internalID: 8397989551524518093
+      spriteID: 0dc9a18cfb031eb59f6d126cd918f9dc
+      internalID: 8336481611674304958
       vertices: []
-      indices: 
+      indices:
       edges: []
       weights: []
     - serializedVersion: 2
-      name: tilemap_packed_20
+      name: weapons_20
       rect:
         serializedVersion: 2
-        x: 2
-        y: 36
-        width: 10
-        height: 10
+        x: 0
+        y: 24
+        width: 24
+        height: 24
       alignment: 0
-      pivot: {x: 0, y: 0}
+      pivot: {x: 0.5, y: 0.5}
       border: {x: 0, y: 0, z: 0, w: 0}
-      customData: 
+      customData:
       outline: []
       physicsShape: []
       tessellationDetail: -1
       bones: []
-      spriteID: d28d339f6c25ee710800000000000000
-      internalID: 1724406721867405357
+      spriteID: b6bb01d6f999895a02e9c4de4ca73033
+      internalID: -989349870976136002
       vertices: []
-      indices: 
+      indices:
       edges: []
       weights: []
     - serializedVersion: 2
-      name: tilemap_packed_21
+      name: weapons_21
       rect:
         serializedVersion: 2
-        x: 12
-        y: 36
-        width: 10
-        height: 10
+        x: 24
+        y: 24
+        width: 24
+        height: 24
       alignment: 0
-      pivot: {x: 0, y: 0}
+      pivot: {x: 0.5, y: 0.5}
       border: {x: 0, y: 0, z: 0, w: 0}
-      customData: 
+      customData:
       outline: []
       physicsShape: []
       tessellationDetail: -1
       bones: []
-      spriteID: 61856a4cc8d9a7620800000000000000
-      internalID: 2772701748520179734
+      spriteID: 2880fa664341ee0807f510d3832c9cbb
+      internalID: 5099726481312904465
       vertices: []
-      indices: 
+      indices:
       edges: []
       weights: []
     - serializedVersion: 2
-      name: tilemap_packed_22
+      name: weapons_22
       rect:
         serializedVersion: 2
-        x: 26
-        y: 36
-        width: 10
-        height: 10
+        x: 48
+        y: 24
+        width: 24
+        height: 24
       alignment: 0
-      pivot: {x: 0, y: 0}
+      pivot: {x: 0.5, y: 0.5}
       border: {x: 0, y: 0, z: 0, w: 0}
-      customData: 
+      customData:
       outline: []
       physicsShape: []
       tessellationDetail: -1
       bones: []
-      spriteID: accb54e9ce7e68980800000000000000
-      internalID: -8536881040180527926
+      spriteID: 33cab32168aafb8cf3129f14367dd6de
+      internalID: 3823059533447181782
       vertices: []
-      indices: 
+      indices:
       edges: []
       weights: []
     - serializedVersion: 2
-      name: tilemap_packed_23
+      name: weapons_23
       rect:
         serializedVersion: 2
-        x: 36
-        y: 36
-        width: 10
-        height: 10
+        x: 72
+        y: 24
+        width: 24
+        height: 24
       alignment: 0
-      pivot: {x: 0, y: 0}
+      pivot: {x: 0.5, y: 0.5}
       border: {x: 0, y: 0, z: 0, w: 0}
-      customData: 
+      customData:
       outline: []
       physicsShape: []
       tessellationDetail: -1
       bones: []
-      spriteID: 133ce232d1039b300800000000000000
-      internalID: 268298554507707185
+      spriteID: 3a3b1dd2bc01c7141f96cfffa189d470
+      internalID: -6023951366351232879
       vertices: []
-      indices: 
+      indices:
       edges: []
       weights: []
     - serializedVersion: 2
-      name: tilemap_packed_24
+      name: weapons_24
       rect:
         serializedVersion: 2
-        x: 50
-        y: 36
-        width: 10
-        height: 10
+        x: 96
+        y: 24
+        width: 24
+        height: 24
       alignment: 0
-      pivot: {x: 0, y: 0}
+      pivot: {x: 0.5, y: 0.5}
       border: {x: 0, y: 0, z: 0, w: 0}
-      customData: 
+      customData:
       outline: []
       physicsShape: []
       tessellationDetail: -1
       bones: []
-      spriteID: 04558418f1fad8500800000000000000
-      internalID: 400168491753690432
+      spriteID: a33977f57c1a0d397e4a71911d441598
+      internalID: -8449535363673692691
       vertices: []
-      indices: 
+      indices:
       edges: []
       weights: []
     - serializedVersion: 2
-      name: tilemap_packed_25
+      name: weapons_25
       rect:
         serializedVersion: 2
-        x: 60
-        y: 36
-        width: 10
-        height: 10
+        x: 120
+        y: 24
+        width: 24
+        height: 24
       alignment: 0
-      pivot: {x: 0, y: 0}
+      pivot: {x: 0.5, y: 0.5}
       border: {x: 0, y: 0, z: 0, w: 0}
-      customData: 
+      customData:
       outline: []
       physicsShape: []
       tessellationDetail: -1
       bones: []
-      spriteID: 71ec85ffd28cda930800000000000000
-      internalID: 4156198131015929367
+      spriteID: 55a9cdd57d04c846050f034e6dc1c4dc
+      internalID: 7851607771849482131
       vertices: []
-      indices: 
+      indices:
       edges: []
       weights: []
     - serializedVersion: 2
-      name: tilemap_packed_26
+      name: weapons_26
       rect:
         serializedVersion: 2
-        x: 80
-        y: 32
-        width: 8
-        height: 8
+        x: 144
+        y: 24
+        width: 24
+        height: 24
       alignment: 0
-      pivot: {x: 0, y: 0}
+      pivot: {x: 0.5, y: 0.5}
       border: {x: 0, y: 0, z: 0, w: 0}
-      customData: 
+      customData:
       outline: []
       physicsShape: []
       tessellationDetail: -1
       bones: []
-      spriteID: 802c537099dad8910800000000000000
-      internalID: 1841318695426966024
+      spriteID: 816089ae3fc3e5672dd4f2207a10508e
+      internalID: 7528809932096144314
       vertices: []
-      indices: 
+      indices:
       edges: []
       weights: []
     - serializedVersion: 2
-      name: tilemap_packed_27
+      name: weapons_27
       rect:
         serializedVersion: 2
-        x: 82
-        y: 6
-        width: 34
-        height: 38
+        x: 168
+        y: 24
+        width: 24
+        height: 24
       alignment: 0
-      pivot: {x: 0, y: 0}
+      pivot: {x: 0.5, y: 0.5}
       border: {x: 0, y: 0, z: 0, w: 0}
-      customData: 
+      customData:
       outline: []
       physicsShape: []
       tessellationDetail: -1
       bones: []
-      spriteID: 4491ea2dc7224f950800000000000000
-      internalID: 6481843683198900548
+      spriteID: f5cca7d4e32a715996b6b46a7f3e50a3
+      internalID: -6213369518360484650
       vertices: []
-      indices: 
+      indices:
       edges: []
       weights: []
     - serializedVersion: 2
-      name: tilemap_packed_28
+      name: weapons_28
       rect:
         serializedVersion: 2
-        x: 121
-        y: 25
-        width: 22
-        height: 22
+        x: 192
+        y: 24
+        width: 24
+        height: 24
       alignment: 0
-      pivot: {x: 0, y: 0}
+      pivot: {x: 0.5, y: 0.5}
       border: {x: 0, y: 0, z: 0, w: 0}
-      customData: 
+      customData:
       outline: []
       physicsShape: []
       tessellationDetail: -1
       bones: []
-      spriteID: ef33eedba54036900800000000000000
-      internalID: 676389156815778814
+      spriteID: 58e45b2d81303d05279e0fcc5ca842dd
+      internalID: 3100036408744029131
       vertices: []
-      indices: 
+      indices:
       edges: []
       weights: []
     - serializedVersion: 2
-      name: tilemap_packed_29
+      name: weapons_29
       rect:
         serializedVersion: 2
-        x: 148
-        y: 36
-        width: 8
-        height: 8
+        x: 216
+        y: 24
+        width: 24
+        height: 24
       alignment: 0
-      pivot: {x: 0, y: 0}
+      pivot: {x: 0.5, y: 0.5}
       border: {x: 0, y: 0, z: 0, w: 0}
-      customData: 
+      customData:
       outline: []
       physicsShape: []
       tessellationDetail: -1
       bones: []
-      spriteID: f2e65605ee7a8d1a0800000000000000
-      internalID: -6784488196640772561
+      spriteID: 76d2d1098d49ed52532069ca792a987b
+      internalID: -7001239988187065354
       vertices: []
-      indices: 
+      indices:
       edges: []
       weights: []
     - serializedVersion: 2
-      name: tilemap_packed_30
+      name: weapons_30
       rect:
         serializedVersion: 2
-        x: 150
-        y: 4
-        width: 40
-        height: 42
+        x: 0
+        y: 0
+        width: 24
+        height: 24
       alignment: 0
-      pivot: {x: 0, y: 0}
+      pivot: {x: 0.5, y: 0.5}
       border: {x: 0, y: 0, z: 0, w: 0}
-      customData: 
+      customData:
       outline: []
       physicsShape: []
       tessellationDetail: -1
       bones: []
-      spriteID: 3c1c4fc9f912155e0800000000000000
-      internalID: -1922718596493688381
+      spriteID: c0260ce7a13bc283fb5cfcd4a5e79967
+      internalID: 8174508395635640825
       vertices: []
-      indices: 
+      indices:
       edges: []
       weights: []
     - serializedVersion: 2
-      name: tilemap_packed_31
+      name: weapons_31
       rect:
         serializedVersion: 2
-        x: 156
-        y: 36
-        width: 8
-        height: 8
+        x: 24
+        y: 0
+        width: 24
+        height: 24
       alignment: 0
-      pivot: {x: 0, y: 0}
+      pivot: {x: 0.5, y: 0.5}
       border: {x: 0, y: 0, z: 0, w: 0}
-      customData: 
+      customData:
       outline: []
       physicsShape: []
       tessellationDetail: -1
       bones: []
-      spriteID: 9ad9e8bef0f127e10800000000000000
-      internalID: 2193850121719815593
+      spriteID: 4214effea3c68473738eb95435dc36f1
+      internalID: -3747114113136332743
       vertices: []
-      indices: 
+      indices:
       edges: []
       weights: []
     - serializedVersion: 2
-      name: tilemap_packed_32
+      name: weapons_32
       rect:
         serializedVersion: 2
-        x: 193
-        y: 37
-        width: 10
-        height: 10
+        x: 48
+        y: 0
+        width: 24
+        height: 24
       alignment: 0
-      pivot: {x: 0, y: 0}
+      pivot: {x: 0.5, y: 0.5}
       border: {x: 0, y: 0, z: 0, w: 0}
-      customData: 
+      customData:
       outline: []
       physicsShape: []
       tessellationDetail: -1
       bones: []
-      spriteID: 203a6ef23a1a1d530800000000000000
-      internalID: 3878058476398093058
+      spriteID: cec01bd11bb135710a24c512de92db53
+      internalID: -2055608806126403356
       vertices: []
-      indices: 
+      indices:
       edges: []
       weights: []
     - serializedVersion: 2
-      name: tilemap_packed_33
+      name: weapons_33
       rect:
         serializedVersion: 2
-        x: 205
-        y: 37
-        width: 10
-        height: 10
+        x: 72
+        y: 0
+        width: 24
+        height: 24
       alignment: 0
-      pivot: {x: 0, y: 0}
+      pivot: {x: 0.5, y: 0.5}
       border: {x: 0, y: 0, z: 0, w: 0}
-      customData: 
+      customData:
       outline: []
       physicsShape: []
       tessellationDetail: -1
       bones: []
-      spriteID: 9c66bfeacec372900800000000000000
-      internalID: 659562857678726857
+      spriteID: 2255b6a652748ead090f3c178ad39c4d
+      internalID: 76356673682683413
       vertices: []
-      indices: 
+      indices:
       edges: []
       weights: []
     - serializedVersion: 2
-      name: tilemap_packed_34
+      name: weapons_34
       rect:
         serializedVersion: 2
-        x: 221
-        y: 7
-        width: 14
-        height: 36
+        x: 96
+        y: 0
+        width: 24
+        height: 24
       alignment: 0
-      pivot: {x: 0, y: 0}
+      pivot: {x: 0.5, y: 0.5}
       border: {x: 0, y: 0, z: 0, w: 0}
-      customData: 
+      customData:
       outline: []
       physicsShape: []
       tessellationDetail: -1
       bones: []
-      spriteID: cee9f98cdb479b2e0800000000000000
-      internalID: -2109526591982821652
+      spriteID: f53281ead30ea1d18388c40c96a618f2
+      internalID: 5732107245335084552
       vertices: []
-      indices: 
+      indices:
       edges: []
       weights: []
     - serializedVersion: 2
-      name: tilemap_packed_35
+      name: weapons_35
       rect:
         serializedVersion: 2
-        x: 2
-        y: 26
-        width: 10
-        height: 10
+        x: 120
+        y: 0
+        width: 24
+        height: 24
       alignment: 0
-      pivot: {x: 0, y: 0}
+      pivot: {x: 0.5, y: 0.5}
       border: {x: 0, y: 0, z: 0, w: 0}
-      customData: 
+      customData:
       outline: []
       physicsShape: []
       tessellationDetail: -1
       bones: []
-      spriteID: c225c732d405076f0800000000000000
-      internalID: -688962450749631956
+      spriteID: 812e92b37da23c41770506d9f9df1d83
+      internalID: -7959197657336272770
       vertices: []
-      indices: 
+      indices:
       edges: []
       weights: []
     - serializedVersion: 2
-      name: tilemap_packed_36
+      name: weapons_36
       rect:
         serializedVersion: 2
-        x: 12
-        y: 26
-        width: 10
-        height: 10
+        x: 144
+        y: 0
+        width: 24
+        height: 24
       alignment: 0
-      pivot: {x: 0, y: 0}
+      pivot: {x: 0.5, y: 0.5}
       border: {x: 0, y: 0, z: 0, w: 0}
-      customData: 
+      customData:
       outline: []
       physicsShape: []
       tessellationDetail: -1
       bones: []
-      spriteID: a4586b694ed8925b0800000000000000
-      internalID: -5392623065878854326
+      spriteID: 7bed044720608994c0ec146a386119c2
+      internalID: 4482743522181232021
       vertices: []
-      indices: 
+      indices:
       edges: []
       weights: []
     - serializedVersion: 2
-      name: tilemap_packed_37
+      name: weapons_37
       rect:
         serializedVersion: 2
-        x: 26
-        y: 26
-        width: 10
-        height: 10
+        x: 168
+        y: 0
+        width: 24
+        height: 24
       alignment: 0
-      pivot: {x: 0, y: 0}
+      pivot: {x: 0.5, y: 0.5}
       border: {x: 0, y: 0, z: 0, w: 0}
-      customData: 
+      customData:
       outline: []
       physicsShape: []
       tessellationDetail: -1
       bones: []
-      spriteID: 3b5d53cd65478a4b0800000000000000
-      internalID: -5428961434384607821
+      spriteID: 6e10cad9f7f8ff57f2e84ec2dbc62d4e
+      internalID: -3488487325568546433
       vertices: []
-      indices: 
+      indices:
       edges: []
       weights: []
     - serializedVersion: 2
-      name: tilemap_packed_38
+      name: weapons_38
       rect:
         serializedVersion: 2
-        x: 36
-        y: 26
-        width: 10
-        height: 10
+        x: 192
+        y: 0
+        width: 24
+        height: 24
       alignment: 0
-      pivot: {x: 0, y: 0}
+      pivot: {x: 0.5, y: 0.5}
       border: {x: 0, y: 0, z: 0, w: 0}
-      customData: 
+      customData:
       outline: []
       physicsShape: []
       tessellationDetail: -1
       bones: []
-      spriteID: 56578eeef30682470800000000000000
-      internalID: 8370045735175484773
+      spriteID: 650d9247fa09e74bd14dc96a75e07e14
+      internalID: 7968433632987459760
       vertices: []
-      indices: 
+      indices:
       edges: []
       weights: []
     - serializedVersion: 2
-      name: tilemap_packed_39
+      name: weapons_39
       rect:
         serializedVersion: 2
-        x: 50
-        y: 26
-        width: 10
-        height: 10
+        x: 216
+        y: 0
+        width: 24
+        height: 24
       alignment: 0
-      pivot: {x: 0, y: 0}
+      pivot: {x: 0.5, y: 0.5}
       border: {x: 0, y: 0, z: 0, w: 0}
-      customData: 
+      customData:
       outline: []
       physicsShape: []
       tessellationDetail: -1
       bones: []
-      spriteID: f5f876d1d64f14de0800000000000000
-      internalID: -1350529663752499361
+      spriteID: d130d7b66b519cf6ec7d7bb77b76c1f3
+      internalID: -8963225989260116466
       vertices: []
-      indices: 
-      edges: []
-      weights: []
-    - serializedVersion: 2
-      name: tilemap_packed_40
-      rect:
-        serializedVersion: 2
-        x: 60
-        y: 26
-        width: 10
-        height: 10
-      alignment: 0
-      pivot: {x: 0, y: 0}
-      border: {x: 0, y: 0, z: 0, w: 0}
-      customData: 
-      outline: []
-      physicsShape: []
-      tessellationDetail: -1
-      bones: []
-      spriteID: 9157cdb6c06779360800000000000000
-      internalID: 7176334326959469849
-      vertices: []
-      indices: 
-      edges: []
-      weights: []
-    - serializedVersion: 2
-      name: tilemap_packed_41
-      rect:
-        serializedVersion: 2
-        x: 148
-        y: 28
-        width: 8
-        height: 8
-      alignment: 0
-      pivot: {x: 0, y: 0}
-      border: {x: 0, y: 0, z: 0, w: 0}
-      customData: 
-      outline: []
-      physicsShape: []
-      tessellationDetail: -1
-      bones: []
-      spriteID: 891161ce887762bc0800000000000000
-      internalID: -3808225004935048808
-      vertices: []
-      indices: 
-      edges: []
-      weights: []
-    - serializedVersion: 2
-      name: tilemap_packed_42
-      rect:
-        serializedVersion: 2
-        x: 156
-        y: 28
-        width: 8
-        height: 8
-      alignment: 0
-      pivot: {x: 0, y: 0}
-      border: {x: 0, y: 0, z: 0, w: 0}
-      customData: 
-      outline: []
-      physicsShape: []
-      tessellationDetail: -1
-      bones: []
-      spriteID: 92a63e12a7f3d8f40800000000000000
-      internalID: 5732307694499621417
-      vertices: []
-      indices: 
-      edges: []
-      weights: []
-    - serializedVersion: 2
-      name: tilemap_packed_43
-      rect:
-        serializedVersion: 2
-        x: 193
-        y: 25
-        width: 10
-        height: 10
-      alignment: 0
-      pivot: {x: 0, y: 0}
-      border: {x: 0, y: 0, z: 0, w: 0}
-      customData: 
-      outline: []
-      physicsShape: []
-      tessellationDetail: -1
-      bones: []
-      spriteID: b91198e1b15b3ed20800000000000000
-      internalID: 3306685679501119899
-      vertices: []
-      indices: 
-      edges: []
-      weights: []
-    - serializedVersion: 2
-      name: tilemap_packed_44
-      rect:
-        serializedVersion: 2
-        x: 205
-        y: 25
-        width: 10
-        height: 10
-      alignment: 0
-      pivot: {x: 0, y: 0}
-      border: {x: 0, y: 0, z: 0, w: 0}
-      customData: 
-      outline: []
-      physicsShape: []
-      tessellationDetail: -1
-      bones: []
-      spriteID: f92b07a2cd4825c40800000000000000
-      internalID: 5499604176112497311
-      vertices: []
-      indices: 
-      edges: []
-      weights: []
-    - serializedVersion: 2
-      name: tilemap_packed_45
-      rect:
-        serializedVersion: 2
-        x: 4
-        y: 14
-        width: 6
-        height: 6
-      alignment: 0
-      pivot: {x: 0, y: 0}
-      border: {x: 0, y: 0, z: 0, w: 0}
-      customData: 
-      outline: []
-      physicsShape: []
-      tessellationDetail: -1
-      bones: []
-      spriteID: 3bfaa5e02aa016940800000000000000
-      internalID: 5287519128651476915
-      vertices: []
-      indices: 
-      edges: []
-      weights: []
-    - serializedVersion: 2
-      name: tilemap_packed_46
-      rect:
-        serializedVersion: 2
-        x: 14
-        y: 14
-        width: 6
-        height: 6
-      alignment: 0
-      pivot: {x: 0, y: 0}
-      border: {x: 0, y: 0, z: 0, w: 0}
-      customData: 
-      outline: []
-      physicsShape: []
-      tessellationDetail: -1
-      bones: []
-      spriteID: f9330b250953a2400800000000000000
-      internalID: 300111219152401311
-      vertices: []
-      indices: 
-      edges: []
-      weights: []
-    - serializedVersion: 2
-      name: tilemap_packed_47
-      rect:
-        serializedVersion: 2
-        x: 28
-        y: 14
-        width: 6
-        height: 6
-      alignment: 0
-      pivot: {x: 0, y: 0}
-      border: {x: 0, y: 0, z: 0, w: 0}
-      customData: 
-      outline: []
-      physicsShape: []
-      tessellationDetail: -1
-      bones: []
-      spriteID: 6193dd5f1c3ed9e10800000000000000
-      internalID: 2206169814674520342
-      vertices: []
-      indices: 
-      edges: []
-      weights: []
-    - serializedVersion: 2
-      name: tilemap_packed_48
-      rect:
-        serializedVersion: 2
-        x: 38
-        y: 14
-        width: 6
-        height: 6
-      alignment: 0
-      pivot: {x: 0, y: 0}
-      border: {x: 0, y: 0, z: 0, w: 0}
-      customData: 
-      outline: []
-      physicsShape: []
-      tessellationDetail: -1
-      bones: []
-      spriteID: f335458b92f278c60800000000000000
-      internalID: 7820271134184854335
-      vertices: []
-      indices: 
-      edges: []
-      weights: []
-    - serializedVersion: 2
-      name: tilemap_packed_49
-      rect:
-        serializedVersion: 2
-        x: 52
-        y: 14
-        width: 6
-        height: 6
-      alignment: 0
-      pivot: {x: 0, y: 0}
-      border: {x: 0, y: 0, z: 0, w: 0}
-      customData: 
-      outline: []
-      physicsShape: []
-      tessellationDetail: -1
-      bones: []
-      spriteID: c26f199e244cc61c0800000000000000
-      internalID: -4509013335239166420
-      vertices: []
-      indices: 
-      edges: []
-      weights: []
-    - serializedVersion: 2
-      name: tilemap_packed_50
-      rect:
-        serializedVersion: 2
-        x: 62
-        y: 14
-        width: 6
-        height: 6
-      alignment: 0
-      pivot: {x: 0, y: 0}
-      border: {x: 0, y: 0, z: 0, w: 0}
-      customData: 
-      outline: []
-      physicsShape: []
-      tessellationDetail: -1
-      bones: []
-      spriteID: bedfe645146c60bb0800000000000000
-      internalID: -4970067154865029653
-      vertices: []
-      indices: 
-      edges: []
-      weights: []
-    - serializedVersion: 2
-      name: tilemap_packed_51
-      rect:
-        serializedVersion: 2
-        x: 125
-        y: 13
-        width: 9
-        height: 8
-      alignment: 0
-      pivot: {x: 0, y: 0}
-      border: {x: 0, y: 0, z: 0, w: 0}
-      customData: 
-      outline: []
-      physicsShape: []
-      tessellationDetail: -1
-      bones: []
-      spriteID: ad0c1fa0857f6fdd0800000000000000
-      internalID: -2452500989543857958
-      vertices: []
-      indices: 
-      edges: []
-      weights: []
-    - serializedVersion: 2
-      name: tilemap_packed_52
-      rect:
-        serializedVersion: 2
-        x: 133
-        y: 13
-        width: 6
-        height: 6
-      alignment: 0
-      pivot: {x: 0, y: 0}
-      border: {x: 0, y: 0, z: 0, w: 0}
-      customData: 
-      outline: []
-      physicsShape: []
-      tessellationDetail: -1
-      bones: []
-      spriteID: 7ccaceefc7d1ee5b0800000000000000
-      internalID: -5337296085697385273
-      vertices: []
-      indices: 
-      edges: []
-      weights: []
-    - serializedVersion: 2
-      name: tilemap_packed_53
-      rect:
-        serializedVersion: 2
-        x: 195
-        y: 15
-        width: 6
-        height: 6
-      alignment: 0
-      pivot: {x: 0, y: 0}
-      border: {x: 0, y: 0, z: 0, w: 0}
-      customData: 
-      outline: []
-      physicsShape: []
-      tessellationDetail: -1
-      bones: []
-      spriteID: 37a1dec6225c5e420800000000000000
-      internalID: 2658747906679183987
-      vertices: []
-      indices: 
-      edges: []
-      weights: []
-    - serializedVersion: 2
-      name: tilemap_packed_54
-      rect:
-        serializedVersion: 2
-        x: 207
-        y: 15
-        width: 6
-        height: 6
-      alignment: 0
-      pivot: {x: 0, y: 0}
-      border: {x: 0, y: 0, z: 0, w: 0}
-      customData: 
-      outline: []
-      physicsShape: []
-      tessellationDetail: -1
-      bones: []
-      spriteID: 927ed756a15daffa0800000000000000
-      internalID: -5766062063545882839
-      vertices: []
-      indices: 
-      edges: []
-      weights: []
-    - serializedVersion: 2
-      name: tilemap_packed_55
-      rect:
-        serializedVersion: 2
-        x: 4
-        y: 4
-        width: 6
-        height: 6
-      alignment: 0
-      pivot: {x: 0, y: 0}
-      border: {x: 0, y: 0, z: 0, w: 0}
-      customData: 
-      outline: []
-      physicsShape: []
-      tessellationDetail: -1
-      bones: []
-      spriteID: 1adfa84bd28916750800000000000000
-      internalID: 6296481076110622113
-      vertices: []
-      indices: 
-      edges: []
-      weights: []
-    - serializedVersion: 2
-      name: tilemap_packed_56
-      rect:
-        serializedVersion: 2
-        x: 14
-        y: 4
-        width: 6
-        height: 6
-      alignment: 0
-      pivot: {x: 0, y: 0}
-      border: {x: 0, y: 0, z: 0, w: 0}
-      customData: 
-      outline: []
-      physicsShape: []
-      tessellationDetail: -1
-      bones: []
-      spriteID: 833d7c1d0cd48d050800000000000000
-      internalID: 5825491608552330040
-      vertices: []
-      indices: 
-      edges: []
-      weights: []
-    - serializedVersion: 2
-      name: tilemap_packed_57
-      rect:
-        serializedVersion: 2
-        x: 28
-        y: 4
-        width: 6
-        height: 6
-      alignment: 0
-      pivot: {x: 0, y: 0}
-      border: {x: 0, y: 0, z: 0, w: 0}
-      customData: 
-      outline: []
-      physicsShape: []
-      tessellationDetail: -1
-      bones: []
-      spriteID: aff959604f7392a40800000000000000
-      internalID: 5343863954073821178
-      vertices: []
-      indices: 
-      edges: []
-      weights: []
-    - serializedVersion: 2
-      name: tilemap_packed_58
-      rect:
-        serializedVersion: 2
-        x: 38
-        y: 4
-        width: 6
-        height: 6
-      alignment: 0
-      pivot: {x: 0, y: 0}
-      border: {x: 0, y: 0, z: 0, w: 0}
-      customData: 
-      outline: []
-      physicsShape: []
-      tessellationDetail: -1
-      bones: []
-      spriteID: 7921566c9a8398d10800000000000000
-      internalID: 2128294600738411159
-      vertices: []
-      indices: 
-      edges: []
-      weights: []
-    - serializedVersion: 2
-      name: tilemap_packed_59
-      rect:
-        serializedVersion: 2
-        x: 52
-        y: 4
-        width: 6
-        height: 6
-      alignment: 0
-      pivot: {x: 0, y: 0}
-      border: {x: 0, y: 0, z: 0, w: 0}
-      customData: 
-      outline: []
-      physicsShape: []
-      tessellationDetail: -1
-      bones: []
-      spriteID: 508fb123113cd3a20800000000000000
-      internalID: 3043803401794877445
-      vertices: []
-      indices: 
-      edges: []
-      weights: []
-    - serializedVersion: 2
-      name: tilemap_packed_60
-      rect:
-        serializedVersion: 2
-        x: 62
-        y: 4
-        width: 6
-        height: 6
-      alignment: 0
-      pivot: {x: 0, y: 0}
-      border: {x: 0, y: 0, z: 0, w: 0}
-      customData: 
-      outline: []
-      physicsShape: []
-      tessellationDetail: -1
-      bones: []
-      spriteID: 3351f4dceff042f30800000000000000
-      internalID: 4549779110591665459
-      vertices: []
-      indices: 
-      edges: []
-      weights: []
-    - serializedVersion: 2
-      name: tilemap_packed_61
-      rect:
-        serializedVersion: 2
-        x: 123
-        y: 5
-        width: 8
-        height: 9
-      alignment: 0
-      pivot: {x: 0, y: 0}
-      border: {x: 0, y: 0, z: 0, w: 0}
-      customData: 
-      outline: []
-      physicsShape: []
-      tessellationDetail: -1
-      bones: []
-      spriteID: eee0947348d1c3b30800000000000000
-      internalID: 4268319000540810990
-      vertices: []
-      indices: 
-      edges: []
-      weights: []
-    - serializedVersion: 2
-      name: tilemap_packed_62
-      rect:
-        serializedVersion: 2
-        x: 130
-        y: 3
-        width: 11
-        height: 11
-      alignment: 0
-      pivot: {x: 0, y: 0}
-      border: {x: 0, y: 0, z: 0, w: 0}
-      customData: 
-      outline: []
-      physicsShape: []
-      tessellationDetail: -1
-      bones: []
-      spriteID: 1e5c06d03f0a48090800000000000000
-      internalID: -8033118869560179231
-      vertices: []
-      indices: 
-      edges: []
-      weights: []
-    - serializedVersion: 2
-      name: tilemap_packed_63
-      rect:
-        serializedVersion: 2
-        x: 195
-        y: 3
-        width: 6
-        height: 6
-      alignment: 0
-      pivot: {x: 0, y: 0}
-      border: {x: 0, y: 0, z: 0, w: 0}
-      customData: 
-      outline: []
-      physicsShape: []
-      tessellationDetail: -1
-      bones: []
-      spriteID: 79290276fb25e8420800000000000000
-      internalID: 2634133814080737943
-      vertices: []
-      indices: 
-      edges: []
-      weights: []
-    - serializedVersion: 2
-      name: tilemap_packed_64
-      rect:
-        serializedVersion: 2
-        x: 207
-        y: 3
-        width: 6
-        height: 6
-      alignment: 0
-      pivot: {x: 0, y: 0}
-      border: {x: 0, y: 0, z: 0, w: 0}
-      customData: 
-      outline: []
-      physicsShape: []
-      tessellationDetail: -1
-      bones: []
-      spriteID: 1d9504a7601be69d0800000000000000
-      internalID: -2779089278662059567
-      vertices: []
-      indices: 
+      indices:
       edges: []
       weights: []
     outline: []
-    customData: 
+    customData:
     physicsShape: []
     bones: []
-    spriteID: 
+    spriteID:
     internalID: 0
     vertices: []
-    indices: 
+    indices:
     edges: []
     weights: []
     secondaryTextures: []
     spriteCustomMetadata:
       entries: []
     nameFileIdTable:
-      tilemap_packed_0: -1453350334737186109
-      tilemap_packed_1: -5773244093850934461
-      tilemap_packed_10: 8654281846431810975
-      tilemap_packed_11: -8419292424465274708
-      tilemap_packed_12: 3425605258711615321
-      tilemap_packed_13: -575958652271738017
-      tilemap_packed_14: -7486966618002133862
-      tilemap_packed_15: 7351026898981361674
-      tilemap_packed_16: -5896583775246068787
-      tilemap_packed_17: 2477165178263458841
-      tilemap_packed_18: -5288467643486806036
-      tilemap_packed_19: 8397989551524518093
-      tilemap_packed_2: -7397652778513525935
-      tilemap_packed_20: 1724406721867405357
-      tilemap_packed_21: 2772701748520179734
-      tilemap_packed_22: -8536881040180527926
-      tilemap_packed_23: 268298554507707185
-      tilemap_packed_24: 400168491753690432
-      tilemap_packed_25: 4156198131015929367
-      tilemap_packed_26: 1841318695426966024
-      tilemap_packed_27: 6481843683198900548
-      tilemap_packed_28: 676389156815778814
-      tilemap_packed_29: -6784488196640772561
-      tilemap_packed_3: -4657764202658221571
-      tilemap_packed_30: -1922718596493688381
-      tilemap_packed_31: 2193850121719815593
-      tilemap_packed_32: 3878058476398093058
-      tilemap_packed_33: 659562857678726857
-      tilemap_packed_34: -2109526591982821652
-      tilemap_packed_35: -688962450749631956
-      tilemap_packed_36: -5392623065878854326
-      tilemap_packed_37: -5428961434384607821
-      tilemap_packed_38: 8370045735175484773
-      tilemap_packed_39: -1350529663752499361
-      tilemap_packed_4: -3333449033900058284
-      tilemap_packed_40: 7176334326959469849
-      tilemap_packed_41: -3808225004935048808
-      tilemap_packed_42: 5732307694499621417
-      tilemap_packed_43: 3306685679501119899
-      tilemap_packed_44: 5499604176112497311
-      tilemap_packed_45: 5287519128651476915
-      tilemap_packed_46: 300111219152401311
-      tilemap_packed_47: 2206169814674520342
-      tilemap_packed_48: 7820271134184854335
-      tilemap_packed_49: -4509013335239166420
-      tilemap_packed_5: -6373955360715321419
-      tilemap_packed_50: -4970067154865029653
-      tilemap_packed_51: -2452500989543857958
-      tilemap_packed_52: -5337296085697385273
-      tilemap_packed_53: 2658747906679183987
-      tilemap_packed_54: -5766062063545882839
-      tilemap_packed_55: 6296481076110622113
-      tilemap_packed_56: 5825491608552330040
-      tilemap_packed_57: 5343863954073821178
-      tilemap_packed_58: 2128294600738411159
-      tilemap_packed_59: 3043803401794877445
-      tilemap_packed_6: 7454484266408833828
-      tilemap_packed_60: 4549779110591665459
-      tilemap_packed_61: 4268319000540810990
-      tilemap_packed_62: -8033118869560179231
-      tilemap_packed_63: 2634133814080737943
-      tilemap_packed_64: -2779089278662059567
-      tilemap_packed_7: -1409608323598810497
-      tilemap_packed_8: 6766204184792930467
-      tilemap_packed_9: -6825893594525092589
+      weapons_0: 3895382220136359853
+      weapons_1: 5752084263097590222
+      weapons_10: -4858957943617100156
+      weapons_11: 2100895645735257587
+      weapons_12: 2887967350570432116
+      weapons_13: 8095193427007661221
+      weapons_14: 4245797204900626106
+      weapons_15: -1095343037476934928
+      weapons_16: -2445702230441355021
+      weapons_17: -3735265542980202142
+      weapons_18: 8308227270044109331
+      weapons_19: 8336481611674304958
+      weapons_2: 4044960238834004323
+      weapons_20: -989349870976136002
+      weapons_21: 5099726481312904465
+      weapons_22: 3823059533447181782
+      weapons_23: -6023951366351232879
+      weapons_24: -8449535363673692691
+      weapons_25: 7851607771849482131
+      weapons_26: 7528809932096144314
+      weapons_27: -6213369518360484650
+      weapons_28: 3100036408744029131
+      weapons_29: -7001239988187065354
+      weapons_3: 2279028096176847569
+      weapons_30: 8174508395635640825
+      weapons_31: -3747114113136332743
+      weapons_32: -2055608806126403356
+      weapons_33: 76356673682683413
+      weapons_34: 5732107245335084552
+      weapons_35: -7959197657336272770
+      weapons_36: 4482743522181232021
+      weapons_37: -3488487325568546433
+      weapons_38: 7968433632987459760
+      weapons_39: -8963225989260116466
+      weapons_4: -2890129855074309821
+      weapons_5: -3967626027433897753
+      weapons_6: 1266027606452622727
+      weapons_7: 5835505589488180157
+      weapons_8: 6641471146128650364
+      weapons_9: -761673295786546872
   mipmapLimitGroupName: 
   pSDRemoveMatte: 0
   userData: 
