@@ -34,6 +34,14 @@ namespace PickShoot
             if (sr != null) originalColor = sr.color;
         }
 
+        // 웨이브 시작 시 WaveManager가 호출. 매 웨이브를 온전한 체력으로 시작한다.
+        public void RestoreFull()
+        {
+            if (!IsAlive)
+                throw new System.Exception("[PickShoot] 사망한 플레이어에 RestoreFull 호출됨.");
+            current = maxHp;
+        }
+
         void Update()
         {
             if (sr == null) return;

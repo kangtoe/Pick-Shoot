@@ -35,6 +35,7 @@ namespace PickShoot
         readonly List<EnemyHealth> spawnedEnemies = new List<EnemyHealth>();
         Transform player;
         PlayerPickup playerPickup;
+        PlayerHealth playerHealth;
 
         public int CurrentWave => currentWave;
         public float WaveTimeRemaining => waveTimeRemaining;
@@ -54,6 +55,9 @@ namespace PickShoot
             playerPickup = p.GetComponent<PlayerPickup>();
             if (playerPickup == null)
                 throw new System.Exception("[PickShoot] Player에 PlayerPickup 컴포넌트 없음 (웨이브 클리어 sweep에 필요).");
+            playerHealth = p.GetComponent<PlayerHealth>();
+            if (playerHealth == null)
+                throw new System.Exception("[PickShoot] Player에 PlayerHealth 컴포넌트 없음 (웨이브 시작 체력 회복에 필요).");
 
             StartCoroutine(RunWaves());
         }
@@ -69,6 +73,10 @@ namespace PickShoot
                 waveTimeRemaining = waveDuration;
 
                 yield return new WaitForSeconds(betweenWaveDelay);
+
+                if (!CanSpawn()) yield break;
+                // 매 웨이브는 온전한 체력으로 시작한다 (GDD §3.3).
+                playerHealth.RestoreFull();
 
                 waveActive = true;
                 float elapsed = 0f;
