@@ -10,6 +10,8 @@ namespace PickShoot
         [SerializeField] float damageFlashDuration = 0.35f;
         [SerializeField] Color damageFlashColor = new Color(1f, 0.15f, 0.15f, 0.4f);
         [SerializeField] GameObject deathEffectPrefab;
+        [SerializeField] AudioClip hurtClip;
+        [SerializeField] AudioClip deathClip;
 
         int current;
         float invincibleUntil;
@@ -67,7 +69,12 @@ namespace PickShoot
                 Died?.Invoke();
                 if (deathEffectPrefab != null)
                     Instantiate(deathEffectPrefab, transform.position, Quaternion.identity);
+                if (deathClip != null) SoundPlayer.Play(deathClip);
                 Destroy(gameObject);
+            }
+            else if (hurtClip != null)
+            {
+                SoundPlayer.Play(hurtClip);
             }
             return true;
         }

@@ -20,6 +20,10 @@ namespace PickShoot
         [SerializeField, Min(0)] int penetration = 0;
         [SerializeField] Color visualColor = Color.white;
 
+        [Header("Presentation")]
+        [SerializeField] Sprite weaponSprite;
+        [SerializeField] AudioClip shootClip;
+
         public string DisplayName => displayName;
         public Bullet BulletPrefab => bulletPrefab;
         public float BulletSpeed => bulletSpeed;
@@ -33,5 +37,7 @@ namespace PickShoot
         public int MaxBounces => maxBounces;
         public int Penetration => penetration;
         public Color VisualColor => visualColor;
+        public Sprite WeaponSprite => weaponSprite;
+        public AudioClip ShootClip => shootClip;
     }
 }

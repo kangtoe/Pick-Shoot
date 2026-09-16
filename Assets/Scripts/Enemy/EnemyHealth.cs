@@ -8,6 +8,8 @@ namespace PickShoot
         [SerializeField] float flashDuration = 0.08f;
         [SerializeField] Color flashColor = Color.white;
         [SerializeField] GameObject deathEffectPrefab;
+        [SerializeField] AudioClip hitClip;
+        [SerializeField] AudioClip deathClip;
 
         int current;
         float flashUntil;
@@ -41,22 +43,24 @@ namespace PickShoot
             if (current <= 0) return;
             current -= amount;
             flashUntil = Time.time + flashDuration;
-            if (current <= 0) Die();
+            if (current <= 0) Die(playSound: true);
+            else if (hitClip != null) SoundPlayer.Play(hitClip);
         }
 
         // 외부에서 강제 사망 (예: 웨이브 종료 시 잔존 적 정리).
-        // Die 경로를 재사용해 사망 이펙트가 나타나도록 한다.
+        // Die 경로를 재사용해 사망 이펙트가 나타나도록 한다. 다수가 동시에 정리되므로 사망음은 내지 않는다.
         public void Kill()
         {
             if (current <= 0) return;
             current = 0;
-            Die();
+            Die(playSound: false);
         }
 
-        void Die()
+        void Die(bool playSound)
         {
             if (deathEffectPrefab != null)
                 Instantiate(deathEffectPrefab, transform.position, Quaternion.identity);
+            if (playSound && deathClip != null) SoundPlayer.Play(deathClip);
             Destroy(gameObject);
         }
     }

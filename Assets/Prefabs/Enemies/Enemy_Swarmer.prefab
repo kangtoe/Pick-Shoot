@@ -85,8 +85,8 @@ SpriteRenderer:
   m_SortingLayer: 0
   m_SortingOrder: 3
   m_MaskInteraction: 0
-  m_Sprite: {fileID: -2413806693520163455, guid: e7b51dd4fcea6294d813eeb7bc3436b0, type: 3}
-  m_Color: {r: 1, g: 0.65, b: 0.15, a: 1}
+  m_Sprite: {fileID: 1754064180030499212, guid: 0d43f266f11dd8c43927b7935aefa50e, type: 3}
+  m_Color: {r: 1, g: 1, b: 1, a: 1}
   m_FlipX: 0
   m_FlipY: 0
   m_DrawMode: 0
@@ -193,3 +193,5 @@ MonoBehaviour:
   flashDuration: 0.08
   flashColor: {r: 1, g: 1, b: 1, a: 1}
   deathEffectPrefab: {fileID: 5670591326354318199, guid: 621b869db3a9bdc42b153ed8e123f1ab, type: 3}
+  hitClip: {fileID: 8300000, guid: 0b892b20090e74f4e9bdbd2239bd8d59, type: 3}
+  deathClip: {fileID: 8300000, guid: ea87281d6691b8340a8a02116df30d6f, type: 3}

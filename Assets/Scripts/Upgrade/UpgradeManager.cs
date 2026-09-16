@@ -11,6 +11,7 @@ namespace PickShoot
         [SerializeField] PlayerWeapons weapons;
         [SerializeField] List<WeaponData> weaponPool = new List<WeaponData>();
         [SerializeField] int cardsToShow = 3;
+        [SerializeField] AudioClip selectClip;
 
         UpgradeOption[] currentCards;
         bool active;
@@ -107,6 +108,7 @@ namespace PickShoot
                 if (GUI.Button(r, currentCards[i].BuildLabel(weapons), buttonStyle))
                 {
                     currentCards[i].Apply(weapons);
+                    if (selectClip != null) SoundPlayer.Play(selectClip);
                     selected = true;
                 }
             }

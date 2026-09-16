@@ -25,3 +25,5 @@ MonoBehaviour:
   maxBounces: 0
   penetration: 1
   visualColor: {r: 0.35, g: 0.7, b: 1, a: 1}
+  weaponSprite: {fileID: 2279028096176847569, guid: 4f2ba46ac711e1e4698a9d155c120788, type: 3}
+  shootClip: {fileID: 8300000, guid: 5ce0f9d50ceefeb459b6d0288ee2ffcf, type: 3}

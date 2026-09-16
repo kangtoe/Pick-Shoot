@@ -31,6 +31,8 @@ namespace PickShoot
                 throw new System.Exception("[PickShoot] Weapon 생성자에 WeaponData가 null.");
             if (data.BulletPrefab == null)
                 throw new System.Exception($"[PickShoot] WeaponData '{data.DisplayName}'에 BulletPrefab 미할당.");
+            if (data.WeaponSprite == null)
+                throw new System.Exception($"[PickShoot] WeaponData '{data.DisplayName}'에 WeaponSprite 미할당. 링 위 무기 시각화용 sprite 필요.");
             this.data = data;
             currentAmmo = MaxAmmo;
             nextReadyTime = 0f;
@@ -50,6 +52,7 @@ namespace PickShoot
 
             currentAmmo -= data.AmmoPerShot;
             nextReadyTime = now + EffectiveCooldown;
+            if (data.ShootClip != null) SoundPlayer.Play(data.ShootClip);
 
             int shots = data.ProjectilesPerShot;
             float spread = data.SpreadAngleDegrees;

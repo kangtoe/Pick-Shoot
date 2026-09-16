@@ -11,6 +11,7 @@ namespace PickShoot
         [SerializeField] float magnetBlendRate = 12f;
         [SerializeField] float sweepSpeed = 30f;
         [SerializeField] GameObject pickupEffectPrefab;
+        [SerializeField] AudioClip pickupClip;
 
         readonly Collider2D[] hits = new Collider2D[16];
 
@@ -31,8 +32,7 @@ namespace PickShoot
                     if (owner == null)
                         throw new System.Exception("[PickShoot] 회수 대상 Bullet에 OwnerWeapon이 null. 발사 경로에서 귀속이 누락되었습니다.");
                     if (!owner.TryAddAmmo()) return;
-                    if (pickupEffectPrefab != null)
-                        Instantiate(pickupEffectPrefab, bullet.transform.position, Quaternion.identity);
+                    PlayPickupFeedback(bullet.transform.position);
                     Destroy(bullet.gameObject);
                     continue;
                 }
@@ -47,6 +47,13 @@ namespace PickShoot
                 float alpha = 1f - Mathf.Exp(-magnetBlendRate * Time.fixedDeltaTime);
                 rb.linearVelocity = Vector2.Lerp(rb.linearVelocity, targetVel, alpha);
             }
+        }
+
+        void PlayPickupFeedback(Vector3 position)
+        {
+            if (pickupEffectPrefab != null)
+                Instantiate(pickupEffectPrefab, position, Quaternion.identity);
+            if (pickupClip != null) SoundPlayer.Play(pickupClip);
         }
 
         // 웨이브 클리어 연출: 필드의 모든 탄환을 강제 정착 → 강한 자석으로 플레이어에게 끌어와 회수.
@@ -75,8 +82,7 @@ namespace PickShoot
                         if (owner == null)
                             throw new System.Exception("[PickShoot] Sweep 회수 대상 Bullet에 OwnerWeapon이 null.");
                         owner.TryAddAmmo();
-                        if (pickupEffectPrefab != null)
-                            Instantiate(pickupEffectPrefab, b.transform.position, Quaternion.identity);
+                        PlayPickupFeedback(b.transform.position);
                         Destroy(b.gameObject);
                         continue;
                     }

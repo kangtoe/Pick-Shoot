@@ -6,13 +6,13 @@ namespace PickShoot
 {
     // 플레이어의 다중 무기 슬롯 관리자. 사격 입력 처리·발사 우선순위 결정·HUD 표시.
     // 각 무기는 플레이어를 중심으로 하는 원형 링 위에 균등 분포로 배치되며,
-    // 링은 플레이어 회전(=조준 방향)을 따라 자연스럽게 회전한다 (GDD §7.2).
+    // 링은 조준 방향(PlayerAiming.AimAngleDeg)을 따라 자연스럽게 회전한다 (GDD §7.2).
+    // 무기 스프라이트는 오른쪽(+x)을 향해 그려져 있으므로, 왼쪽을 조준할 때는 상하 반전해 거꾸로 보이지 않게 한다.
     public class PlayerWeapons : MonoBehaviour
     {
         public const int MaxSlots = 4;
 
         [SerializeField] List<WeaponData> startingWeapons = new List<WeaponData>();
-        [SerializeField] Sprite weaponSprite;
         [SerializeField] float ringRadius = 1.0f;
         [SerializeField] float arcBaseDegrees = 30f;
         [SerializeField, Range(0f, 1f)] float arcExponent = 0.7f;
@@ -22,9 +22,11 @@ namespace PickShoot
         [SerializeField, Min(0f)] float ringMaxAngularSpeed = 720f;
 
         Collider2D myCollider;
+        PlayerAiming aiming;
         Transform ringPivot;
         readonly List<Weapon> slots = new List<Weapon>(MaxSlots);
         readonly List<Transform> slotVisuals = new List<Transform>(MaxSlots);
+        readonly List<SpriteRenderer> slotRenderers = new List<SpriteRenderer>(MaxSlots);
         float nextGlobalShotTime;
         float currentRingAngleDeg;
 
@@ -36,8 +38,9 @@ namespace PickShoot
             myCollider = GetComponent<Collider2D>();
             if (myCollider == null)
                 throw new System.Exception("[PickShoot] PlayerWeapons는 같은 GameObject의 Collider2D를 요구합니다.");
-            if (weaponSprite == null)
-                throw new System.Exception("[PickShoot] PlayerWeapons.weaponSprite 미할당. 링 위 무기 시각화용 sprite 필요.");
+            aiming = GetComponent<PlayerAiming>();
+            if (aiming == null)
+                throw new System.Exception("[PickShoot] PlayerWeapons는 같은 GameObject의 PlayerAiming을 요구합니다 (조준각 출처).");
             if (startingWeapons.Count == 0)
                 throw new System.Exception("[PickShoot] PlayerWeapons.startingWeapons가 비어 있음. 최소 1자루의 WeaponData가 필요합니다.");
             if (startingWeapons.Count > MaxSlots)
@@ -45,7 +48,7 @@ namespace PickShoot
 
             ringPivot = new GameObject("WeaponRingPivot").transform;
             ringPivot.SetParent(transform, false);
-            currentRingAngleDeg = transform.eulerAngles.z;
+            currentRingAngleDeg = aiming.AimAngleDeg;
             ringPivot.rotation = Quaternion.Euler(0f, 0f, currentRingAngleDeg);
 
             for (int i = 0; i < startingWeapons.Count; i++)
@@ -83,9 +86,9 @@ namespace PickShoot
             go.transform.SetParent(ringPivot, false);
             go.transform.localScale = new Vector3(weaponVisualScale, weaponVisualScale, 1f);
             var sr = go.AddComponent<SpriteRenderer>();
-            sr.sprite = weaponSprite;
-            sr.color = data.VisualColor;
+            sr.sprite = data.WeaponSprite;
             sr.sortingOrder = weaponSortingOrder;
+            slotRenderers.Add(sr);
             return go.transform;
         }
 
@@ -126,9 +129,13 @@ namespace PickShoot
         void Update()
         {
             // 링은 플레이어 조준각을 최대 각속도로 따라간다 → 스냅이 아닌 약간의 지연.
-            float targetAngleDeg = transform.eulerAngles.z;
+            float targetAngleDeg = aiming.AimAngleDeg;
             currentRingAngleDeg = Mathf.MoveTowardsAngle(currentRingAngleDeg, targetAngleDeg, ringMaxAngularSpeed * Time.deltaTime);
             ringPivot.rotation = Quaternion.Euler(0f, 0f, currentRingAngleDeg);
+
+            bool facingLeft = Mathf.Cos(currentRingAngleDeg * Mathf.Deg2Rad) < 0f;
+            for (int i = 0; i < slotRenderers.Count; i++)
+                slotRenderers[i].flipY = facingLeft;
 
             if (Time.timeScale <= 0f) return;
             var mouse = Mouse.current;
