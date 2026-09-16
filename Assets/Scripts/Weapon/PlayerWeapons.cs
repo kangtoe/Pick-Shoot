@@ -7,7 +7,8 @@ namespace PickShoot
     // 플레이어의 다중 무기 슬롯 관리자. 사격 입력 처리·발사 우선순위 결정. 슬롯·탄약 표시는 GameHud가 Slots를 읽어 그린다.
     // 각 무기는 플레이어를 중심으로 하는 원형 링 위에 균등 분포로 배치되며,
     // 링은 조준 방향(PlayerAiming.AimAngleDeg)을 따라 자연스럽게 회전한다 (GDD §7.2).
-    // 무기 스프라이트는 오른쪽(+x)을 향해 그려져 있으므로, 왼쪽을 조준할 때는 상하 반전해 거꾸로 보이지 않게 한다.
+    // 링 회전은 무기의 위치만 정하고, 총구 방향은 무기마다 제 위치에서 커서(PlayerAiming.AimWorldPosition)를 향한다 (Weapons §2).
+    // 무기 스프라이트는 오른쪽(+x)을 향해 그려져 있으므로, 자기 조준 방향이 왼쪽인 무기는 상하 반전해 거꾸로 보이지 않게 한다.
     // 발사 연출(반동 킥·총구 화염)도 여기서 담당한다. 무기 비주얼을 소유하는 곳이 링 위치와 반동 오프셋을 함께 계산해야
     // 매 프레임 RearrangeRing이 위치를 덮어써도 반동이 살아남기 때문.
     public class PlayerWeapons : MonoBehaviour
@@ -40,7 +41,6 @@ namespace PickShoot
         readonly List<float> slotRecoil = new List<float>(MaxSlots);
         float nextGlobalShotTime;
         float currentRingAngleDeg;
-        bool facingLeft;
 
         public IReadOnlyList<Weapon> Slots => slots;
         public bool HasEmptySlot => slots.Count < MaxSlots;
@@ -148,24 +148,40 @@ namespace PickShoot
             float step = n <= 1 ? 0f : totalArc / (n - 1);
             // 자루가 늘수록 부채꼴 안 간격이 좁아지므로 반경을 자루당 일정량 키워 무기끼리 겹치는 걸 완화한다 (Weapons §2).
             float radius = ringRadius + ringRadiusPerExtraWeapon * (n - 1);
-            // 왼쪽 조준 시 스프라이트가 상하 반전돼 있으므로 "총구가 위로 들리는" 회전 방향도 뒤집는다.
-            float recoilTiltSign = facingLeft ? -1f : 1f;
             for (int i = 0; i < n; i++)
             {
                 // 조준 방향(local +x, 0°) 중심 부채꼴로 대칭 분포하되,
                 // 슬롯은 중앙부터 좌우 번갈아 바깥으로 배정 (Weapons §2).
                 // 슬롯 1 이후는 홀수→한쪽, 짝수→반대쪽으로 고정되어 추가 시 좌우가 뒤바뀌지 않는다.
                 // 짝수 자루면 정중앙 자리가 없으므로 슬롯 0은 안쪽 한 자리로 반 칸 비켜난다.
-                float angleDeg = step * CenterOutOffset(i, n);
-                float rad = angleDeg * Mathf.Deg2Rad;
-                // 반동: 모든 무기가 local +x로 쏘므로 킥은 local -x로 밀리고, 총구가 살짝 들린다.
+                float slotAngleDeg = step * CenterOutOffset(i, n);
+                float slotRad = slotAngleDeg * Mathf.Deg2Rad;
+                Vector2 slotLocal = new Vector2(Mathf.Cos(slotRad) * radius, Mathf.Sin(slotRad) * radius);
+
+                // 무기마다 제 위치에서 커서를 조준한다 (Weapons §2). 링(부모)이 이미 회전해 있으므로 로컬 회전은 그 차이만큼.
+                float aimDeg = AimAngleFrom(ringPivot.TransformPoint(slotLocal));
+                float localAimDeg = aimDeg - currentRingAngleDeg;
+                float localAimRad = localAimDeg * Mathf.Deg2Rad;
+                Vector2 localAimDir = new Vector2(Mathf.Cos(localAimRad), Mathf.Sin(localAimRad));
+                // 왼쪽 조준 시 스프라이트가 상하 반전되므로 "총구가 위로 들리는" 회전 방향도 뒤집는다.
+                bool facingLeft = Mathf.Cos(aimDeg * Mathf.Deg2Rad) < 0f;
+                float recoilTiltSign = facingLeft ? -1f : 1f;
+
+                // 반동: 자기 조준 방향 반대로 밀리고, 총구가 살짝 들린다.
                 float kick = slotRecoil[i];
-                slotVisuals[i].localPosition = new Vector3(
-                    Mathf.Cos(rad) * radius - kick * recoilDistance,
-                    Mathf.Sin(rad) * radius,
-                    0f);
-                slotVisuals[i].localRotation = Quaternion.Euler(0f, 0f, kick * recoilAngleDegrees * recoilTiltSign);
+                slotVisuals[i].localPosition = slotLocal - localAimDir * (kick * recoilDistance);
+                slotVisuals[i].localRotation = Quaternion.Euler(0f, 0f, localAimDeg + kick * recoilAngleDegrees * recoilTiltSign);
+                slotRenderers[i].flipY = facingLeft;
             }
+        }
+
+        // 월드 좌표 worldPos에서 커서를 향하는 조준각(월드, 도).
+        // 커서가 그 지점 바로 위면 방향이 정의되지 않으므로 링 정면각을 쓴다.
+        float AimAngleFrom(Vector2 worldPos)
+        {
+            Vector2 toCursor = aiming.AimWorldPosition - worldPos;
+            if (toCursor.sqrMagnitude < 0.0001f) return currentRingAngleDeg;
+            return Mathf.Atan2(toCursor.y, toCursor.x) * Mathf.Rad2Deg;
         }
 
         // 슬롯 인덱스 → 중앙 기준 칸 단위 오프셋 (양수: 조준 기준 왼쪽, 음수: 오른쪽).
@@ -186,10 +202,6 @@ namespace PickShoot
             float targetAngleDeg = aiming.AimAngleDeg;
             currentRingAngleDeg = Mathf.MoveTowardsAngle(currentRingAngleDeg, targetAngleDeg, ringMaxAngularSpeed * Time.deltaTime);
             ringPivot.rotation = Quaternion.Euler(0f, 0f, currentRingAngleDeg);
-
-            facingLeft = Mathf.Cos(currentRingAngleDeg * Mathf.Deg2Rad) < 0f;
-            for (int i = 0; i < slotRenderers.Count; i++)
-                slotRenderers[i].flipY = facingLeft;
 
             if (Time.timeScale <= 0f) return;
             var mouse = Mouse.current;
@@ -214,7 +226,9 @@ namespace PickShoot
             if (bestIdx < 0) return;
 
             Vector3 pos = slotVisuals[bestIdx].position;
-            Vector2 dir = ringPivot.right;
+            // 탄환은 그 무기의 위치에서 커서를 향해 날아간다 (Weapons §2) → 여러 자루의 발사선이 조준점으로 수렴.
+            float fireRad = AimAngleFrom(pos) * Mathf.Deg2Rad;
+            Vector2 dir = new Vector2(Mathf.Cos(fireRad), Mathf.Sin(fireRad));
             slots[bestIdx].Fire(pos, dir, myCollider, now);
             PlayFireFeedback(bestIdx);
             nextGlobalShotTime = now + globalShotInterval;
