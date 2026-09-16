@@ -21,7 +21,7 @@
    - 매 프레임 `WaitForEndOfFrame` → `ScreenCapture.CaptureScreenshotIntoRenderTexture(rt)` → **DX12는 상하 반전이므로** `Graphics.Blit(rt, flipRT, new Vector2(1,-1), new Vector2(0,1))` → `Texture2D.ReadPixels` → `encoder.AddFrame(tex)`. 해상도는 짝수로 맞춘다(H.264 제약). 첫 프레임과 중간 프레임은 PNG로도 저장해 방향 확인에 쓴다.
 4. **종료** — 목표 프레임 도달 시, 또는 `ExitingPlayMode`·`AssemblyReloadEvents.beforeAssemblyReload`에서 강제로: `encoder.Dispose()` → `captureFramerate = 0` → 입력 설정·Game view 크기 복원 → `record.done` 기록 → `record.active` 삭제 → `ExitPlaymode()`. 각 단계는 try/catch로 격리한다. **Dispose가 빠지면 moov atom 없는 깨진 mp4가 남는다.**
 
-Game view 크기 복원은 공개 API가 없어 reflection: `UnityEditor.GameView.selectedSizeIndex`를 저장·복원하고, `GameViewSizes.instance.currentGroup`에서 `RemoveCustomSize`로 추가된 항목을 지운다(실패해도 로그만 남기고 진행).
+Game view 크기 복원은 공개 API가 없어 reflection: `UnityEditor.GameView.selectedSizeIndex`를 저장·복원하고, `GameViewSizes.instance.currentGroup`에서 `RemoveCustomSize`로 추가된 항목을 지운다(실패해도 로그만 남기고 진행). `GameViewSizes.instance`는 기반 클래스 `ScriptableSingleton<T>`의 static이므로 `GetProperty`에 `BindingFlags.FlattenHierarchy`를 넣어야 찾힌다.
 
 ## 2. 자동 플레이 (선택)
 
