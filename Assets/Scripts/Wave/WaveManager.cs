@@ -101,7 +101,7 @@ namespace PickShoot
 
                 if (!CanSpawn()) yield break;
                 if (upgradeManager != null)
-                    yield return upgradeManager.PresentAndWait();
+                    yield return upgradeManager.PresentAndWait(currentWave);
             }
         }
 

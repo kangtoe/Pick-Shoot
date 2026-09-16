@@ -20,10 +20,26 @@ namespace PickShoot
         public WeaponData Data => data;
         public int Level => level;
         public int CurrentAmmo => currentAmmo;
-        public int MaxAmmo => data.MaxAmmo + (level - 1) * LevelMaxAmmoAdd;
+        public int MaxAmmo => MaxAmmoAtLevel(data, level);
         public float NextReadyTime => nextReadyTime;
-        public int EffectiveDamage => Mathf.Max(1, Mathf.RoundToInt(data.Damage * Mathf.Pow(LevelDamageMultiplier, level - 1)));
-        public float EffectiveCooldown => Mathf.Max(0.01f, data.Cooldown * Mathf.Pow(LevelCooldownMultiplier, level - 1));
+        public int EffectiveDamage => DamageAtLevel(data, level);
+        public float EffectiveCooldown => CooldownAtLevel(data, level);
+
+        // 레벨별 수치 공식. 업그레이드 카드가 "다음 레벨" 값을 미리 보여줄 때도 같은 식을 쓴다.
+        public static int DamageAtLevel(WeaponData data, int level)
+        {
+            return Mathf.Max(1, Mathf.RoundToInt(data.Damage * Mathf.Pow(LevelDamageMultiplier, level - 1)));
+        }
+
+        public static float CooldownAtLevel(WeaponData data, int level)
+        {
+            return Mathf.Max(0.01f, data.Cooldown * Mathf.Pow(LevelCooldownMultiplier, level - 1));
+        }
+
+        public static int MaxAmmoAtLevel(WeaponData data, int level)
+        {
+            return data.MaxAmmo + (level - 1) * LevelMaxAmmoAdd;
+        }
 
         public Weapon(WeaponData data)
         {

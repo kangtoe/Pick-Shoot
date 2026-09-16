@@ -38,22 +38,6 @@ namespace PickShoot
             return new UpgradeOption(UpgradeKind.LevelUp, null, slotIndex);
         }
 
-        public string BuildLabel(PlayerWeapons weapons)
-        {
-            switch (Kind)
-            {
-                case UpgradeKind.AcquireWeapon:
-                    return $"새 [{AcquireData.DisplayName}] 획득 (Lv.1)";
-
-                case UpgradeKind.LevelUp:
-                    var w = weapons.Slots[TargetSlotIndex];
-                    return $"[슬롯 {TargetSlotIndex + 1}] {w.Data.DisplayName}  Lv.{w.Level} → Lv.{w.Level + 1}";
-
-                default:
-                    throw new System.Exception($"[PickShoot] UpgradeOption.BuildLabel: 알 수 없는 Kind {Kind}");
-            }
-        }
-
         public void Apply(PlayerWeapons weapons)
         {
             switch (Kind)
