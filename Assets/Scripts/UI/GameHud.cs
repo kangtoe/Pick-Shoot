@@ -39,9 +39,10 @@ namespace PickShoot
         const int GapTexels = 4;         // 행 사이·이웃 요소 사이
         const int ColumnGapTexels = 8;   // 열 사이
         const int EntryGapTexels = 8;    // 무기 항목(두 줄) 사이 — 행 간격보다 넓혀 항목 경계가 보이도록
-        // 핍은 16텍셀 타일이지만 보이는 부분이 좁아(체력 칸 10, 탄환 8) 타일 간격보다 촘촘히 겹쳐 놓는다. 여백 2텍셀.
+        // 체력 핍은 16텍셀 타일이지만 보이는 칸이 10텍셀이라 타일 간격보다 촘촘히 겹쳐 놓는다. 여백 2텍셀.
         const int HpPipStrideTexels = 12;
-        const int AmmoPipStrideTexels = 10;
+        // 탄약 핍 줄의 고정 폭. 탄창 크기와 무관하게 이 폭을 양 끝까지 채우므로 탄창이 커져도 패널은 그대로고 핍 간격만 줄어든다.
+        const int AmmoPipRowTexels = 96;
         // 게이지 채움 조각의 둥근 양 끝이 프레임 안쪽에서 시작하는 위치. 채움 폭은 이 안쪽 구간에 비례한다.
         const int BarFillInsetTexels = 3;
         // 게이지 프레임 타일 안에서 보이는 부분의 아래 가장자리 (세로 2~13텍셀에 그려짐).
@@ -199,7 +200,7 @@ namespace PickShoot
             int margin = MarginTexels * s;
 
             // 열 폭은 패널 안 모든 항목에서 공통 — 이름 길이가 달라도 레벨과 핍이 세로로 나란히 정렬되도록.
-            int spriteW = 0, spriteH = 0, nameW = 0, levelW = 0, pipsW = 0;
+            int spriteW = 0, spriteH = 0, nameW = 0, levelW = 0;
             for (int k = 0; k < sideSlots.Count; k++)
             {
                 var w = slots[sideSlots[k]];
@@ -208,8 +209,9 @@ namespace PickShoot
                 spriteH = Mathf.Max(spriteH, Mathf.RoundToInt(r.height) * s);
                 nameW = Mathf.Max(nameW, PixelGui.MeasureText(font, NameLabel(w), s));
                 levelW = Mathf.Max(levelW, PixelGui.MeasureText(font, LevelLabel(w), s));
-                pipsW = Mathf.Max(pipsW, PipsWidth(w.MaxAmmo, AmmoPipStrideTexels, s));
             }
+            // 핍 줄 폭은 고정 — 탄창이 커져도 패널이 넓어지지 않고 핍 간격이 줄어든다.
+            int pipsW = AmmoPipRowTexels * s;
             // 두 줄 중 넓은 쪽이 항목 폭. 아랫줄은 탄약 부족 X 아이콘 자리를 항상 비워 두어 깜빡여도 핍이 움직이지 않는다.
             int ammoLineH = Mathf.Max(Mathf.Max(lineH, tile), spriteH);
             int entryH = lineH + gap + ammoLineH;
@@ -253,17 +255,30 @@ namespace PickShoot
         }
 
         // 탄환 한 발이 핍 하나. 왼쪽부터 남은 탄약만큼 불투명, 나머지는 흐리게 — 최대치와 잔량이 한눈에 보인다.
+        // 간격이 좁아 겹칠 때 남은 탄약(왼쪽)이 위에 오도록 오른쪽부터 그린다.
         void DrawAmmoPips(Weapon w, int x, int y, int s)
         {
             int tile = skin.TileSize * s;
-            int stride = AmmoPipStrideTexels * s;
             var spent = new Color(1f, 1f, 1f, spentPipAlpha);
-            for (int i = 0; i < w.MaxAmmo; i++)
+            for (int i = w.MaxAmmo - 1; i >= 0; i--)
             {
                 GUI.color = i < w.CurrentAmmo ? Color.white : spent;
-                PixelGui.DrawSprite(skin.IconBulletPlain, new Rect(x + i * stride, y, tile, tile));
+                PixelGui.DrawSprite(skin.IconBulletPlain, new Rect(x + AmmoPipOffsetTexels(i, w.MaxAmmo) * s, y, tile, tile));
             }
             GUI.color = Color.white;
+        }
+
+        // i번째 핍의 줄 안 x 오프셋(텍셀). 탄창 크기와 무관하게 첫 핍은 왼쪽 끝·마지막 핍은 오른쪽 끝에 고정하고 사이를
+        // 최대한 고르게 나눈다 — 반올림 탓에 이웃 간격이 1텍셀씩 다를 수 있다. 간격을 정수로 내려 같은 값으로 늘어놓으면
+        // 개수에 따라 줄 끝이 비어 배열 폭이 들쭉날쭉해지므로 그렇게 하지 않는다.
+        int AmmoPipOffsetTexels(int index, int count)
+        {
+            if (count <= 1) return 0;
+            int span = AmmoPipRowTexels - skin.TileSize;
+            if (count - 1 > span)
+                throw new System.Exception($"[PickShoot] GameHud: 탄약 핍 {count}개는 폭 {AmmoPipRowTexels}텍셀 줄에 들어가지 않는다. AmmoPipRowTexels를 늘려야 한다.");
+            // index * span / (count - 1)을 정수 연산으로 반올림.
+            return (2 * index * span + (count - 1)) / (2 * (count - 1));
         }
 
         // 상단 중앙 붉은 배너 "WAVE N" + 그 아래 남은 시간 게이지. 게이지 위에는 단계별 문구(READY / 남은 초 / CLEAR).
