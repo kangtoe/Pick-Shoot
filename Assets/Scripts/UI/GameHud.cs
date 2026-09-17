@@ -7,6 +7,7 @@ namespace PickShoot
     //   체력: 좌상단 패널에 칸 단위 핍으로 자세히, 플레이어 머리 위에는 비율만 보이는 작은 게이지.
     //   무기: 링에서 조준 기준 왼쪽에 있는 슬롯은 화면 하단 왼쪽 패널, 오른쪽 슬롯은 하단 오른쪽 패널.
     //   웨이브: 상단 중앙 배너 + 남은 시간 바.
+    //   커서: 커서 중심 링에 모든 자루의 탄창 비율 평균 (시트에 링 조각이 없어 AmmoRingTexture가 런타임에 텍셀 단위로 그린다).
     // 레이아웃은 텍셀 단위로 정의하고 hudScale을 곱해 픽셀로 바꾼다. hudScale은 업그레이드 카드의 글자 배율과 같은 값
     // (화면 높이/270의 절반, 1080p → 2)으로, 카드 패널보다 얇은 테두리라 게임 화면을 덜 가린다.
     // 다른 OnGUI(피격 플래시·데스 화면)보다 뒤에 깔리도록 GUI.depth를 크게 두고, 업그레이드 카드가 떠 있는 동안은 아예 숨긴다.
@@ -22,6 +23,14 @@ namespace PickShoot
         [SerializeField, Range(0f, 1f)] float spentPipAlpha = 0.25f;
         // 탄약이 부족해 쏠 수 없는 무기 옆 X 아이콘의 깜빡임 주기 (초, 실시간).
         [SerializeField, Min(0.01f)] float emptyBlinkInterval = 0.3f;
+
+        [Header("Cursor Ring")]
+        // 커서 중심 탄약 링. 치수는 텍셀 단위이며 hudScale로 확대된다.
+        [SerializeField, Min(2f)] float cursorRingRadiusTexels = 11f;
+        [SerializeField, Min(1)] int cursorRingThicknessTexels = 3;
+        [SerializeField] Color cursorRingFillColor = Color.white;
+        [SerializeField] Color cursorRingEmptyColor = new Color(0.25f, 0.22f, 0.2f, 0.6f);
+        [SerializeField] Color cursorRingOutlineColor = new Color(0.1f, 0.08f, 0.08f, 0.85f);
 
         // IMGUI는 depth가 작을수록 위에 그린다. 다른 스크립트는 기본값 0이므로 HUD는 그 뒤에 깔린다.
         const int HudGuiDepth = 10;
@@ -50,6 +59,7 @@ namespace PickShoot
         SpriteRenderer playerSprite;
         Camera cam;
         readonly List<int> sideSlots = new List<int>(PlayerWeapons.MaxSlots);
+        readonly AmmoRingTexture cursorRing = new AmmoRingTexture();
 
         void Awake()
         {
@@ -72,6 +82,11 @@ namespace PickShoot
             skin.Validate();
         }
 
+        void OnDestroy()
+        {
+            cursorRing.Dispose();
+        }
+
         void OnGUI()
         {
             GUI.depth = HudGuiDepth;
@@ -88,6 +103,8 @@ namespace PickShoot
             DrawWeaponPanel(hudScale, leftSide: true);
             DrawWeaponPanel(hudScale, leftSide: false);
             DrawWaveBanner(hudScale);
+            // 커서는 패널 위로 지나갈 수 있으므로 마지막에 그려 항상 패널 위에 보이게 한다.
+            DrawCursorRing(hudScale);
         }
 
         // 좌상단 회색 패널: "HP" + 체력 핍 (왼쪽부터 남은 체력만큼 붉은 칸, 나머지 빈 칸).
@@ -282,6 +299,20 @@ namespace PickShoot
                 _ => throw new System.Exception($"[PickShoot] GameHud: 알 수 없는 WavePhase {waveManager.Phase}"),
             };
             PixelGui.DrawTextCentered(font, status, centerX, (int)bar.y, s);
+        }
+
+        // 커서 중심에 전체 탄창 비율 링. 텍스처는 상태가 바뀔 때만 다시 그리고, 다른 픽셀 UI와 같은 정수 배율로 띄운다.
+        // 하드웨어 커서는 그대로 두고 그 주위를 감싼다 — 링 중심(조준점)은 비어 있다.
+        void DrawCursorRing(int s)
+        {
+            cursorRing.Refresh(playerWeapons.Slots, cursorRingRadiusTexels, cursorRingThicknessTexels,
+                cursorRingFillColor, cursorRingEmptyColor, cursorRingOutlineColor);
+
+            int size = cursorRing.SizeTexels * s;
+            // Repaint 이벤트의 mousePosition은 GUI 좌표(위가 0)라 그대로 중심으로 쓴다. 지름이 짝수 텍셀이라 반은 정수.
+            Vector2 m = Event.current.mousePosition;
+            var rect = new Rect(Mathf.RoundToInt(m.x) - size / 2, Mathf.RoundToInt(m.y) - size / 2, size, size);
+            GUI.DrawTexture(rect, cursorRing.Texture, ScaleMode.StretchToFill, true);
         }
 
         // 글꼴에 있는 문자(A-Z 0-9 % + - 공백)만 써야 한다. 없는 문자는 PixelGui가 예외로 알린다.
