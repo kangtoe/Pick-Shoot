@@ -1262,8 +1262,8 @@ MonoBehaviour:
   upgradeManager: {fileID: 1698421208}
   spentPipAlpha: 0.25
   emptyBlinkInterval: 0.3
-  cursorRingRadiusTexels: 11
-  cursorRingThicknessTexels: 3
+  cursorRingRadiusTexels: 6
+  cursorRingThicknessTexels: 2
   cursorRingFillColor: {r: 1, g: 1, b: 1, a: 1}
   cursorRingEmptyColor: {r: 0.25, g: 0.22, b: 0.2, a: 0.6}
   cursorRingOutlineColor: {r: 0.1, g: 0.08, b: 0.08, a: 0.85}

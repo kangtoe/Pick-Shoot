@@ -9,6 +9,7 @@ namespace PickShoot
     //   웨이브: 상단 중앙 배너 + 남은 시간 바.
     //   커서: 하드웨어 커서를 숨기고 그 자리에 크로스헤어 — 중심점(조준점) + 모든 자루의 탄창 비율 평균을 보여주는 링.
     //         링은 사격마다 벌어졌다가 서서히 되돌아온다 (시트에 링 조각이 없어 CrosshairTexture가 런타임에 텍셀 단위로 그린다).
+    //         월드 위에 뜨는 표시라 아래 HUD 배율이 아니라 월드 텍셀 배율(PixelGui.PanelScale)로 띄운다.
     // 레이아웃은 텍셀 단위로 정의하고 HUD 배율(PixelGui.TextScale — 업그레이드 카드의 글자 배율과 같은 값, 패널 배율의 절반)을
     // 곱해 기준 캔버스 픽셀로 바꾼다. 카드 패널보다 얇은 테두리라 게임 화면을 덜 가린다. 캔버스는 월드 카메라와 같은 규칙
     // (화면 세로 = 270텍셀)으로 보이므로 해상도·종횡비가 달라도 HUD가 화면에서 차지하는 비율은 월드 스프라이트처럼 그대로다.
@@ -26,18 +27,20 @@ namespace PickShoot
         [SerializeField, Min(0.01f)] float emptyBlinkInterval = 0.3f;
 
         [Header("Crosshair")]
-        // 커서 자리의 크로스헤어 = 중심점 + 탄약 링. 치수는 텍셀 단위이며 HUD 배율로 확대된다. 중심점은 링의 채움 색을 쓴다.
-        [SerializeField, Min(2f)] float cursorRingRadiusTexels = 11f;
-        [SerializeField, Min(1)] int cursorRingThicknessTexels = 3;
-        // 링 안팎 윤곽선 두께. 1텍셀은 밝은 땅 위에서 너무 가늘게 보여 2로 둔다. 중심점 윤곽선은 이 값과 무관하게 1텍셀.
-        [SerializeField, Min(1)] int cursorRingOutlineTexels = 2;
+        // 커서 자리의 크로스헤어 = 중심점 + 탄약 링. 치수는 텍셀 단위이며 다른 HUD(TextScale)와 달리 월드 텍셀 배율(PixelGui.PanelScale)로
+        // 확대된다 — HUD 배율은 텍셀이 월드 스프라이트 픽셀의 절반이라 링이 매끈한 원으로 보여 픽셀아트와 겉돈다.
+        // 반경은 중심 텍셀에서 센 텍셀 수 (CrosshairTexture 참고). 중심점은 링의 채움 색을 쓰고 윤곽선은 두르지 않는다.
+        [SerializeField, Min(2)] int cursorRingRadiusTexels = 6;
+        [SerializeField, Min(1)] int cursorRingThicknessTexels = 2;
+        // 링 안팎 윤곽선 두께.
+        [SerializeField, Min(1)] int cursorRingOutlineTexels = 1;
         [SerializeField] Color cursorRingFillColor = Color.white;
         [SerializeField] Color cursorRingEmptyColor = new Color(0.25f, 0.22f, 0.2f, 0.6f);
         [SerializeField] Color cursorRingOutlineColor = new Color(0.1f, 0.08f, 0.08f, 0.85f);
-        // 중심점 반경. 1이면 2×2텍셀.
-        [SerializeField, Min(1f)] float cursorDotRadiusTexels = 1f;
+        // 중심점 반경. 0이면 중심 텍셀 하나, 1이면 3×3텍셀.
+        [SerializeField, Min(0)] int cursorDotRadiusTexels = 0;
         // 사격 한 번에 링 반경이 벌어지는 양: 쏜 무기의 반동 배율(WeaponData.RecoilStrength) 1당 텍셀 수. 무거운 무기일수록 크게 벌어진다.
-        [SerializeField, Min(0f)] float cursorRingKickTexels = 4f;
+        [SerializeField, Min(0f)] float cursorRingKickTexels = 2f;
         // 벌어진 링이 되돌아오는 속도 (지수 감쇠율, 1/초). 무기 반동(PlayerWeapons.recoilReturnSpeed)보다 느리게 둬 서서히 조여든다.
         [SerializeField, Min(0.01f)] float cursorRingReturnSpeed = 6f;
 
@@ -148,8 +151,8 @@ namespace PickShoot
             DrawWeaponPanel(canvas, hudScale, leftSide: true);
             DrawWeaponPanel(canvas, hudScale, leftSide: false);
             DrawWaveBanner(canvas, hudScale);
-            // 커서는 패널 위로 지나갈 수 있으므로 마지막에 그려 항상 패널 위에 보이게 한다.
-            DrawCrosshair(hudScale);
+            // 커서는 패널 위로 지나갈 수 있으므로 마지막에 그려 항상 패널 위에 보이게 한다. 월드 위에 뜨는 표시라 월드 텍셀 배율로 그린다.
+            DrawCrosshair(PixelGui.PanelScale);
         }
 
         // 좌상단 회색 패널: "HP" + 체력 핍 (왼쪽부터 남은 체력만큼 붉은 칸, 나머지 빈 칸).
@@ -355,17 +358,18 @@ namespace PickShoot
             PixelGui.DrawTextCentered(font, status, centerX, (int)bar.y, s);
         }
 
-        // 커서 자리에 크로스헤어(중심점 + 전체 탄창 비율 링). 텍스처는 상태가 바뀔 때만 다시 그리고, 다른 HUD와 같은 배율로 띄운다.
+        // 커서 자리에 크로스헤어(중심점 + 전체 탄창 비율 링). 텍스처는 상태가 바뀔 때만 다시 그린다. s는 텍셀 1개의 캔버스 픽셀 수.
         // 사격으로 벌어진 양은 텍셀 단위로 반올림해 반경에 더한다 — 링이 늘 온전한 텍셀 원 모양으로 한 칸씩 조여든다
         // (소수 반경을 그대로 쓰면 되돌아오는 동안 둘레 텍셀이 제각각 깜빡인다).
         void DrawCrosshair(int s)
         {
-            float radius = cursorRingRadiusTexels + Mathf.Round(cursorRingKick);
+            int radius = cursorRingRadiusTexels + Mathf.RoundToInt(cursorRingKick);
             crosshair.Refresh(playerWeapons.Slots, radius, cursorRingThicknessTexels, cursorRingOutlineTexels, cursorDotRadiusTexels,
                 cursorRingFillColor, cursorRingEmptyColor, cursorRingOutlineColor);
 
             int size = crosshair.SizeTexels * s;
-            // 캔버스가 열린 동안 Repaint 이벤트의 mousePosition은 캔버스 좌표(위가 0)라 그대로 중심으로 쓴다. 한 변이 짝수 텍셀이라 반은 정수.
+            // 캔버스가 열린 동안 Repaint 이벤트의 mousePosition은 캔버스 좌표(위가 0)라 그대로 중심으로 쓴다.
+            // 한 변은 홀수 텍셀이지만 배율이 짝수라 반은 정수 — 중심 텍셀의 한가운데가 커서 위치에 온다.
             Vector2 m = Event.current.mousePosition;
             var rect = new Rect(Mathf.RoundToInt(m.x) - size / 2, Mathf.RoundToInt(m.y) - size / 2, size, size);
             GUI.DrawTexture(rect, crosshair.Texture, ScaleMode.StretchToFill, true);

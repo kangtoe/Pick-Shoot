@@ -4,31 +4,31 @@ using UnityEngine;
 namespace PickShoot
 {
     // 커서를 대신하는 크로스헤어(중심점 + 탄약 링)를 텍셀 단위로 래스터라이즈한 텍스처. Kenney 시트에 링 조각이 없어 런타임에 그리며,
-    // GameHud가 다른 픽셀 UI와 같은 정수 배율로 커서 위치에 띄운다.
+    // GameHud가 월드 텍셀과 같은 정수 배율로 커서 위치에 띄운다 — 텍셀이 월드 스프라이트의 픽셀과 같은 크기라 원의 계단이 그대로 보인다.
+    // 텍스처 한 변은 홀수라 중심이 텍셀 한가운데에 놓인다. 반경은 모두 "중심 텍셀에서 센 텍셀 수"다: 중심 텍셀까지의 거리가
+    // 반경 + 0.5 미만인 텍셀이 그 반경 안쪽 (반경 0 = 중심 텍셀 하나, 반경 6 = 지름 13텍셀).
     // 링은 12시부터 시계 방향으로 "모든 자루의 탄창 비율 평균"(Σ 현재/최대 ÷ 자루 수)만큼 채워진다. 자루마다 같은 비중이라
     // 탄창이 작은 무기(라이플)가 비어도 큰 무기(산탄총)가 빈 것만큼 링이 줄어든다. 무기별 잔량은 하단 HUD 패널의 핍이 담당한다
     // — 종류별 색 구분은 종류가 늘면 읽기 어려워 링에는 두지 않는다.
     // 중심점은 조준점 그 자체다. 탄약이 바닥나 링이 전부 빈 색이어도 점은 채움 색 그대로라 조준점을 잃지 않는다.
     // 링 반경은 호출자가 정한다 (GameHud가 사격마다 벌렸다가 되돌린다). 띠 두께는 그대로 두고 반경만 바뀌므로 확대가 아니라 벌어짐이다.
     // 텍스처는 지금까지 본 가장 큰 반경에 맞춰 두고 줄이지 않는다 — 반경이 출렁여도 다시 할당하지 않으며, 링은 항상 텍스처 중심에 있다.
-    // 링 안팎과 점 둘레 가장자리는 윤곽선 색 — 픽셀 스프라이트의 어두운 외곽선과 같은 역할. 링 윤곽선 두께는 호출자가 정하고,
-    // 점 윤곽선은 1텍셀로 고정한다 (더 두르면 점보다 테두리가 커져 조준점이 뭉툭해진다). 탄약·설정이 바뀐 프레임에만 다시 그린다.
+    // 링 안팎 가장자리는 윤곽선 색 — 픽셀 스프라이트의 어두운 외곽선과 같은 역할. 중심점에는 윤곽선을 두르지 않는다 (이 텍셀 크기에서는
+    // 테두리가 점보다 커져 조준점이 뭉툭해진다). 탄약·설정이 바뀐 프레임에만 다시 그린다.
     public class CrosshairTexture
     {
-        const float DotOutlineTexels = 1f;
-
         Texture2D texture;
         Color32[] pixels;
         readonly List<int> signature = new List<int>();
         readonly List<int> lastSignature = new List<int>();
 
         public Texture2D Texture => texture;
-        // 텍스처 한 변의 텍셀 수 (짝수 — 중심이 텍셀 경계). 링 지름보다 클 수 있다. Refresh 이후에만 유효.
+        // 텍스처 한 변의 텍셀 수 (홀수 — 중심이 텍셀 한가운데). 링 지름보다 클 수 있다. Refresh 이후에만 유효.
         public int SizeTexels => texture != null ? texture.width : 0;
 
-        // radiusTexels: 링 바깥 가장자리 반경 (윤곽선 제외). thicknessTexels: 채움 띠 두께. outlineTexels: 링 안팎 윤곽선 두께.
-        // dotRadiusTexels: 중심점 반경 (윤곽선 제외, 1이면 2×2텍셀).
-        public void Refresh(IReadOnlyList<Weapon> slots, float radiusTexels, int thicknessTexels, int outlineTexels, float dotRadiusTexels,
+        // radiusTexels: 링 채움 띠의 바깥 반경 (윤곽선 제외). thicknessTexels: 채움 띠 두께. outlineTexels: 링 안팎 윤곽선 두께.
+        // dotRadiusTexels: 중심점 반경 (0이면 중심 텍셀 하나, 1이면 3×3텍셀).
+        public void Refresh(IReadOnlyList<Weapon> slots, int radiusTexels, int thicknessTexels, int outlineTexels, int dotRadiusTexels,
             Color fillColor, Color emptyColor, Color outlineColor)
         {
             if (slots == null || slots.Count == 0)
@@ -37,24 +37,25 @@ namespace PickShoot
                 throw new System.Exception($"[PickShoot] CrosshairTexture.Refresh: 띠 두께({thicknessTexels})는 1텍셀 이상이어야 함.");
             if (outlineTexels < 1)
                 throw new System.Exception($"[PickShoot] CrosshairTexture.Refresh: 윤곽선 두께({outlineTexels})는 1텍셀 이상이어야 함.");
-            // 중심이 텍셀 경계라 가장 가까운 텍셀 중심이 0.71텍셀 떨어져 있다. 1 미만이면 점이 아예 안 찍힐 수 있다.
-            if (dotRadiusTexels < 1f)
-                throw new System.Exception($"[PickShoot] CrosshairTexture.Refresh: 중심점 반경({dotRadiusTexels})은 1텍셀 이상이어야 함.");
-            if (dotRadiusTexels + DotOutlineTexels > radiusTexels - thicknessTexels - outlineTexels)
-                throw new System.Exception($"[PickShoot] CrosshairTexture.Refresh: 중심점(반경 {dotRadiusTexels})의 윤곽선이 링 안쪽(반경 {radiusTexels} - 두께 {thicknessTexels} - 윤곽선 {outlineTexels})과 겹침.");
+            if (dotRadiusTexels < 0)
+                throw new System.Exception($"[PickShoot] CrosshairTexture.Refresh: 중심점 반경({dotRadiusTexels})은 0텍셀 이상이어야 함.");
+            // 점과 링 안쪽 윤곽선 사이에 빈 텍셀이 적어도 한 겹은 있어야 점이 링에 붙어 보이지 않는다.
+            if (dotRadiusTexels >= radiusTexels - thicknessTexels - outlineTexels)
+                throw new System.Exception($"[PickShoot] CrosshairTexture.Refresh: 중심점(반경 {dotRadiusTexels})이 링 안쪽 윤곽선(반경 {radiusTexels} - 두께 {thicknessTexels} - 윤곽선 {outlineTexels})에 닿음.");
 
             if (!BuildSignature(slots, radiusTexels, thicknessTexels, outlineTexels, dotRadiusTexels, fillColor, emptyColor, outlineColor) && texture != null)
                 return;
 
             float ratio = AverageAmmoRatio(slots);
 
-            // 윤곽선을 안팎에 두므로 지름은 (반경 + 윤곽선)의 두 배. 짝수 한 변이라 중심이 텍셀 경계에 놓여 상하좌우 대칭.
-            EnsureTexture(Mathf.CeilToInt(radiusTexels + outlineTexels) * 2);
+            // 중심 텍셀 하나 + 양쪽으로 (반경 + 윤곽선)텍셀. 홀수 한 변이라 중심이 텍셀 한가운데에 놓여 상하좌우 대칭.
+            EnsureTexture((radiusTexels + outlineTexels) * 2 + 1);
             int size = texture.width;
 
             float c = size * 0.5f;
-            float outer = radiusTexels;
-            float inner = radiusTexels - thicknessTexels;
+            float outer = radiusTexels + 0.5f;
+            float inner = outer - thicknessTexels;
+            float dotEdge = dotRadiusTexels + 0.5f;
             Color32 fill = fillColor;
             Color32 empty = emptyColor;
             Color32 outline = outlineColor;
@@ -68,9 +69,9 @@ namespace PickShoot
                     float dy = y + 0.5f - c;
                     float d = Mathf.Sqrt(dx * dx + dy * dy);
                     Color32 col = clear;
-                    if (d < dotRadiusTexels + DotOutlineTexels)
+                    if (d < dotEdge)
                     {
-                        col = d < dotRadiusTexels ? fill : outline;
+                        col = fill;
                     }
                     else if (d >= inner - outlineTexels && d < outer + outlineTexels)
                     {
@@ -118,14 +119,14 @@ namespace PickShoot
         }
 
         // 그리기에 영향을 주는 값을 전부 정수 목록으로 모아 직전과 비교한다. 바뀌었으면 true.
-        bool BuildSignature(IReadOnlyList<Weapon> slots, float radiusTexels, int thicknessTexels, int outlineTexels, float dotRadiusTexels,
+        bool BuildSignature(IReadOnlyList<Weapon> slots, int radiusTexels, int thicknessTexels, int outlineTexels, int dotRadiusTexels,
             Color fillColor, Color emptyColor, Color outlineColor)
         {
             signature.Clear();
-            signature.Add(Mathf.RoundToInt(radiusTexels * 1000f));
+            signature.Add(radiusTexels);
             signature.Add(thicknessTexels);
             signature.Add(outlineTexels);
-            signature.Add(Mathf.RoundToInt(dotRadiusTexels * 1000f));
+            signature.Add(dotRadiusTexels);
             signature.Add(Pack(fillColor));
             signature.Add(Pack(emptyColor));
             signature.Add(Pack(outlineColor));
