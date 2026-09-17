@@ -21,7 +21,7 @@ namespace PickShoot
         [SerializeField, Min(1)] int referenceHeightTexels = 270;
         // 소진한 탄약 핍의 투명도. 남은 탄약은 불투명.
         [SerializeField, Range(0f, 1f)] float spentPipAlpha = 0.25f;
-        // 탄약이 부족해 쏠 수 없는 무기 옆 X 아이콘의 깜빡임 주기 (초, 실시간).
+        // 탄약이 부족해 쏠 수 없는 무기 스프라이트 위 X 아이콘의 깜빡임 주기 (초, 실시간).
         [SerializeField, Min(0.01f)] float emptyBlinkInterval = 0.3f;
 
         [Header("Cursor Ring")]
@@ -179,7 +179,7 @@ namespace PickShoot
             GUI.EndGroup();
         }
 
-        // 하단 한쪽 회색 패널: 링의 해당 쪽에 있는 슬롯만. 슬롯마다 두 줄 — 윗줄은 이름·레벨, 아랫줄은 스프라이트·탄약 부족 표시·탄약 핍.
+        // 하단 한쪽 회색 패널: 링의 해당 쪽에 있는 슬롯만. 슬롯마다 두 줄 — 윗줄은 이름·레벨, 아랫줄은 스프라이트(탄약 부족 표시가 그 위에 겹침)·탄약 핍.
         // 한 줄에 늘어놓는 것보다 폭이 좁아 게임 화면을 덜 가린다. 슬롯 번호는 카드에서만 쓰므로 HUD에는 두지 않는다.
         // 해당 쪽에 슬롯이 없으면 패널도 그리지 않는다.
         void DrawWeaponPanel(int s, bool leftSide)
@@ -212,10 +212,13 @@ namespace PickShoot
             }
             // 핍 줄 폭은 고정 — 탄창이 커져도 패널이 넓어지지 않고 핍 간격이 줄어든다.
             int pipsW = AmmoPipRowTexels * s;
-            // 두 줄 중 넓은 쪽이 항목 폭. 아랫줄은 탄약 부족 X 아이콘 자리를 항상 비워 두어 깜빡여도 핍이 움직이지 않는다.
+            // 아이콘 열: 무기 스프라이트와 그 위에 겹쳐 깜빡이는 탄약 부족 X(타일 한 칸) 중 넓은 쪽.
+            // X에 따로 자리를 주지 않아 그만큼 패널이 좁고, 깜빡여도 핍이 움직이지 않는다.
+            int iconW = Mathf.Max(spriteW, tile);
+            // 두 줄 중 넓은 쪽이 항목 폭.
             int ammoLineH = Mathf.Max(Mathf.Max(lineH, tile), spriteH);
             int entryH = lineH + gap + ammoLineH;
-            int contentW = Mathf.Max(nameW + colGap + levelW, spriteW + gap + tile + gap + pipsW);
+            int contentW = Mathf.Max(nameW + colGap + levelW, iconW + gap + pipsW);
             int contentH = sideSlots.Count * entryH + (sideSlots.Count - 1) * entryGap;
 
             int panelW = CeilToMultiple(contentW + 2 * pad, tile);
@@ -241,15 +244,13 @@ namespace PickShoot
                 var sprite = w.Data.WeaponSprite;
                 int sw = Mathf.RoundToInt(sprite.rect.width) * s;
                 int sh = Mathf.RoundToInt(sprite.rect.height) * s;
-                PixelGui.DrawSprite(sprite, new Rect(x0 + (spriteW - sw) / 2, lineY + (ammoLineH - sh) / 2, sw, sh));
-                int x = x0 + spriteW + gap;
+                PixelGui.DrawSprite(sprite, new Rect(x0 + (iconW - sw) / 2, lineY + (ammoLineH - sh) / 2, sw, sh));
 
-                // 한 발 쏠 탄약도 없으면 붉은 X를 깜빡여 회수를 재촉한다.
+                // 한 발 쏠 탄약도 없으면 무기 스프라이트 위에 붉은 X를 깜빡여 회수를 재촉한다.
                 if (w.CurrentAmmo < w.Data.AmmoPerShot && blinkOn)
-                    PixelGui.DrawSprite(skin.IconCross, new Rect(x, iconY, tile, tile));
-                x += tile + gap;
+                    PixelGui.DrawSprite(skin.IconCross, new Rect(x0 + (iconW - tile) / 2, iconY, tile, tile));
 
-                DrawAmmoPips(w, x, iconY, s);
+                DrawAmmoPips(w, x0 + iconW + gap, iconY, s);
                 y += entryH;
             }
         }
