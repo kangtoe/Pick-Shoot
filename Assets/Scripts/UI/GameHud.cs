@@ -41,6 +41,11 @@ namespace PickShoot
         // 벌어진 링이 되돌아오는 속도 (지수 감쇠율, 1/초). 무기 반동(PlayerWeapons.recoilReturnSpeed)보다 느리게 둬 서서히 조여든다.
         [SerializeField, Min(0.01f)] float cursorRingReturnSpeed = 6f;
 
+        [Header("Player Gauge")]
+        // 플레이어 머리 위 체력 게이지의 색. 테두리 없이 바탕 위에 남은 비율만큼 채운다. 채움 기본값은 시트 게이지 채움 조각의 붉은색.
+        [SerializeField] Color playerGaugeBackColor = Color.black;
+        [SerializeField] Color playerGaugeFillColor = new Color32(221, 103, 76, 255);
+
         // IMGUI는 depth가 작을수록 위에 그린다. 다른 스크립트는 기본값 0이므로 HUD는 그 뒤에 깔린다.
         const int HudGuiDepth = 10;
         const int MarginTexels = 8;      // 화면 가장자리 → 패널
@@ -54,22 +59,18 @@ namespace PickShoot
         const int AmmoPipRowTexels = 96;
         // 게이지 채움 조각의 둥근 양 끝이 프레임 안쪽에서 시작하는 위치. 채움 폭은 이 안쪽 구간에 비례한다.
         const int BarFillInsetTexels = 3;
-        // 게이지 프레임 타일 안에서 보이는 부분의 아래 가장자리 (세로 2~13텍셀에 그려짐).
-        const int BarVisibleBottomTexels = 14;
-        // 플레이어 머리 위 체력 게이지. 조각은 HUD 배율의 절반(PlayerGaugeScale)으로 가늘게 그리되, 폭과 위치는 캐릭터의 월드 크기에
-        // 비례시킨다 — 카메라 배율과 무관하게 캐릭터 대비 같은 비율. 텍셀이 월드 텍셀의 1/4로 아주 잘고 캐릭터를 따라 움직이므로,
-        // 다른 HUD와 달리 캔버스에 싣지 않고 화면 픽셀에 정수 배율(PixelGui.SnappedScreenScale)로 맞춰 그린다 — 캔버스째 확대·축소하면
-        // 1080p 미만에서 흰 테두리 선이 빠지고 비정수 배율에서 선 굵기가 움직일 때마다 바뀐다. 그 대가로 굵기만은 해상도에 정확히
-        // 비례하지 않는다. 아래 세 값은 월드 텍셀(스프라이트 픽셀, PPU 16) 단위.
+        // 플레이어 머리 위 체력 게이지. 시트 조각 없이 단색 사각형 두 장(바탕 + 채움)으로 그린다 — 시트의 게이지 프레임은 선이 아주
+        // 잘아(이 크기에서 1080p 기준 1px) 해상도에 따라 선이 빠지거나 굵기가 어긋나 보였다. 선이 없으니 치수를 전부 캐릭터의 월드
+        // 크기에 비례시킬 수 있다 — 해상도·카메라 배율과 무관하게 캐릭터 대비 같은 비율. 캐릭터를 따라 움직이므로 캔버스에 싣지 않고
+        // 화면 픽셀에 맞춰 그린다. 아래 값은 월드 텍셀(스프라이트 픽셀, PPU 16) 단위.
         //   Width: 폭. 캐릭터의 보이는 폭이 약 21텍셀이라 그보다 조금 좁게.
+        //   Thickness: 두께.
         //   SpriteTopPadding: 캐릭터 시트가 타일 위쪽에 두는 투명 여백 (걷기 5, 정지 6). 보이는 머리 꼭대기를 잡는 기준.
         //   Gap: 보이는 머리 꼭대기에서 게이지 아래 가장자리까지.
-        //   CutRows: 타일 가운데 행을 잘라내 세로로 얇게 (짝수, 게이지 배율 텍셀). 2면 보이는 높이 12→10, 채움 6→4.
-        const int PlayerGaugeScale = PixelGui.TextScale / 2;
         const int PlayerGaugeWidthTexels = 16;
+        const int PlayerGaugeThicknessTexels = 3;
         const int PlayerSpriteTopPaddingTexels = 5;
         const int PlayerGaugeGapTexels = 2;
-        const int PlayerGaugeCutRows = 2;
 
         SpriteRenderer playerSprite;
         Camera cam;
@@ -190,7 +191,7 @@ namespace PickShoot
 
             var b = playerSprite.bounds;
             float unitsPerTexel = 1f / playerSprite.sprite.pixelsPerUnit;
-            // 앵커 = 보이는 머리 꼭대기(타일 위 가장자리에서 투명 여백만큼 아래) + gap. 여기가 게이지의 보이는 아래 가장자리.
+            // 앵커 = 보이는 머리 꼭대기(타일 위 가장자리에서 투명 여백만큼 아래) + gap. 여기가 게이지의 아래 가장자리.
             float anchorY = b.max.y - (PlayerSpriteTopPaddingTexels - PlayerGaugeGapTexels) * unitsPerTexel;
             var anchor = new Vector3(b.center.x, anchorY, b.center.z);
             Vector3 sp = cam.WorldToScreenPoint(anchor);
@@ -198,27 +199,25 @@ namespace PickShoot
             // 월드 텍셀 1개가 차지하는 화면 픽셀 수 (직교 카메라라 위치와 무관).
             float texelPx = cam.WorldToScreenPoint(anchor + Vector3.right * unitsPerTexel).x - sp.x;
 
-            int s = PixelGui.SnappedScreenScale(PlayerGaugeScale);
-            int cut = PlayerGaugeCutRows;
-            int barH = (skin.TileSize - cut) * s;
-            // 폭은 2s의 배수로 맞춰 양 끝 반쪽의 픽셀 수를 같게 한다. 카메라가 아주 멀면 조각이 뭉개지지 않는 최소 폭에서 멈춘다.
-            int barW = Mathf.RoundToInt(PlayerGaugeWidthTexels * texelPx / (2 * s)) * 2 * s;
-            barW = Mathf.Max(barW, PixelGui.MinBarWidthTexels * s);
-            // GUI 좌표는 위가 0. 가운데 행을 잘라내면 아래 슬라이스가 그만큼 위로 붙으므로 보이는 아래 가장자리도 cut/2만큼 당겨진다.
-            int bottomY = Mathf.RoundToInt(Screen.height - sp.y);
-            var bar = new Rect(Mathf.RoundToInt(sp.x) - barW / 2, bottomY - (BarVisibleBottomTexels - cut / 2) * s, barW, barH);
-            DrawGauge(bar, (float)playerHealth.Current / playerHealth.Max, s, cut);
+            // 화면 픽셀로 반올림. 폭은 짝수로 맞춰 캐릭터 중심선 좌우가 같게 한다.
+            int barW = Mathf.Max(2, Mathf.RoundToInt(PlayerGaugeWidthTexels * texelPx / 2f) * 2);
+            int barH = Mathf.Max(1, Mathf.RoundToInt(PlayerGaugeThicknessTexels * texelPx));
+            // GUI 좌표는 위가 0.
+            int x = Mathf.RoundToInt(sp.x) - barW / 2;
+            int y = Mathf.RoundToInt(Screen.height - sp.y) - barH;
+            int fillW = Mathf.RoundToInt(barW * (float)playerHealth.Current / playerHealth.Max);
+            PixelGui.FillRect(new Rect(x, y, barW, barH), playerGaugeBackColor);
+            PixelGui.FillRect(new Rect(x, y, fillW, barH), playerGaugeFillColor);
         }
 
         // 프레임 + 비율만큼 클리핑한 붉은 채움. 채움 조각은 프레임과 같은 자리에 그리면 안쪽에 딱 맞고, 오른쪽부터 줄어든다.
-        // cutRows는 PixelGui.DrawBarStrip과 같은 의미 (세로 얇게).
-        void DrawGauge(Rect bar, float ratio, int s, int cutRows = 0)
+        void DrawGauge(Rect bar, float ratio, int s)
         {
-            PixelGui.DrawBarStrip(skin.BarFrame, bar, skin.TileSize, s, cutRows);
+            PixelGui.DrawBarStrip(skin.BarFrame, bar, skin.TileSize, s);
             int inset = BarFillInsetTexels * s;
             int fillW = inset + Mathf.RoundToInt((bar.width - 2 * inset) * Mathf.Clamp01(ratio));
             GUI.BeginGroup(new Rect(bar.x, bar.y, fillW, bar.height));
-            PixelGui.DrawBarStrip(skin.BarFillRed, new Rect(0f, 0f, bar.width, bar.height), skin.TileSize, s, cutRows);
+            PixelGui.DrawBarStrip(skin.BarFillRed, new Rect(0f, 0f, bar.width, bar.height), skin.TileSize, s);
             GUI.EndGroup();
         }
 
