@@ -54,9 +54,10 @@ namespace PickShoot
             nextReadyTime = 0f;
         }
 
+        // 탄약이 한 번 사격분(ProjectilesPerShot)에 못 미쳐도 1발이라도 있으면 쏠 수 있다 (Weapons §4).
         public bool CanFire(float now)
         {
-            return now >= nextReadyTime && currentAmmo >= data.AmmoPerShot;
+            return now >= nextReadyTime && currentAmmo > 0;
         }
 
         // 발사 실행. 호출자가 CanFire를 먼저 검증하고, 방향/위치/탄환 콜리전 무시 처리를 수행한다.
@@ -66,23 +67,25 @@ namespace PickShoot
             if (!CanFire(now))
                 throw new System.Exception($"[PickShoot] Weapon.Fire 호출됐지만 CanFire가 false. weapon={data.DisplayName} Lv{level}, now={now}, nextReadyTime={nextReadyTime}, ammo={currentAmmo}/{MaxAmmo}");
 
-            currentAmmo -= data.AmmoPerShot;
+            // 소비 탄약 = 발사 탄환 수. 탄약이 모자라면 남은 만큼만 쏜다 (Weapons §4).
+            int fullShots = data.ProjectilesPerShot;
+            int shots = Mathf.Min(fullShots, currentAmmo);
+            currentAmmo -= shots;
             nextReadyTime = now + EffectiveCooldown;
             if (data.ShootClip != null) SoundPlayer.Play(data.ShootClip);
 
-            int shots = data.ProjectilesPerShot;
-            float spread = data.SpreadAngleDegrees;
+            // 모자란 사격은 온전한 사격의 부채꼴 자리 중 중앙에 가까운 연속 구간만 채운다.
+            // 구간을 정중앙에 둘 수 없으면(빈 자리가 홀수) 좌우 어느 쪽으로 치우칠지 매번 무작위
+            // → 산탄총 3자리 중 2발: 중앙 + 좌/우 한쪽, 1발: 중앙.
+            float step = fullShots > 1 ? data.SpreadAngleDegrees / (fullShots - 1) : 0f;
+            int emptySlots = fullShots - shots;
+            int firstSlot = emptySlots / 2;
+            if (emptySlots % 2 == 1 && Random.value < 0.5f) firstSlot++;
             float baseAngle = Mathf.Atan2(fireDirection.y, fireDirection.x) * Mathf.Rad2Deg;
 
             for (int i = 0; i < shots; i++)
             {
-                float angle = baseAngle;
-                if (shots > 1 && spread > 0f)
-                {
-                    float t = shots == 1 ? 0.5f : (float)i / (shots - 1);
-                    angle = baseAngle - spread * 0.5f + spread * t;
-                }
-
+                float angle = baseAngle + step * (firstSlot + i - (fullShots - 1) * 0.5f);
                 float rad = angle * Mathf.Deg2Rad;
                 Vector2 dir = new Vector2(Mathf.Cos(rad), Mathf.Sin(rad));
 

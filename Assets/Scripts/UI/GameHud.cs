@@ -246,8 +246,9 @@ namespace PickShoot
                 int sh = Mathf.RoundToInt(sprite.rect.height) * s;
                 PixelGui.DrawSprite(sprite, new Rect(x0 + (iconW - sw) / 2, lineY + (ammoLineH - sh) / 2, sw, sh));
 
-                // 한 발 쏠 탄약도 없으면 무기 스프라이트 위에 붉은 X를 깜빡여 회수를 재촉한다.
-                if (w.CurrentAmmo < w.Data.AmmoPerShot && blinkOn)
+                // 탄약이 0이라 쏠 수 없으면 무기 스프라이트 위에 붉은 X를 깜빡여 회수를 재촉한다.
+                // (사격분에 못 미치는 잔량은 남은 만큼 발사되므로 부족 표시 대상이 아니다 — Weapons §4)
+                if (w.CurrentAmmo <= 0 && blinkOn)
                     PixelGui.DrawSprite(skin.IconCross, new Rect(x0 + (iconW - tile) / 2, iconY, tile, tile));
 
                 DrawAmmoPips(w, x0 + iconW + gap, iconY, s);
