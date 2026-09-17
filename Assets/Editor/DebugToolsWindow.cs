@@ -5,7 +5,7 @@ namespace PickShoot
 {
     // 플레이 모드 디버그 도구 창 (메뉴 PickShoot/Debug Tools). 장기 보존 도구 (DEVELOPMENT §2.1).
     // 씬 참조 없이 플레이 중인 오브젝트를 찾아 조작하므로 씬·프리팹을 건드리지 않고, 빌드에도 들어가지 않는다.
-    // 현재 제공: 무기 링 테스트용 권총 추가 / 마지막 무기 버리기.
+    // 현재 제공: 무기 링 테스트용 권총 추가 / 마지막 무기 버리기 / 자루별 레벨업.
     public class DebugToolsWindow : EditorWindow
     {
         const string PistolAssetPath = "Assets/Data/Weapons/Pistol.asset";
@@ -46,7 +46,13 @@ namespace PickShoot
             for (int i = 0; i < slots.Count; i++)
             {
                 var w = slots[i];
-                EditorGUILayout.LabelField($"{i + 1}. {w.Data.DisplayName}   Lv {w.Level}   {w.CurrentAmmo}/{w.MaxAmmo}");
+                using (new EditorGUILayout.HorizontalScope())
+                {
+                    EditorGUILayout.LabelField($"{i + 1}. {w.Data.DisplayName}   Lv {w.Level}   {w.CurrentAmmo}/{w.MaxAmmo}");
+                    // 자루 단위 레벨업 (Weapons §3). 카드 없이 즉시 올려 탄창 확대·HUD 핍 배치를 확인한다. 레벨 상한은 없다.
+                    if (GUILayout.Button("Lv +", GUILayout.Width(48f)))
+                        w.LevelUp();
+                }
             }
 
             using (new EditorGUILayout.HorizontalScope())
