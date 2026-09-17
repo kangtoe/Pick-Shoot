@@ -29,6 +29,8 @@ namespace PickShoot
         // 커서 자리의 크로스헤어 = 중심점 + 탄약 링. 치수는 텍셀 단위이며 HUD 배율로 확대된다. 중심점은 링의 채움 색을 쓴다.
         [SerializeField, Min(2f)] float cursorRingRadiusTexels = 11f;
         [SerializeField, Min(1)] int cursorRingThicknessTexels = 3;
+        // 링 안팎 윤곽선 두께. 1텍셀은 밝은 땅 위에서 너무 가늘게 보여 2로 둔다. 중심점 윤곽선은 이 값과 무관하게 1텍셀.
+        [SerializeField, Min(1)] int cursorRingOutlineTexels = 2;
         [SerializeField] Color cursorRingFillColor = Color.white;
         [SerializeField] Color cursorRingEmptyColor = new Color(0.25f, 0.22f, 0.2f, 0.6f);
         [SerializeField] Color cursorRingOutlineColor = new Color(0.1f, 0.08f, 0.08f, 0.85f);
@@ -362,7 +364,7 @@ namespace PickShoot
         void DrawCrosshair(int s)
         {
             float radius = cursorRingRadiusTexels + Mathf.Round(cursorRingKick);
-            crosshair.Refresh(playerWeapons.Slots, radius, cursorRingThicknessTexels, cursorDotRadiusTexels,
+            crosshair.Refresh(playerWeapons.Slots, radius, cursorRingThicknessTexels, cursorRingOutlineTexels, cursorDotRadiusTexels,
                 cursorRingFillColor, cursorRingEmptyColor, cursorRingOutlineColor);
 
             int size = crosshair.SizeTexels * s;
