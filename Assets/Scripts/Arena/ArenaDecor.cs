@@ -13,9 +13,9 @@ namespace PickShoot
         // 울타리는 이 바깥 한 칸에 두른다. 씬의 벽 콜라이더 안쪽 면은 울타리 그림이 실제로 보이는 면에 맞춰 둔다
         // (어긋나면 튕김 위치가 거짓말이 된다): 위는 칸 경계, 아래는 레일 윗선이라 2텍셀 아래,
         // 좌우는 세로 울타리가 칸 중앙의 8텍셀 띠라 4텍셀 바깥.
-        [SerializeField, Min(1)] int arenaHalfCells = 10;
+        [SerializeField, Min(1)] int arenaHalfCells = 14;
         // 땅을 까는 범위. 가로로 긴 화면과 카메라 흔들림까지 덮도록 시야보다 넉넉히 잡는다.
-        [SerializeField] Vector2Int outerHalfCells = new Vector2Int(28, 13);
+        [SerializeField] Vector2Int outerHalfCells = new Vector2Int(28, 17);
         // 같은 시드는 항상 같은 잔무늬 배치를 만든다.
         [SerializeField] uint seed = 3;
         // 변형 타일이 섞이는 빈도: 칸 variantRarity개에 하나꼴.

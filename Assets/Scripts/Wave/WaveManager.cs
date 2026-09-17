@@ -21,7 +21,7 @@ namespace PickShoot
         [SerializeField] WaveSpawnEntry[] waveEntries;
         [SerializeField] GameObject spawnWarningPrefab;
         [SerializeField] UpgradeManager upgradeManager;
-        [SerializeField] Vector2 arenaHalfExtents = new Vector2(9f, 9f);
+        [SerializeField] Vector2 arenaHalfExtents = new Vector2(13f, 13f);
         [SerializeField] float baseWaveDuration = 20f;
         [SerializeField] float waveDurationIncrement = 5f;
         [SerializeField] float betweenWaveDelay = 2f;

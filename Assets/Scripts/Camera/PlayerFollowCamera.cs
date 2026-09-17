@@ -11,9 +11,9 @@ namespace PickShoot
         [SerializeField] Transform target;
         // 목표 위치에 따라붙는 데 걸리는 대략적인 시간. 작을수록 바짝 붙는다.
         [SerializeField, Min(0f)] float smoothTime = 0.15f;
-        // 시야가 닿아도 되는 범위(원점 기준 반폭). 울타리 바깥 면(11)에 여유 한 칸.
+        // 시야가 닿아도 되는 범위(원점 기준 반폭). 울타리 바깥 면(15)에 여유 한 칸.
         // ArenaDecor가 땅을 까는 범위 안쪽이어야 빈 배경이 보이지 않는다.
-        [SerializeField] Vector2 viewLimitHalfExtents = new Vector2(12f, 12f);
+        [SerializeField] Vector2 viewLimitHalfExtents = new Vector2(16f, 16f);
 
         Camera cam;
         Vector2 velocity;

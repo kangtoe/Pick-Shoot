@@ -417,7 +417,7 @@ Transform:
   m_GameObject: {fileID: 358240299}
   serializedVersion: 2
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: 0, y: 10.5, z: 0}
+  m_LocalPosition: {x: 0, y: 14.5, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -467,7 +467,7 @@ BoxCollider2D:
     drawMode: 2
     adaptiveTiling: 0
   m_AutoTiling: 0
-  m_Size: {x: 22, y: 1}
+  m_Size: {x: 30, y: 1}
   m_EdgeRadius: 0
 --- !u!1 &519420028
 GameObject:
@@ -621,7 +621,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::PickShoot.PlayerFollowCamera
   target: {fileID: 142563680}
   smoothTime: 0.15
-  viewLimitHalfExtents: {x: 12, y: 12}
+  viewLimitHalfExtents: {x: 16, y: 16}
 --- !u!1 &531415068
 GameObject:
   m_ObjectHideFlags: 0
@@ -800,7 +800,7 @@ Transform:
   m_GameObject: {fileID: 1383195875}
   serializedVersion: 2
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: 0, y: -10.625, z: 0}
+  m_LocalPosition: {x: 0, y: -14.625, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -850,7 +850,7 @@ BoxCollider2D:
     drawMode: 2
     adaptiveTiling: 0
   m_AutoTiling: 0
-  m_Size: {x: 22, y: 1}
+  m_Size: {x: 30, y: 1}
   m_EdgeRadius: 0
 --- !u!1 &1503036218
 GameObject:
@@ -878,7 +878,7 @@ Transform:
   m_GameObject: {fileID: 1503036218}
   serializedVersion: 2
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: -10.75, y: 0, z: 0}
+  m_LocalPosition: {x: -14.75, y: 0, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -928,7 +928,7 @@ BoxCollider2D:
     drawMode: 2
     adaptiveTiling: 0
   m_AutoTiling: 0
-  m_Size: {x: 1, y: 20.5}
+  m_Size: {x: 1, y: 28.5}
   m_EdgeRadius: 0
 --- !u!1 &1698421204
 GameObject:
@@ -1002,7 +1002,7 @@ MonoBehaviour:
     weight: 1
   spawnWarningPrefab: {fileID: 2111959392048050133, guid: 8be7c360e5e6e704d8d7ef8a64e077f4, type: 3}
   upgradeManager: {fileID: 1698421208}
-  arenaHalfExtents: {x: 9, y: 9}
+  arenaHalfExtents: {x: 13, y: 13}
   baseWaveDuration: 20
   waveDurationIncrement: 5
   betweenWaveDelay: 2
@@ -1060,7 +1060,7 @@ Transform:
   m_GameObject: {fileID: 1905229426}
   serializedVersion: 2
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: 10.75, y: 0, z: 0}
+  m_LocalPosition: {x: 14.75, y: 0, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -1110,7 +1110,7 @@ BoxCollider2D:
     drawMode: 2
     adaptiveTiling: 0
   m_AutoTiling: 0
-  m_Size: {x: 1, y: 20.5}
+  m_Size: {x: 1, y: 28.5}
   m_EdgeRadius: 0
 --- !u!1 &2100000010
 GameObject:
@@ -1278,8 +1278,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PickShoot.ArenaDecor
   theme: {fileID: 11400000, guid: d2b62deb347a488086b23adeffe93cf6, type: 2}
-  arenaHalfCells: 10
-  outerHalfCells: {x: 28, y: 13}
+  arenaHalfCells: 14
+  outerHalfCells: {x: 28, y: 17}
   seed: 3
   variantRarity: 12
 --- !u!1660057539 &9223372036854775807
