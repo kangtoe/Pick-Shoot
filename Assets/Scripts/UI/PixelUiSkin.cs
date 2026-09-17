@@ -58,6 +58,8 @@ namespace PickShoot
         // 테두리 없는 작은 탄환(탄약 핍)과 붉은 X(탄약 부족 표시).
         [SerializeField] Sprite iconBulletPlain;
         [SerializeField] Sprite iconCross;
+        // 해골. 데스 화면 배너 장식용.
+        [SerializeField] Sprite iconSkull;
 
         public int TileSize => tileSize;
         public NineSlice PanelBlue => panelBlue;
@@ -76,6 +78,7 @@ namespace PickShoot
         public Sprite BarCellEmpty => barCellEmpty;
         public Sprite IconBulletPlain => iconBulletPlain;
         public Sprite IconCross => iconCross;
+        public Sprite IconSkull => iconSkull;
 
         // 누락된 참조를 필드 이름까지 지목해 예외로 알린다. 사용하는 쪽이 Awake에서 호출.
         public void Validate()
@@ -96,6 +99,7 @@ namespace PickShoot
             if (barCellEmpty == null) throw Missing(nameof(barCellEmpty));
             if (iconBulletPlain == null) throw Missing(nameof(iconBulletPlain));
             if (iconCross == null) throw Missing(nameof(iconCross));
+            if (iconSkull == null) throw Missing(nameof(iconSkull));
         }
 
         System.Exception Missing(string field)

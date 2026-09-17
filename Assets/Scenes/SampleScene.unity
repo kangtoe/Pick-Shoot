@@ -962,7 +962,12 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PickShoot.GameOverScreen
   playerHealth: {fileID: 142563684}
+  waveManager: {fileID: 1698421207}
   gameOverDelay: 1
+  skin: {fileID: 11400000, guid: 75b98a2d2daa9a04797ea6f248de2474, type: 2}
+  referenceHeightTexels: 270
+  dimAlpha: 0.7
+  hintBlinkInterval: 0.5
 --- !u!4 &1698421206
 Transform:
   m_ObjectHideFlags: 0
