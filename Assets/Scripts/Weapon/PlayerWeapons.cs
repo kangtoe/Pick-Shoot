@@ -44,6 +44,8 @@ namespace PickShoot
 
         public IReadOnlyList<Weapon> Slots => slots;
         public bool HasEmptySlot => slots.Count < MaxSlots;
+        // 사격할 때마다 쏜 무기를 알린다. GameHud가 크로스헤어 링을 벌리는 데 쓴다.
+        public event System.Action<Weapon> Fired;
 
         // 슬롯이 링에서 조준 기준 왼쪽(반시계) 부채꼴에 있는가. 정중앙(홀수 자루의 슬롯 1)은 왼쪽으로 친다.
         // GameHud가 무기 표시를 화면 하단 좌우 패널로 나누는 기준.
@@ -231,6 +233,7 @@ namespace PickShoot
             Vector2 dir = new Vector2(Mathf.Cos(fireRad), Mathf.Sin(fireRad));
             slots[bestIdx].Fire(pos, dir, myCollider, now);
             PlayFireFeedback(bestIdx);
+            Fired?.Invoke(slots[bestIdx]);
             nextGlobalShotTime = now + globalShotInterval;
         }
 

@@ -7,7 +7,8 @@ namespace PickShoot
     //   체력: 좌상단 패널에 칸 단위 핍으로 자세히, 플레이어 머리 위에는 비율만 보이는 작은 게이지.
     //   무기: 링에서 조준 기준 왼쪽에 있는 슬롯은 화면 하단 왼쪽 패널, 오른쪽 슬롯은 하단 오른쪽 패널.
     //   웨이브: 상단 중앙 배너 + 남은 시간 바.
-    //   커서: 커서 중심 링에 모든 자루의 탄창 비율 평균 (시트에 링 조각이 없어 AmmoRingTexture가 런타임에 텍셀 단위로 그린다).
+    //   커서: 하드웨어 커서를 숨기고 그 자리에 크로스헤어 — 중심점(조준점) + 모든 자루의 탄창 비율 평균을 보여주는 링.
+    //         링은 사격마다 벌어졌다가 서서히 되돌아온다 (시트에 링 조각이 없어 CrosshairTexture가 런타임에 텍셀 단위로 그린다).
     // 레이아웃은 텍셀 단위로 정의하고 HUD 배율(PixelGui.TextScale — 업그레이드 카드의 글자 배율과 같은 값, 패널 배율의 절반)을
     // 곱해 기준 캔버스 픽셀로 바꾼다. 카드 패널보다 얇은 테두리라 게임 화면을 덜 가린다. 캔버스는 월드 카메라와 같은 규칙
     // (화면 세로 = 270텍셀)으로 보이므로 해상도·종횡비가 달라도 HUD가 화면에서 차지하는 비율은 월드 스프라이트처럼 그대로다.
@@ -24,13 +25,19 @@ namespace PickShoot
         // 탄약이 부족해 쏠 수 없는 무기 스프라이트 위 X 아이콘의 깜빡임 주기 (초, 실시간).
         [SerializeField, Min(0.01f)] float emptyBlinkInterval = 0.3f;
 
-        [Header("Cursor Ring")]
-        // 커서 중심 탄약 링. 치수는 텍셀 단위이며 HUD 배율로 확대된다.
+        [Header("Crosshair")]
+        // 커서 자리의 크로스헤어 = 중심점 + 탄약 링. 치수는 텍셀 단위이며 HUD 배율로 확대된다. 중심점은 링의 채움 색을 쓴다.
         [SerializeField, Min(2f)] float cursorRingRadiusTexels = 11f;
         [SerializeField, Min(1)] int cursorRingThicknessTexels = 3;
         [SerializeField] Color cursorRingFillColor = Color.white;
         [SerializeField] Color cursorRingEmptyColor = new Color(0.25f, 0.22f, 0.2f, 0.6f);
         [SerializeField] Color cursorRingOutlineColor = new Color(0.1f, 0.08f, 0.08f, 0.85f);
+        // 중심점 반경. 1이면 2×2텍셀.
+        [SerializeField, Min(1f)] float cursorDotRadiusTexels = 1f;
+        // 사격 한 번에 링 반경이 벌어지는 양: 쏜 무기의 반동 배율(WeaponData.RecoilStrength) 1당 텍셀 수. 무거운 무기일수록 크게 벌어진다.
+        [SerializeField, Min(0f)] float cursorRingKickTexels = 4f;
+        // 벌어진 링이 되돌아오는 속도 (지수 감쇠율, 1/초). 무기 반동(PlayerWeapons.recoilReturnSpeed)보다 느리게 둬 서서히 조여든다.
+        [SerializeField, Min(0.01f)] float cursorRingReturnSpeed = 6f;
 
         // IMGUI는 depth가 작을수록 위에 그린다. 다른 스크립트는 기본값 0이므로 HUD는 그 뒤에 깔린다.
         const int HudGuiDepth = 10;
@@ -65,7 +72,14 @@ namespace PickShoot
         SpriteRenderer playerSprite;
         Camera cam;
         readonly List<int> sideSlots = new List<int>(PlayerWeapons.MaxSlots);
-        readonly AmmoRingTexture cursorRing = new AmmoRingTexture();
+        readonly CrosshairTexture crosshair = new CrosshairTexture();
+        // 크로스헤어 링이 사격으로 벌어져 있는 양 (텍셀, 0 = 제자리). 발사 시 세팅되고 지수 감쇠로 복귀.
+        float cursorRingKick;
+
+        // HUD(크로스헤어 포함)를 그리는 조건.
+        //   플레이어는 사망 시 파괴된다. 그 뒤는 데스 화면이 이어받으므로 HUD를 걷는다.
+        //   카드 선택 화면은 게임을 멈추고 화면을 덮는다. 그 위에 HUD가 보이면 어색하므로 숨긴다.
+        bool HudVisible => playerHealth != null && !upgradeManager.IsActive;
 
         void Awake()
         {
@@ -86,21 +100,41 @@ namespace PickShoot
             if (cam == null)
                 throw new System.Exception("[PickShoot] MainCamera가 필요합니다 (머리 위 게이지 월드→화면 변환용).");
             skin.Validate();
+            playerWeapons.Fired += OnWeaponFired;
+        }
+
+        void OnDisable()
+        {
+            Cursor.visible = true;
         }
 
         void OnDestroy()
         {
-            cursorRing.Dispose();
+            if (playerWeapons != null) playerWeapons.Fired -= OnWeaponFired;
+            crosshair.Dispose();
+        }
+
+        void Update()
+        {
+            // 크로스헤어가 커서를 대신하는 동안만 하드웨어 커서를 숨긴다. HUD가 걷히는 카드 선택·데스 화면에서는 커서가 돌아온다
+            // (카드는 클릭으로 고른다). 상태가 바뀌는 순간만 잡지 않고 매 프레임 맞춘다 — 에디터는 Esc로 커서를 되살린다.
+            Cursor.visible = !HudVisible;
+
+            // 표시 반경은 텍셀 단위로 반올림하므로 0.5 미만은 이미 제자리로 보인다.
+            cursorRingKick = cursorRingKick < 0.5f ? 0f : cursorRingKick * Mathf.Exp(-cursorRingReturnSpeed * Time.deltaTime);
+        }
+
+        // 이미 더 벌어져 있으면 그대로 둔다 — 여러 자루 연사 중에 가벼운 무기가 링을 도로 좁히지 않게.
+        void OnWeaponFired(Weapon weapon)
+        {
+            cursorRingKick = Mathf.Max(cursorRingKick, weapon.Data.RecoilStrength * cursorRingKickTexels);
         }
 
         void OnGUI()
         {
             GUI.depth = HudGuiDepth;
             if (Event.current.type != EventType.Repaint) return;
-            // 플레이어는 사망 시 파괴된다. 그 뒤는 데스 화면이 이어받으므로 HUD를 걷는다.
-            if (playerHealth == null) return;
-            // 카드 선택 화면은 게임을 멈추고 화면을 덮는다. 그 위에 HUD가 보이면 어색하므로 숨긴다.
-            if (upgradeManager.IsActive) return;
+            if (!HudVisible) return;
 
             // 머리 위 게이지만 캔버스 밖에서 화면 픽셀로 그린다. 월드에 붙은 표시라 패널 밑에 깔리도록 먼저.
             DrawPlayerGauge();
@@ -112,7 +146,7 @@ namespace PickShoot
             DrawWeaponPanel(canvas, hudScale, leftSide: false);
             DrawWaveBanner(canvas, hudScale);
             // 커서는 패널 위로 지나갈 수 있으므로 마지막에 그려 항상 패널 위에 보이게 한다.
-            DrawCursorRing(hudScale);
+            DrawCrosshair(hudScale);
         }
 
         // 좌상단 회색 패널: "HP" + 체력 핍 (왼쪽부터 남은 체력만큼 붉은 칸, 나머지 빈 칸).
@@ -322,18 +356,20 @@ namespace PickShoot
             PixelGui.DrawTextCentered(font, status, centerX, (int)bar.y, s);
         }
 
-        // 커서 중심에 전체 탄창 비율 링. 텍스처는 상태가 바뀔 때만 다시 그리고, 다른 HUD와 같은 배율로 띄운다.
-        // 하드웨어 커서는 그대로 두고 그 주위를 감싼다 — 링 중심(조준점)은 비어 있다.
-        void DrawCursorRing(int s)
+        // 커서 자리에 크로스헤어(중심점 + 전체 탄창 비율 링). 텍스처는 상태가 바뀔 때만 다시 그리고, 다른 HUD와 같은 배율로 띄운다.
+        // 사격으로 벌어진 양은 텍셀 단위로 반올림해 반경에 더한다 — 링이 늘 온전한 텍셀 원 모양으로 한 칸씩 조여든다
+        // (소수 반경을 그대로 쓰면 되돌아오는 동안 둘레 텍셀이 제각각 깜빡인다).
+        void DrawCrosshair(int s)
         {
-            cursorRing.Refresh(playerWeapons.Slots, cursorRingRadiusTexels, cursorRingThicknessTexels,
+            float radius = cursorRingRadiusTexels + Mathf.Round(cursorRingKick);
+            crosshair.Refresh(playerWeapons.Slots, radius, cursorRingThicknessTexels, cursorDotRadiusTexels,
                 cursorRingFillColor, cursorRingEmptyColor, cursorRingOutlineColor);
 
-            int size = cursorRing.SizeTexels * s;
-            // 캔버스가 열린 동안 Repaint 이벤트의 mousePosition은 캔버스 좌표(위가 0)라 그대로 중심으로 쓴다. 지름이 짝수 텍셀이라 반은 정수.
+            int size = crosshair.SizeTexels * s;
+            // 캔버스가 열린 동안 Repaint 이벤트의 mousePosition은 캔버스 좌표(위가 0)라 그대로 중심으로 쓴다. 한 변이 짝수 텍셀이라 반은 정수.
             Vector2 m = Event.current.mousePosition;
             var rect = new Rect(Mathf.RoundToInt(m.x) - size / 2, Mathf.RoundToInt(m.y) - size / 2, size, size);
-            GUI.DrawTexture(rect, cursorRing.Texture, ScaleMode.StretchToFill, true);
+            GUI.DrawTexture(rect, crosshair.Texture, ScaleMode.StretchToFill, true);
         }
 
         // 글꼴에 있는 문자(A-Z 0-9 % + - 공백)만 써야 한다. 없는 문자는 PixelGui가 예외로 알린다.
