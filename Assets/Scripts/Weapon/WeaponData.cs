@@ -11,7 +11,7 @@ namespace PickShoot
         [SerializeField] float bulletSpeed = 14f;
         [SerializeField] float cooldown = 0.2f;
         [SerializeField] int maxAmmo = 6;
-        [SerializeField, Min(1)] int ammoPerShot = 1;
+        // 1회 사격의 탄환 수 = 소비 탄약 수 (Weapons §4). 탄약이 모자라면 남은 만큼만 나간다.
         [SerializeField, Min(1)] int projectilesPerShot = 1;
         [SerializeField, Range(0f, 180f)] float spreadAngleDegrees = 0f;
         [SerializeField] int damage = 10;
@@ -33,7 +33,6 @@ namespace PickShoot
         public float BulletSpeed => bulletSpeed;
         public float Cooldown => cooldown;
         public int MaxAmmo => maxAmmo;
-        public int AmmoPerShot => ammoPerShot;
         public int ProjectilesPerShot => projectilesPerShot;
         public float SpreadAngleDegrees => spreadAngleDegrees;
         public int Damage => damage;
