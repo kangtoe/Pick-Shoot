@@ -154,10 +154,9 @@ namespace PickShoot
             }
             else
             {
-                // 튕김 카운트 소진 → 화면 가장자리에서 정착. 법선 방향 성분만 제거해
-                // 접선 방향으로만 미끄러지다 감속으로 정지 (화면 안쪽에 자연스럽게 붙는다).
-                float inward = Vector2.Dot(vel, normal);
-                rb.linearVelocity = vel - normal * inward;
+                // 튕김 카운트 소진 → 벽과 같은 모습으로 정착. 벽에서는 물리엔진(반발 1·마찰 0)이
+                // 거울 반사를 해 주지만 화면 가장자리엔 콜라이더가 없으므로 직접 반사한 뒤 감속에 맡긴다.
+                rb.linearVelocity = Vector2.Reflect(vel, normal);
                 active = false;
             }
         }
