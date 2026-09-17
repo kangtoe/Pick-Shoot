@@ -344,6 +344,7 @@ MonoBehaviour:
   invincibilityTime: 0.8
   damageFlashDuration: 0.35
   damageFlashColor: {r: 1, g: 0.15, b: 0.15, a: 0.4}
+  damageNumberColor: {r: 1, g: 0.2, b: 0.2, a: 1}
   deathEffectPrefab: {fileID: 5670591326354318199, guid: 621b869db3a9bdc42b153ed8e123f1ab, type: 3}
   hurtClip: {fileID: 8300000, guid: 7483165314757dd44bd487d0150ee16d, type: 3}
   deathClip: {fileID: 8300000, guid: efee96be42d0a2c4ab776b51b86d8a01, type: 3}
@@ -383,7 +384,7 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: a43c715f32644acf8ae6b906ace5e729, type: 3}
-  m_Name:
+  m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PickShoot.SpriteWalkCycle
   frames:
   - {fileID: -3617217171684107962, guid: 8c4fc863c2ecf7c42830eb859ffede55, type: 3}
@@ -1328,7 +1329,7 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 9e138367339f4181824606bb870c018f, type: 3}
-  m_Name:
+  m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PickShoot.GameHud
   skin: {fileID: 11400000, guid: 75b98a2d2daa9a04797ea6f248de2474, type: 2}
   playerHealth: {fileID: 142563684}
@@ -1338,6 +1339,11 @@ MonoBehaviour:
   referenceHeightTexels: 270
   spentPipAlpha: 0.25
   emptyBlinkInterval: 0.3
+  cursorRingRadiusTexels: 11
+  cursorRingThicknessTexels: 3
+  cursorRingFillColor: {r: 1, g: 1, b: 1, a: 1}
+  cursorRingEmptyColor: {r: 0.25, g: 0.22, b: 0.2, a: 0.6}
+  cursorRingOutlineColor: {r: 0.1, g: 0.08, b: 0.08, a: 0.85}
 --- !u!212 &2100000101
 SpriteRenderer:
   serializedVersion: 2
