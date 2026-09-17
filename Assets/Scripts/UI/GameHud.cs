@@ -38,6 +38,7 @@ namespace PickShoot
         const int PaddingTexels = 8;     // 패널 테두리 → 내용
         const int GapTexels = 4;         // 행 사이·이웃 요소 사이
         const int ColumnGapTexels = 8;   // 열 사이
+        const int EntryGapTexels = 8;    // 무기 항목(두 줄) 사이 — 행 간격보다 넓혀 항목 경계가 보이도록
         // 핍은 16텍셀 타일이지만 보이는 부분이 좁아(체력 칸 10, 탄환 8) 타일 간격보다 촘촘히 겹쳐 놓는다. 여백 2텍셀.
         const int HpPipStrideTexels = 12;
         const int AmmoPipStrideTexels = 10;
@@ -177,7 +178,8 @@ namespace PickShoot
             GUI.EndGroup();
         }
 
-        // 하단 한쪽 회색 패널: 링의 해당 쪽에 있는 슬롯만, 슬롯마다 한 줄 (번호·스프라이트·이름·레벨·탄약 부족 표시·탄약 핍).
+        // 하단 한쪽 회색 패널: 링의 해당 쪽에 있는 슬롯만. 슬롯마다 두 줄 — 윗줄은 이름·레벨, 아랫줄은 스프라이트·탄약 부족 표시·탄약 핍.
+        // 한 줄에 늘어놓는 것보다 폭이 좁아 게임 화면을 덜 가린다. 슬롯 번호는 카드에서만 쓰므로 HUD에는 두지 않는다.
         // 해당 쪽에 슬롯이 없으면 패널도 그리지 않는다.
         void DrawWeaponPanel(int s, bool leftSide)
         {
@@ -193,25 +195,26 @@ namespace PickShoot
             int pad = PaddingTexels * s;
             int gap = GapTexels * s;
             int colGap = ColumnGapTexels * s;
+            int entryGap = EntryGapTexels * s;
             int margin = MarginTexels * s;
 
-            // 열 폭은 패널 안 모든 행에서 공통 — 이름 길이가 달라도 핍이 세로로 나란히 정렬되도록.
-            int slotNoW = 0, spriteW = 0, spriteH = 0, nameW = 0, levelW = 0, pipsW = 0;
+            // 열 폭은 패널 안 모든 항목에서 공통 — 이름 길이가 달라도 레벨과 핍이 세로로 나란히 정렬되도록.
+            int spriteW = 0, spriteH = 0, nameW = 0, levelW = 0, pipsW = 0;
             for (int k = 0; k < sideSlots.Count; k++)
             {
-                int i = sideSlots[k];
-                var w = slots[i];
+                var w = slots[sideSlots[k]];
                 var r = w.Data.WeaponSprite.rect;
-                slotNoW = Mathf.Max(slotNoW, PixelGui.MeasureText(font, SlotLabel(i), s));
                 spriteW = Mathf.Max(spriteW, Mathf.RoundToInt(r.width) * s);
                 spriteH = Mathf.Max(spriteH, Mathf.RoundToInt(r.height) * s);
                 nameW = Mathf.Max(nameW, PixelGui.MeasureText(font, NameLabel(w), s));
                 levelW = Mathf.Max(levelW, PixelGui.MeasureText(font, LevelLabel(w), s));
                 pipsW = Mathf.Max(pipsW, PipsWidth(w.MaxAmmo, AmmoPipStrideTexels, s));
             }
-            int rowH = Mathf.Max(lineH, spriteH);
-            int contentW = slotNoW + gap + spriteW + gap + nameW + colGap + levelW + colGap + tile + gap + pipsW;
-            int contentH = sideSlots.Count * rowH + (sideSlots.Count - 1) * gap;
+            // 두 줄 중 넓은 쪽이 항목 폭. 아랫줄은 탄약 부족 X 아이콘 자리를 항상 비워 두어 깜빡여도 핍이 움직이지 않는다.
+            int ammoLineH = Mathf.Max(Mathf.Max(lineH, tile), spriteH);
+            int entryH = lineH + gap + ammoLineH;
+            int contentW = Mathf.Max(nameW + colGap + levelW, spriteW + gap + tile + gap + pipsW);
+            int contentH = sideSlots.Count * entryH + (sideSlots.Count - 1) * entryGap;
 
             int panelW = CeilToMultiple(contentW + 2 * pad, tile);
             int panelH = CeilToMultiple(contentH + 2 * pad, tile);
@@ -225,33 +228,27 @@ namespace PickShoot
             bool blinkOn = Mathf.FloorToInt(Time.unscaledTime / emptyBlinkInterval) % 2 == 0;
             for (int k = 0; k < sideSlots.Count; k++)
             {
-                if (k > 0) y += gap;
-                int i = sideSlots[k];
-                var w = slots[i];
-                int textY = y + (rowH - lineH) / 2;
-                int x = x0;
+                if (k > 0) y += entryGap;
+                var w = slots[sideSlots[k]];
 
-                PixelGui.DrawText(font, SlotLabel(i), x, textY, s);
-                x += slotNoW + gap;
+                PixelGui.DrawText(font, NameLabel(w), x0, y, s);
+                PixelGui.DrawText(font, LevelLabel(w), x0 + nameW + colGap, y, s);
 
+                int lineY = y + lineH + gap;
+                int iconY = lineY + (ammoLineH - tile) / 2;
                 var sprite = w.Data.WeaponSprite;
                 int sw = Mathf.RoundToInt(sprite.rect.width) * s;
                 int sh = Mathf.RoundToInt(sprite.rect.height) * s;
-                PixelGui.DrawSprite(sprite, new Rect(x + (spriteW - sw) / 2, y + (rowH - sh) / 2, sw, sh));
-                x += spriteW + gap;
-
-                PixelGui.DrawText(font, NameLabel(w), x, textY, s);
-                x += nameW + colGap;
-                PixelGui.DrawText(font, LevelLabel(w), x, textY, s);
-                x += levelW + colGap;
+                PixelGui.DrawSprite(sprite, new Rect(x0 + (spriteW - sw) / 2, lineY + (ammoLineH - sh) / 2, sw, sh));
+                int x = x0 + spriteW + gap;
 
                 // 한 발 쏠 탄약도 없으면 붉은 X를 깜빡여 회수를 재촉한다.
                 if (w.CurrentAmmo < w.Data.AmmoPerShot && blinkOn)
-                    PixelGui.DrawSprite(skin.IconCross, new Rect(x, textY, tile, tile));
+                    PixelGui.DrawSprite(skin.IconCross, new Rect(x, iconY, tile, tile));
                 x += tile + gap;
 
-                DrawAmmoPips(w, x, textY, s);
-                y += rowH;
+                DrawAmmoPips(w, x, iconY, s);
+                y += entryH;
             }
         }
 
@@ -316,7 +313,6 @@ namespace PickShoot
         }
 
         // 글꼴에 있는 문자(A-Z 0-9 % + - 공백)만 써야 한다. 없는 문자는 PixelGui가 예외로 알린다.
-        static string SlotLabel(int slotIndex) => (slotIndex + 1).ToString();
         static string NameLabel(Weapon w) => w.Data.DisplayName.ToUpperInvariant();
         static string LevelLabel(Weapon w) => $"LV {w.Level}";
 
