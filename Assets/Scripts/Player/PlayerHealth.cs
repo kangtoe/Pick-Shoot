@@ -34,7 +34,7 @@ namespace PickShoot
             if (sr != null) originalColor = sr.color;
         }
 
-        // 웨이브 시작 시 WaveManager가 호출. 매 웨이브를 온전한 체력으로 시작한다.
+        // 웨이브 클리어 대기가 끝난 뒤 WaveManager가 호출. 다음 웨이브를 온전한 체력으로 맞이한다.
         public void RestoreFull()
         {
             if (!IsAlive)

@@ -65,7 +65,7 @@ namespace PickShoot
                 throw new System.Exception("[PickShoot] Player에 PlayerPickup 컴포넌트 없음 (웨이브 클리어 sweep에 필요).");
             playerHealth = p.GetComponent<PlayerHealth>();
             if (playerHealth == null)
-                throw new System.Exception("[PickShoot] Player에 PlayerHealth 컴포넌트 없음 (웨이브 시작 체력 회복에 필요).");
+                throw new System.Exception("[PickShoot] Player에 PlayerHealth 컴포넌트 없음 (웨이브 클리어 체력 회복에 필요).");
 
             StartCoroutine(RunWaves());
         }
@@ -86,9 +86,6 @@ namespace PickShoot
                 yield return new WaitForSeconds(betweenWaveDelay);
 
                 if (!CanSpawn()) yield break;
-                // 매 웨이브는 온전한 체력으로 시작한다 (GDD §3.3).
-                playerHealth.RestoreFull();
-
                 phase = WavePhase.Active;
                 float elapsed = 0f;
                 float nextSpawnAt = 0f;
@@ -115,6 +112,9 @@ namespace PickShoot
                 yield return playerPickup.SweepAll(upgradeDelay);
 
                 if (!CanSpawn()) yield break;
+                // 클리어 대기가 끝난 뒤 체력을 완충한다 (GDD §3.3). 시작 시점이 아니라 여기서 회복해야
+                // 카운트다운 동안 HUD에 이미 가득 찬 체력이 보이고, 웨이브 내 피해가 다음 웨이브로 넘어가지 않는다.
+                playerHealth.RestoreFull();
                 if (upgradeManager != null)
                     yield return upgradeManager.PresentAndWait(currentWave);
             }
