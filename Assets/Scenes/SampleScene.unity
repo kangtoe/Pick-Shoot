@@ -1010,6 +1010,7 @@ MonoBehaviour:
   spawnInterval: 0.8
   spawnWarningDuration: 0.6
   minSpawnDistanceFromPlayer: 5
+  maxSpawnDistanceFromPlayer: 8
   baseMaxEnemies: 5
   maxEnemiesPerWaveIncrement: 2
 --- !u!114 &1698421208

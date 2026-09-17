@@ -21,6 +21,7 @@ namespace PickShoot
         [SerializeField] WaveSpawnEntry[] waveEntries;
         [SerializeField] GameObject spawnWarningPrefab;
         [SerializeField] UpgradeManager upgradeManager;
+        // 스폰 가능 영역(원점 기준 반폭). 아레나 안쪽 면(14)에서 한 칸 들여 적이 울타리에 걸쳐 나오지 않게 한다.
         [SerializeField] Vector2 arenaHalfExtents = new Vector2(13f, 13f);
         [SerializeField] float baseWaveDuration = 20f;
         [SerializeField] float waveDurationIncrement = 5f;
@@ -28,9 +29,15 @@ namespace PickShoot
         [SerializeField] float upgradeDelay = 2f;
         [SerializeField] float spawnInterval = 0.5f;
         [SerializeField] float spawnWarningDuration = 0.6f;
-        [SerializeField] float minSpawnDistanceFromPlayer = 5f;
+        // 스폰 지점은 플레이어로부터 이 거리 범위 안에서 고른다 (Enemies §1).
+        // 최소는 등장 직후 피할 여유, 최대는 경고 마커가 카메라 시야(직교 반높이 8.4375) 안에 뜨게 하는 값.
+        [SerializeField, Min(0f)] float minSpawnDistanceFromPlayer = 5f;
+        [SerializeField] float maxSpawnDistanceFromPlayer = 8f;
         [SerializeField] int baseMaxEnemies = 8;
         [SerializeField] int maxEnemiesPerWaveIncrement = 2;
+
+        // 기각 표집 시도 횟수. 채택률이 절반 안팎이라 정상 설정에서는 사실상 소진되지 않는다.
+        const int SpawnPointAttempts = 32;
 
         int currentWave;
         float currentWaveDuration;
@@ -55,6 +62,8 @@ namespace PickShoot
             for (int i = 0; i < waveEntries.Length; i++)
                 if (waveEntries[i] == null || waveEntries[i].prefab == null)
                     throw new System.Exception($"[PickShoot] WaveManager.waveEntries[{i}].prefab 미설정.");
+            if (maxSpawnDistanceFromPlayer <= minSpawnDistanceFromPlayer)
+                throw new System.Exception($"[PickShoot] WaveManager 스폰 거리 범위가 비어 있음 (min {minSpawnDistanceFromPlayer} ≥ max {maxSpawnDistanceFromPlayer}).");
 
             var p = GameObject.FindWithTag("Player");
             if (p == null)
@@ -128,14 +137,7 @@ namespace PickShoot
             var prefab = PickEnemyPrefab();
             if (prefab == null) yield break;
 
-            Vector2 pos = Vector2.zero;
-            for (int attempt = 0; attempt < 8; attempt++)
-            {
-                pos = PickPerimeterPoint();
-                if (player == null) break;
-                if (Vector2.Distance(pos, player.position) >= minSpawnDistanceFromPlayer)
-                    break;
-            }
+            Vector2 pos = PickSpawnPoint();
 
             pendingWarnings++;
             if (spawnWarningPrefab != null)
@@ -195,18 +197,27 @@ namespace PickShoot
             spawnedEnemies.Clear();
         }
 
-        Vector2 PickPerimeterPoint()
+        // 스폰 영역 안에서 플레이어와의 거리가 [min, max]인 지점을 면적에 고르게 뽑는다.
+        // 바깥 원의 경계 상자를 스폰 영역으로 잘라 그 안에서 뽑고 거리로 거른다 —
+        // 각도·거리로 뽑아 영역 밖을 버리는 방식과 달리 플레이어가 구석에 있어도 채택률이 절반 안팎으로 유지된다.
+        Vector2 PickSpawnPoint()
         {
-            int edge = Random.Range(0, 4);
-            float x = Random.Range(-arenaHalfExtents.x, arenaHalfExtents.x);
-            float y = Random.Range(-arenaHalfExtents.y, arenaHalfExtents.y);
-            return edge switch
+            Vector2 center = player.position;
+            float max = maxSpawnDistanceFromPlayer;
+            float xMin = Mathf.Max(-arenaHalfExtents.x, center.x - max);
+            float xMax = Mathf.Min( arenaHalfExtents.x, center.x + max);
+            float yMin = Mathf.Max(-arenaHalfExtents.y, center.y - max);
+            float yMax = Mathf.Min( arenaHalfExtents.y, center.y + max);
+            float minSqr = minSpawnDistanceFromPlayer * minSpawnDistanceFromPlayer;
+            float maxSqr = max * max;
+
+            for (int attempt = 0; attempt < SpawnPointAttempts; attempt++)
             {
-                0 => new Vector2(x,  arenaHalfExtents.y),
-                1 => new Vector2(x, -arenaHalfExtents.y),
-                2 => new Vector2( arenaHalfExtents.x, y),
-                _ => new Vector2(-arenaHalfExtents.x, y),
-            };
+                var pos = new Vector2(Random.Range(xMin, xMax), Random.Range(yMin, yMax));
+                float sqr = (pos - center).sqrMagnitude;
+                if (sqr >= minSqr && sqr <= maxSqr) return pos;
+            }
+            throw new System.Exception($"[PickShoot] 스폰 지점을 찾지 못함 (플레이어 {center}, 거리 {minSpawnDistanceFromPlayer}~{max}, 스폰 영역 ±{arenaHalfExtents}). 거리 범위가 스폰 영역에 비해 너무 큰지 확인.");
         }
     }
 }
