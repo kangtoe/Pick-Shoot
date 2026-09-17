@@ -11,6 +11,9 @@ namespace PickShoot
         [SerializeField] float bounceFlashDuration = 0.09f;
         [SerializeField] Color bounceFlashColor = Color.white;
         [SerializeField] float bounceScalePulse = 1.5f;
+        [SerializeField] AudioClip bounceClip;
+        // 거의 모든 탄환이 한 번은 벽·가장자리에 닿으므로 다른 효과음보다 낮춰 깔아 둔다.
+        [SerializeField, Range(0f, 1f)] float bounceVolume = 0.5f;
         [SerializeField] float separationRadius = 0.6f;
         [SerializeField] float separationStrength = 3f;
         [SerializeField] LayerMask bulletLayerMask;
@@ -142,6 +145,7 @@ namespace PickShoot
             // 위치는 어느 분기든 viewport 안으로 복귀시켜 재검출 방지.
             Vector3 clampedVp = new Vector3(Mathf.Clamp01(vp.x), Mathf.Clamp01(vp.y), vp.z);
             rb.position = mainCam.ViewportToWorldPoint(clampedVp);
+            PlayBounceSound();
 
             if (remainingBounces > 0)
             {
@@ -191,6 +195,7 @@ namespace PickShoot
                 return;
             }
 
+            PlayBounceSound();
             if (remainingBounces > 0)
             {
                 HandleWallBounce(col);
@@ -287,6 +292,13 @@ namespace PickShoot
             if (tanLen < 0.0001f) return normal;
             Vector2 tanDir = tangent / tanLen;
             return normal * minDot + tanDir * Mathf.Sqrt(1f - minDot * minDot);
+        }
+
+        // 튕김 페이즈의 탄환이 벽·화면 가장자리에 닿을 때마다 울린다. 튕김 카운트가 남았든(반사 후 계속 비행)
+        // 소진됐든(반사 후 정착) 화면에서는 똑같이 튕겨 보이므로 구분하지 않는다. 적에게 튕길 때는 명중음이 대신한다.
+        void PlayBounceSound()
+        {
+            if (bounceClip != null) SoundPlayer.Play(bounceClip, bounceVolume);
         }
 
         void TriggerBounceEffect()

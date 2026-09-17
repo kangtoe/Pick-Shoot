@@ -31,22 +31,23 @@ namespace PickShoot
             if (instance == this) instance = null;
         }
 
-        public static void Play(AudioClip clip)
+        // volumeScale: 아주 자주 울리는 효과음(탄환 튕김 등)을 호출자가 masterVolume 대비 낮춰 재생할 때 쓴다.
+        public static void Play(AudioClip clip, float volumeScale = 1f)
         {
             if (clip == null)
                 throw new System.Exception("[PickShoot] SoundPlayer.Play: clip이 null. 호출자가 클립 할당 여부를 먼저 확인해야 합니다.");
             if (instance == null)
                 throw new System.Exception("[PickShoot] 씬에 SoundPlayer가 없습니다. 효과음 재생용 SoundPlayer 오브젝트 필요.");
-            instance.PlayInternal(clip);
+            instance.PlayInternal(clip, volumeScale);
         }
 
-        void PlayInternal(AudioClip clip)
+        void PlayInternal(AudioClip clip, float volumeScale)
         {
             // 업그레이드 UI(timeScale=0) 중에도 재생돼야 하므로 unscaledTime 기준.
             float now = Time.unscaledTime;
             if (lastPlayTime.TryGetValue(clip, out float last) && now - last < sameClipMinInterval) return;
             lastPlayTime[clip] = now;
-            source.PlayOneShot(clip, masterVolume);
+            source.PlayOneShot(clip, masterVolume * volumeScale);
         }
     }
 }

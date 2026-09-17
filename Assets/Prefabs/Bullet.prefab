@@ -179,6 +179,8 @@ MonoBehaviour:
   bounceFlashDuration: 0.09
   bounceFlashColor: {r: 1, g: 1, b: 1, a: 1}
   bounceScalePulse: 1.5
+  bounceClip: {fileID: 8300000, guid: 9a05ff9aa669f6f4e9aa6117ecc8e18a, type: 3}
+  bounceVolume: 0.5
   separationRadius: 0.6
   separationStrength: 3
   bulletLayerMask:
