@@ -5,12 +5,11 @@ namespace PickShoot
 {
     // 피격 데미지 숫자 표시 단일 창구. 씬에 정확히 하나 존재해야 한다.
     // 숫자는 월드 좌표에 묶여 위로 떠오르며 사라지고, 매 프레임 화면 좌표로 바꿔 OnGUI에서
-    // PixelUiSkin 비트맵 글꼴로 그린다 (픽셀 UI 규약: PixelGui 정수 배율).
+    // PixelUiSkin 비트맵 글꼴로 그린다 (픽셀 UI 규약: PixelGui 기준 캔버스).
     // 색은 호출자가 정한다 — 적 피격은 흰색(EnemyHealth), 플레이어 피격은 붉은색(PlayerHealth).
     public class DamageNumbers : MonoBehaviour
     {
         [SerializeField] PixelUiSkin skin;
-        [SerializeField, Min(1)] int referenceHeightTexels = 270;
         [SerializeField, Min(0.01f)] float duration = 0.6f;
         [SerializeField, Min(0f)] float riseDistance = 1f;
         [SerializeField, Range(0f, 1f)] float fadeStart = 0.5f;
@@ -71,11 +70,11 @@ namespace PickShoot
         {
             if (popups.Count == 0 || Event.current.type != EventType.Repaint) return;
 
-            int scale = PixelGui.ScaleForScreen(referenceHeightTexels);
-            int textScale = Mathf.Max(1, Mathf.RoundToInt(scale * 0.5f));
+            int textScale = PixelGui.TextScale;
             var font = skin.FontOutlined;
             int lineH = font.lineHeight * textScale;
 
+            using var canvas = PixelGui.BeginCanvas();
             var prevColor = GUI.color;
             for (int i = 0; i < popups.Count; i++)
             {
@@ -83,15 +82,16 @@ namespace PickShoot
                 float t = Mathf.Clamp01((Time.time - p.StartTime) / duration);
                 // 처음에 빠르게 솟았다가 느려지는 ease-out.
                 float rise = riseDistance * (1f - (1f - t) * (1f - t));
-                Vector3 sp = cam.WorldToScreenPoint(p.Origin + Vector3.up * rise);
-                if (sp.z < 0f) continue;
+                Vector3 screenPoint = cam.WorldToScreenPoint(p.Origin + Vector3.up * rise);
+                if (screenPoint.z < 0f) continue;
 
                 var c = p.Color;
                 c.a *= 1f - Mathf.InverseLerp(fadeStart, 1f, t);
                 GUI.color = c;
-                // 숫자의 아래쪽 가장자리를 기준점에 맞춘다. GUI 좌표는 위가 0.
+                // 숫자의 아래쪽 가장자리를 기준점에 맞춘다. 캔버스 좌표는 위가 0.
+                Vector2 sp = canvas.FromScreenPoint(screenPoint);
                 int x = Mathf.RoundToInt(sp.x);
-                int y = Mathf.RoundToInt(Screen.height - sp.y) - lineH;
+                int y = Mathf.RoundToInt(sp.y) - lineH;
                 PixelGui.DrawTextCentered(font, p.Text, x, y, textScale);
             }
             GUI.color = prevColor;

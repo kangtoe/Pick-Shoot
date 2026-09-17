@@ -2,16 +2,67 @@ using UnityEngine;
 
 namespace PickShoot
 {
-    // OnGUI 안에서 스프라이트 시트 조각을 정수 배율로 그리는 도우미. 좌표·크기는 모두 화면 픽셀.
-    // scale은 텍셀 1개가 차지하는 화면 픽셀 수. 정수만 써서 픽셀아트가 뭉개지지 않게 한다.
+    // OnGUI 안에서 스프라이트 시트 조각을 그리는 도우미.
+    // 픽셀 UI는 월드 카메라와 같은 규칙으로 보인다: 화면 세로가 항상 ReferenceHeightTexels(270)텍셀. 그래서 월드 스프라이트처럼
+    // 해상도가 달라도 화면에서 차지하는 비율이 같고, 종횡비는 가로로 보이는 범위만 바꿀 뿐 크기에는 영향을 주지 않는다.
+    // 구현: 세로 DesignHeight(1080)짜리 기준 캔버스 위에 정수 배율로 배치하고, BeginCanvas가 GUI.matrix로 캔버스 전체를
+    // 화면 높이에 맞춰 늘리거나 줄인다 (1080p에서는 캔버스 = 화면). 이 클래스의 좌표·크기는 모두 캔버스 픽셀이고,
+    // scale은 텍셀 1개가 차지하는 캔버스 픽셀 수(정수)다.
     public static class PixelGui
     {
-        // 화면 높이를 기준 높이(텍셀)로 나눈 정수 배율. 1080p·기준 270 → 4.
-        public static int ScaleForScreen(int referenceHeightTexels)
+        // 화면 세로에 해당하는 텍셀 수. 월드 카메라의 세로 텍셀 수(직교 크기 8.4375 × 2 × PPU 16)와 같다.
+        public const int ReferenceHeightTexels = 270;
+        // 기준 캔버스에서 텍셀 1개의 픽셀 수. 패널·큰 아이콘은 PanelScale(월드 텍셀과 같은 크기), 글자·HUD는 그 절반인 TextScale.
+        public const int PanelScale = 4;
+        public const int TextScale = 2;
+        public const int DesignHeight = ReferenceHeightTexels * PanelScale;
+
+        // BeginCanvas가 연 기준 캔버스. Dispose에서 GUI.matrix를 되돌리므로 using으로 감싼다.
+        // 캔버스가 열려 있는 동안 Event.current.mousePosition도 캔버스 좌표다 (GUI.matrix의 역변환이 적용됨).
+        public readonly struct CanvasScope : System.IDisposable
         {
-            if (referenceHeightTexels <= 0)
-                throw new System.Exception($"[PickShoot] PixelGui.ScaleForScreen: referenceHeightTexels가 0 이하 ({referenceHeightTexels}).");
-            return Mathf.Max(1, Mathf.RoundToInt(Screen.height / (float)referenceHeightTexels));
+            readonly Matrix4x4 savedMatrix;
+            // 캔버스 1픽셀이 차지하는 화면 픽셀 수 (화면 높이 / DesignHeight).
+            public readonly float PixelSize;
+            // 캔버스 크기 (캔버스 픽셀). 세로는 항상 DesignHeight, 가로는 화면비에 따라 달라진다.
+            public readonly int Width;
+            public readonly int Height;
+
+            internal CanvasScope(float pixelSize)
+            {
+                savedMatrix = GUI.matrix;
+                PixelSize = pixelSize;
+                Width = Mathf.RoundToInt(Screen.width / pixelSize);
+                Height = DesignHeight;
+                GUI.matrix = savedMatrix * Matrix4x4.Scale(new Vector3(pixelSize, pixelSize, 1f));
+            }
+
+            // Camera.WorldToScreenPoint 결과(화면 픽셀, 원점 좌하단)를 캔버스 좌표(원점 좌상단)로 바꾼다.
+            public Vector2 FromScreenPoint(Vector3 screenPoint)
+            {
+                return new Vector2(screenPoint.x / PixelSize, (Screen.height - screenPoint.y) / PixelSize);
+            }
+
+            public void Dispose()
+            {
+                GUI.matrix = savedMatrix;
+            }
+        }
+
+        // 기준 캔버스를 연다. 클릭 판정(GUI.Button)을 하는 화면은 Repaint뿐 아니라 모든 이벤트에서 열어야 한다.
+        public static CanvasScope BeginCanvas()
+        {
+            return new CanvasScope(Screen.height / (float)DesignHeight);
+        }
+
+        // 캔버스 밖에서 화면 픽셀로 직접 그릴 때의 정수 배율: 캔버스 배율 canvasScale이 화면에서 차지하는 픽셀 수를 반올림한 값 (최소 1).
+        // 텍셀이 아주 잘아 캔버스 확대·축소를 견디지 못하는 조각용 — 1텍셀 선이 화면 1픽셀보다 작아지면 Point 샘플링이 선을 통째로
+        // 빠뜨리고, 비정수 배율에서는 선 굵기가 위치에 따라 달라져 움직일 때 어른거린다.
+        public static int SnappedScreenScale(int canvasScale)
+        {
+            if (canvasScale <= 0)
+                throw new System.Exception($"[PickShoot] PixelGui.SnappedScreenScale: canvasScale이 0 이하 ({canvasScale}).");
+            return Mathf.Max(1, Mathf.RoundToInt(canvasScale * Screen.height / (float)DesignHeight));
         }
 
         public static void DrawSprite(Sprite sprite, Rect screenRect)
@@ -19,11 +70,14 @@ namespace PickShoot
             DrawSpritePart(sprite, screenRect, 0f, 0f, 1f, 1f);
         }
 
-        // 화면 좌표 기준 시계방향 회전. 위쪽 화살표 아이콘을 90°로 돌리면 오른쪽 화살표가 된다.
+        // 화면 기준 시계방향 회전. 위쪽 화살표 아이콘을 90°로 돌리면 오른쪽 화살표가 된다.
+        // GUIUtility.RotateAroundPivot은 피벗을 GUI.matrix 적용 뒤의 좌표로 해석해 캔버스 배율이 걸리면 어긋난다.
+        // 그래서 회전을 캔버스 좌표에서 먼저 하고 그 바깥에 기존 행렬(캔버스 배율)이 걸리도록 직접 합성한다.
         public static void DrawSpriteRotated(Sprite sprite, Rect screenRect, float degrees)
         {
             var saved = GUI.matrix;
-            GUIUtility.RotateAroundPivot(degrees, screenRect.center);
+            Vector3 pivot = screenRect.center;
+            GUI.matrix = saved * Matrix4x4.Translate(pivot) * Matrix4x4.Rotate(Quaternion.Euler(0f, 0f, degrees)) * Matrix4x4.Translate(-pivot);
             DrawSprite(sprite, screenRect);
             GUI.matrix = saved;
         }

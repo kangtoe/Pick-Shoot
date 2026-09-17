@@ -16,8 +16,6 @@ namespace PickShoot
 
         [Header("Presentation")]
         [SerializeField] PixelUiSkin skin;
-        // 픽셀 배율 기준. 화면 높이를 이 텍셀 수로 나눈 정수가 패널·아이콘 배율 (1080p → 4배), 글자는 그 절반.
-        [SerializeField, Min(1)] int referenceHeightTexels = 270;
         [SerializeField, Range(0f, 1f)] float dimAlpha = 0.7f;
 
         UpgradeOption[] currentCards;
@@ -102,13 +100,18 @@ namespace PickShoot
         {
             if (!active) return;
 
-            int scale = PixelGui.ScaleForScreen(referenceHeightTexels);
-            int textScale = Mathf.Max(1, Mathf.RoundToInt(scale * 0.5f));
+            // 패널·아이콘은 패널 배율, 글자는 그 절반인 글자 배율 (기준 캔버스 픽셀).
+            int scale = PixelGui.PanelScale;
+            int textScale = PixelGui.TextScale;
             int tile = skin.TileSize * scale;
 
+            // 어둡게 덮는 막은 화면 픽셀 그대로 (캔버스를 열기 전).
             GUI.color = new Color(0f, 0f, 0f, dimAlpha);
             GUI.DrawTexture(new Rect(0, 0, Screen.width, Screen.height), Texture2D.whiteTexture);
             GUI.color = Color.white;
+
+            // 클릭 판정(GUI.Button)도 캔버스 좌표로 하므로 Repaint뿐 아니라 모든 이벤트에서 캔버스를 연다.
+            using var canvas = PixelGui.BeginCanvas();
 
             // 모든 카드를 같은 크기로: 내용상 가장 큰 카드에 맞춘다.
             var cardSize = Vector2Int.zero;
@@ -128,8 +131,8 @@ namespace PickShoot
 
             // 배너·부제·카드 묶음을 화면 세로 중앙에 놓는다.
             int blockH = bannerH + subtitleH + gap + cardSize.y;
-            int blockY = (Screen.height - blockH) / 2;
-            int centerX = Screen.width / 2;
+            int blockY = (canvas.Height - blockH) / 2;
+            int centerX = canvas.Width / 2;
 
             var banner = new Rect(centerX - bannerW / 2, blockY, bannerW, bannerH);
             PixelGui.DrawNineSlice(skin.PanelRed, banner, skin.TileSize, scale);

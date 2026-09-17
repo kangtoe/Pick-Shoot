@@ -8,8 +8,9 @@ namespace PickShoot
     //   무기: 링에서 조준 기준 왼쪽에 있는 슬롯은 화면 하단 왼쪽 패널, 오른쪽 슬롯은 하단 오른쪽 패널.
     //   웨이브: 상단 중앙 배너 + 남은 시간 바.
     //   커서: 커서 중심 링에 모든 자루의 탄창 비율 평균 (시트에 링 조각이 없어 AmmoRingTexture가 런타임에 텍셀 단위로 그린다).
-    // 레이아웃은 텍셀 단위로 정의하고 hudScale을 곱해 픽셀로 바꾼다. hudScale은 업그레이드 카드의 글자 배율과 같은 값
-    // (화면 높이/270의 절반, 1080p → 2)으로, 카드 패널보다 얇은 테두리라 게임 화면을 덜 가린다.
+    // 레이아웃은 텍셀 단위로 정의하고 HUD 배율(PixelGui.TextScale — 업그레이드 카드의 글자 배율과 같은 값, 패널 배율의 절반)을
+    // 곱해 기준 캔버스 픽셀로 바꾼다. 카드 패널보다 얇은 테두리라 게임 화면을 덜 가린다. 캔버스는 월드 카메라와 같은 규칙
+    // (화면 세로 = 270텍셀)으로 보이므로 해상도·종횡비가 달라도 HUD가 화면에서 차지하는 비율은 월드 스프라이트처럼 그대로다.
     // 다른 OnGUI(피격 플래시·데스 화면)보다 뒤에 깔리도록 GUI.depth를 크게 두고, 업그레이드 카드가 떠 있는 동안은 아예 숨긴다.
     public class GameHud : MonoBehaviour
     {
@@ -18,14 +19,13 @@ namespace PickShoot
         [SerializeField] PlayerWeapons playerWeapons;
         [SerializeField] WaveManager waveManager;
         [SerializeField] UpgradeManager upgradeManager;
-        [SerializeField, Min(1)] int referenceHeightTexels = 270;
         // 소진한 탄약 핍의 투명도. 남은 탄약은 불투명.
         [SerializeField, Range(0f, 1f)] float spentPipAlpha = 0.25f;
         // 탄약이 부족해 쏠 수 없는 무기 스프라이트 위 X 아이콘의 깜빡임 주기 (초, 실시간).
         [SerializeField, Min(0.01f)] float emptyBlinkInterval = 0.3f;
 
         [Header("Cursor Ring")]
-        // 커서 중심 탄약 링. 치수는 텍셀 단위이며 hudScale로 확대된다.
+        // 커서 중심 탄약 링. 치수는 텍셀 단위이며 HUD 배율로 확대된다.
         [SerializeField, Min(2f)] float cursorRingRadiusTexels = 11f;
         [SerializeField, Min(1)] int cursorRingThicknessTexels = 3;
         [SerializeField] Color cursorRingFillColor = Color.white;
@@ -47,12 +47,16 @@ namespace PickShoot
         const int BarFillInsetTexels = 3;
         // 게이지 프레임 타일 안에서 보이는 부분의 아래 가장자리 (세로 2~13텍셀에 그려짐).
         const int BarVisibleBottomTexels = 14;
-        // 플레이어 머리 위 체력 게이지. 조각은 HUD 배율의 절반(1080p → 1배)으로 가늘게 그리되, 폭과 위치는 캐릭터의 월드 크기에
-        // 비례시킨다 — Game 뷰 크기와 무관하게 캐릭터 대비 같은 비율. 아래 세 값은 월드 텍셀(스프라이트 픽셀, PPU 16) 단위.
+        // 플레이어 머리 위 체력 게이지. 조각은 HUD 배율의 절반(PlayerGaugeScale)으로 가늘게 그리되, 폭과 위치는 캐릭터의 월드 크기에
+        // 비례시킨다 — 카메라 배율과 무관하게 캐릭터 대비 같은 비율. 텍셀이 월드 텍셀의 1/4로 아주 잘고 캐릭터를 따라 움직이므로,
+        // 다른 HUD와 달리 캔버스에 싣지 않고 화면 픽셀에 정수 배율(PixelGui.SnappedScreenScale)로 맞춰 그린다 — 캔버스째 확대·축소하면
+        // 1080p 미만에서 흰 테두리 선이 빠지고 비정수 배율에서 선 굵기가 움직일 때마다 바뀐다. 그 대가로 굵기만은 해상도에 정확히
+        // 비례하지 않는다. 아래 세 값은 월드 텍셀(스프라이트 픽셀, PPU 16) 단위.
         //   Width: 폭. 캐릭터의 보이는 폭이 약 21텍셀이라 그보다 조금 좁게.
         //   SpriteTopPadding: 캐릭터 시트가 타일 위쪽에 두는 투명 여백 (걷기 5, 정지 6). 보이는 머리 꼭대기를 잡는 기준.
         //   Gap: 보이는 머리 꼭대기에서 게이지 아래 가장자리까지.
         //   CutRows: 타일 가운데 행을 잘라내 세로로 얇게 (짝수, 게이지 배율 텍셀). 4면 보이는 높이 12→8, 채움 6→2.
+        const int PlayerGaugeScale = PixelGui.TextScale / 2;
         const int PlayerGaugeWidthTexels = 16;
         const int PlayerSpriteTopPaddingTexels = 5;
         const int PlayerGaugeGapTexels = 2;
@@ -98,13 +102,15 @@ namespace PickShoot
             // 카드 선택 화면은 게임을 멈추고 화면을 덮는다. 그 위에 HUD가 보이면 어색하므로 숨긴다.
             if (upgradeManager.IsActive) return;
 
-            int scale = PixelGui.ScaleForScreen(referenceHeightTexels);
-            int hudScale = Mathf.Max(1, Mathf.RoundToInt(scale * 0.5f));
+            // 머리 위 게이지만 캔버스 밖에서 화면 픽셀로 그린다. 월드에 붙은 표시라 패널 밑에 깔리도록 먼저.
+            DrawPlayerGauge();
+
+            int hudScale = PixelGui.TextScale;
+            using var canvas = PixelGui.BeginCanvas();
             DrawHealthPanel(hudScale);
-            DrawPlayerGauge(hudScale);
-            DrawWeaponPanel(hudScale, leftSide: true);
-            DrawWeaponPanel(hudScale, leftSide: false);
-            DrawWaveBanner(hudScale);
+            DrawWeaponPanel(canvas, hudScale, leftSide: true);
+            DrawWeaponPanel(canvas, hudScale, leftSide: false);
+            DrawWaveBanner(canvas, hudScale);
             // 커서는 패널 위로 지나갈 수 있으므로 마지막에 그려 항상 패널 위에 보이게 한다.
             DrawCursorRing(hudScale);
         }
@@ -141,7 +147,8 @@ namespace PickShoot
         }
 
         // 플레이어 스프라이트 위에 비율 게이지를 가운데 정렬로 띄운다 (숫자 없음). 풀피면 그리지 않는다 — 다쳤을 때만 눈에 띄게.
-        void DrawPlayerGauge(int hudScale)
+        // 캔버스 밖에서 호출한다 — 좌표·크기는 화면 픽셀.
+        void DrawPlayerGauge()
         {
             if (playerHealth.Current >= playerHealth.Max) return;
 
@@ -155,7 +162,7 @@ namespace PickShoot
             // 월드 텍셀 1개가 차지하는 화면 픽셀 수 (직교 카메라라 위치와 무관).
             float texelPx = cam.WorldToScreenPoint(anchor + Vector3.right * unitsPerTexel).x - sp.x;
 
-            int s = Mathf.Max(1, hudScale / 2);
+            int s = PixelGui.SnappedScreenScale(PlayerGaugeScale);
             int cut = PlayerGaugeCutRows;
             int barH = (skin.TileSize - cut) * s;
             // 폭은 2s의 배수로 맞춰 양 끝 반쪽의 픽셀 수를 같게 한다. 카메라가 아주 멀면 조각이 뭉개지지 않는 최소 폭에서 멈춘다.
@@ -182,7 +189,7 @@ namespace PickShoot
         // 하단 한쪽 회색 패널: 링의 해당 쪽에 있는 슬롯만. 슬롯마다 두 줄 — 윗줄은 이름·레벨, 아랫줄은 스프라이트(탄약 부족 표시가 그 위에 겹침)·탄약 핍.
         // 한 줄에 늘어놓는 것보다 폭이 좁아 게임 화면을 덜 가린다. 슬롯 번호는 카드에서만 쓰므로 HUD에는 두지 않는다.
         // 해당 쪽에 슬롯이 없으면 패널도 그리지 않는다.
-        void DrawWeaponPanel(int s, bool leftSide)
+        void DrawWeaponPanel(PixelGui.CanvasScope canvas, int s, bool leftSide)
         {
             var slots = playerWeapons.Slots;
             sideSlots.Clear();
@@ -223,8 +230,8 @@ namespace PickShoot
 
             int panelW = CeilToMultiple(contentW + 2 * pad, tile);
             int panelH = CeilToMultiple(contentH + 2 * pad, tile);
-            int panelX = leftSide ? margin : Screen.width - margin - panelW;
-            var panel = new Rect(panelX, Screen.height - margin - panelH, panelW, panelH);
+            int panelX = leftSide ? margin : canvas.Width - margin - panelW;
+            var panel = new Rect(panelX, canvas.Height - margin - panelH, panelW, panelH);
             PixelGui.DrawNineSlice(skin.PanelGrey, panel, skin.TileSize, s);
 
             int x0 = (int)panel.x + (panelW - contentW) / 2;
@@ -284,7 +291,7 @@ namespace PickShoot
         }
 
         // 상단 중앙 붉은 배너 "WAVE N" + 그 아래 남은 시간 게이지. 게이지 위에는 단계별 문구(READY / 남은 초 / CLEAR).
-        void DrawWaveBanner(int s)
+        void DrawWaveBanner(PixelGui.CanvasScope canvas, int s)
         {
             if (waveManager.Phase == WavePhase.Idle) return;
 
@@ -297,7 +304,7 @@ namespace PickShoot
             int titleW = PixelGui.MeasureText(font, title, s);
             int bannerW = CeilToMultiple(titleW + 2 * tile, tile);
             int bannerH = 2 * tile;
-            int centerX = Screen.width / 2;
+            int centerX = canvas.Width / 2;
             var banner = new Rect(centerX - bannerW / 2, MarginTexels * s, bannerW, bannerH);
             PixelGui.DrawNineSlice(skin.PanelRed, banner, skin.TileSize, s);
             PixelGui.DrawTextCentered(font, title, centerX, (int)banner.y + (bannerH - lineH) / 2, s);
@@ -315,7 +322,7 @@ namespace PickShoot
             PixelGui.DrawTextCentered(font, status, centerX, (int)bar.y, s);
         }
 
-        // 커서 중심에 전체 탄창 비율 링. 텍스처는 상태가 바뀔 때만 다시 그리고, 다른 픽셀 UI와 같은 정수 배율로 띄운다.
+        // 커서 중심에 전체 탄창 비율 링. 텍스처는 상태가 바뀔 때만 다시 그리고, 다른 HUD와 같은 배율로 띄운다.
         // 하드웨어 커서는 그대로 두고 그 주위를 감싼다 — 링 중심(조준점)은 비어 있다.
         void DrawCursorRing(int s)
         {
@@ -323,7 +330,7 @@ namespace PickShoot
                 cursorRingFillColor, cursorRingEmptyColor, cursorRingOutlineColor);
 
             int size = cursorRing.SizeTexels * s;
-            // Repaint 이벤트의 mousePosition은 GUI 좌표(위가 0)라 그대로 중심으로 쓴다. 지름이 짝수 텍셀이라 반은 정수.
+            // 캔버스가 열린 동안 Repaint 이벤트의 mousePosition은 캔버스 좌표(위가 0)라 그대로 중심으로 쓴다. 지름이 짝수 텍셀이라 반은 정수.
             Vector2 m = Event.current.mousePosition;
             var rect = new Rect(Mathf.RoundToInt(m.x) - size / 2, Mathf.RoundToInt(m.y) - size / 2, size, size);
             GUI.DrawTexture(rect, cursorRing.Texture, ScaleMode.StretchToFill, true);

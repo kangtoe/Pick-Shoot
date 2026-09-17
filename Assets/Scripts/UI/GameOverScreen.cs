@@ -7,7 +7,7 @@ namespace PickShoot
 {
     // 플레이어 사망 뒤 화면을 어둡게 덮고 결과를 보여준다. PixelUiSkin(Kenney Interface 시트)으로 OnGUI에 그린다.
     // 구성은 업그레이드 카드 화면과 같은 결: 붉은 배너(해골 + "YOU DIED" + 해골) → 회색 패널(도달 웨이브) → 깜빡이는 재시작 안내.
-    // 배너는 패널 배율(화면 높이/270, 1080p → 4배), 그 아래는 절반인 글자 배율로 그린다.
+    // 배너는 패널 배율(PixelGui.PanelScale), 그 아래는 절반인 글자 배율(PixelGui.TextScale)로 기준 캔버스에 그린다.
     // OnGUI가 PlayerHealth의 데미지 플래시(붉은 오버레이) 위에 그려지도록
     // 실행 순서를 뒤로 밀어 마지막에 렌더링되게 한다.
     [DefaultExecutionOrder(100)]
@@ -19,7 +19,6 @@ namespace PickShoot
 
         [Header("Presentation")]
         [SerializeField] PixelUiSkin skin;
-        [SerializeField, Min(1)] int referenceHeightTexels = 270;
         [SerializeField, Range(0f, 1f)] float dimAlpha = 0.7f;
         // 재시작 안내가 켜졌다 꺼지는 주기 (초, 실시간).
         [SerializeField, Min(0.01f)] float hintBlinkInterval = 0.5f;
@@ -82,15 +81,18 @@ namespace PickShoot
             if (!gameOver) return;
             if (Event.current.type != EventType.Repaint) return;
 
-            int scale = PixelGui.ScaleForScreen(referenceHeightTexels);
-            int textScale = Mathf.Max(1, Mathf.RoundToInt(scale * 0.5f));
+            int scale = PixelGui.PanelScale;
+            int textScale = PixelGui.TextScale;
             int tile = skin.TileSize * scale;
             int textTile = skin.TileSize * textScale;
             int lineH = skin.FontPlain.lineHeight * textScale;
 
+            // 어둡게 덮는 막은 화면 픽셀 그대로 (캔버스를 열기 전).
             GUI.color = new Color(0f, 0f, 0f, dimAlpha);
             GUI.DrawTexture(new Rect(0, 0, Screen.width, Screen.height), Texture2D.whiteTexture);
             GUI.color = Color.white;
+
+            using var canvas = PixelGui.BeginCanvas();
 
             // 배너 안 한 줄: 해골 + 제목 + 해골.
             int space = skin.FontOutlined.spaceWidth * scale;
@@ -107,8 +109,8 @@ namespace PickShoot
 
             // 배너·패널·안내 묶음을 화면 세로 중앙에 놓는다. 안내가 꺼진 동안에도 자리는 그대로 둬서 묶음이 움직이지 않는다.
             int blockH = bannerH + gap + panelH + gap + lineH;
-            int y = (Screen.height - blockH) / 2;
-            int centerX = Screen.width / 2;
+            int y = (canvas.Height - blockH) / 2;
+            int centerX = canvas.Width / 2;
 
             var banner = new Rect(centerX - bannerW / 2, y, bannerW, bannerH);
             PixelGui.DrawNineSlice(skin.PanelRed, banner, skin.TileSize, scale);

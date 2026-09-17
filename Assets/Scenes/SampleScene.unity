@@ -965,7 +965,6 @@ MonoBehaviour:
   waveManager: {fileID: 1698421207}
   gameOverDelay: 1
   skin: {fileID: 11400000, guid: 75b98a2d2daa9a04797ea6f248de2474, type: 2}
-  referenceHeightTexels: 270
   dimAlpha: 0.7
   hintBlinkInterval: 0.5
 --- !u!4 &1698421206
@@ -1038,7 +1037,6 @@ MonoBehaviour:
   cardsToShow: 3
   selectClip: {fileID: 8300000, guid: 460e5219f0f84004790b551e7a638e25, type: 3}
   skin: {fileID: 11400000, guid: 75b98a2d2daa9a04797ea6f248de2474, type: 2}
-  referenceHeightTexels: 270
   dimAlpha: 0.7
 --- !u!1 &1905229426
 GameObject:
@@ -1209,7 +1207,6 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PickShoot.DamageNumbers
   skin: {fileID: 11400000, guid: 75b98a2d2daa9a04797ea6f248de2474, type: 2}
-  referenceHeightTexels: 270
   duration: 0.6
   riseDistance: 1
   fadeStart: 0.5
@@ -1263,7 +1260,6 @@ MonoBehaviour:
   playerWeapons: {fileID: 142563685}
   waveManager: {fileID: 1698421207}
   upgradeManager: {fileID: 1698421208}
-  referenceHeightTexels: 270
   spentPipAlpha: 0.25
   emptyBlinkInterval: 0.3
   cursorRingRadiusTexels: 11
