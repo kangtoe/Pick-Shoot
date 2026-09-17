@@ -57,14 +57,14 @@ namespace PickShoot
         }
 
         // 웨이브 클리어 연출: 필드의 모든 탄환을 강제 정착 → 강한 자석으로 플레이어에게 끌어와 회수.
-        // duration 내에 회수가 끝나면 조기 종료. 회수 미완료 탄환은 그대로 두고 정착 상태 유지.
+        // 회수가 일찍 끝나도 duration을 끝까지 채운다 — 호출부가 이 시간을 클리어 후 대기로 쓴다.
+        // 그사이 새로 발사된 탄환도 함께 끌려온다. 회수 미완료 탄환은 그대로 두고 정착 상태 유지.
         public IEnumerator SweepAll(float duration)
         {
             float elapsed = 0f;
             while (elapsed < duration)
             {
                 var bullets = FindObjectsByType<Bullet>(FindObjectsSortMode.None);
-                if (bullets.Length == 0) yield break;
 
                 Vector2 playerPos = transform.position;
                 foreach (var b in bullets)
