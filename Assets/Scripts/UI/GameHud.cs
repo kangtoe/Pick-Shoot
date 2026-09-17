@@ -55,12 +55,12 @@ namespace PickShoot
         //   Width: 폭. 캐릭터의 보이는 폭이 약 21텍셀이라 그보다 조금 좁게.
         //   SpriteTopPadding: 캐릭터 시트가 타일 위쪽에 두는 투명 여백 (걷기 5, 정지 6). 보이는 머리 꼭대기를 잡는 기준.
         //   Gap: 보이는 머리 꼭대기에서 게이지 아래 가장자리까지.
-        //   CutRows: 타일 가운데 행을 잘라내 세로로 얇게 (짝수, 게이지 배율 텍셀). 4면 보이는 높이 12→8, 채움 6→2.
+        //   CutRows: 타일 가운데 행을 잘라내 세로로 얇게 (짝수, 게이지 배율 텍셀). 2면 보이는 높이 12→10, 채움 6→4.
         const int PlayerGaugeScale = PixelGui.TextScale / 2;
         const int PlayerGaugeWidthTexels = 16;
         const int PlayerSpriteTopPaddingTexels = 5;
         const int PlayerGaugeGapTexels = 2;
-        const int PlayerGaugeCutRows = 4;
+        const int PlayerGaugeCutRows = 2;
 
         SpriteRenderer playerSprite;
         Camera cam;
