@@ -1,0 +1,30 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 7e0064641ab64cb0839564658f2fdc78, type: 3}
+  m_Name: DesertTheme
+  m_EditorClassIdentifier: Assembly-CSharp::PickShoot.ArenaTheme
+  floor: {fileID: -6676698809341166811, guid: 3a148bf6a6ecf5b44a2166d2a756bfd6, type: 3}
+  floorVariants:
+  - {fileID: 1855952005757205147, guid: 3a148bf6a6ecf5b44a2166d2a756bfd6, type: 3}
+  - {fileID: 4187087015477966160, guid: 3a148bf6a6ecf5b44a2166d2a756bfd6, type: 3}
+  - {fileID: 1855952005757205147, guid: 3a148bf6a6ecf5b44a2166d2a756bfd6, type: 3}
+  - {fileID: 4187087015477966160, guid: 3a148bf6a6ecf5b44a2166d2a756bfd6, type: 3}
+  - {fileID: 698833955560195519, guid: 3a148bf6a6ecf5b44a2166d2a756bfd6, type: 3}
+  fenceTopLeft: {fileID: 5398857996007548813, guid: 3a148bf6a6ecf5b44a2166d2a756bfd6, type: 3}
+  fenceTopRight: {fileID: -8050487047771435195, guid: 3a148bf6a6ecf5b44a2166d2a756bfd6, type: 3}
+  fenceBottomLeft: {fileID: -395702209137100173, guid: 3a148bf6a6ecf5b44a2166d2a756bfd6, type: 3}
+  fenceBottomRight: {fileID: -8059644825207990699, guid: 3a148bf6a6ecf5b44a2166d2a756bfd6, type: 3}
+  fenceLeft: {fileID: -1764363205822765830, guid: 3a148bf6a6ecf5b44a2166d2a756bfd6, type: 3}
+  fenceRight: {fileID: -2213784170205190299, guid: 3a148bf6a6ecf5b44a2166d2a756bfd6, type: 3}
+  fenceRail: {fileID: -9019910536399083371, guid: 3a148bf6a6ecf5b44a2166d2a756bfd6, type: 3}
+  fenceRailPost: {fileID: -7205796613760459350, guid: 3a148bf6a6ecf5b44a2166d2a756bfd6, type: 3}
+  fenceShadow: {r: 0.12, g: 0.06, b: 0.16, a: 0.25}
