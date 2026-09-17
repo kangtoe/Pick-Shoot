@@ -30,6 +30,8 @@ namespace PickShoot
         [SerializeField, Min(0f)] float recoilDistance = 0.15f;
         [SerializeField, Min(0f)] float recoilAngleDegrees = 10f;
         [SerializeField, Min(0f)] float recoilReturnSpeed = 18f;
+        // 모든 자루의 탄약이 0인 채 사격을 시도했을 때의 헛방 소리.
+        [SerializeField] AudioClip emptyClip;
 
         Collider2D myCollider;
         PlayerAiming aiming;
@@ -41,6 +43,8 @@ namespace PickShoot
         readonly List<float> slotRecoil = new List<float>(MaxSlots);
         float nextGlobalShotTime;
         float currentRingAngleDeg;
+        // 헛방 소리는 "탄약이 바닥난 순간"마다 한 번만 낸다. 사격 버튼을 떼거나 다시 한 발이라도 쏘면 풀린다.
+        bool emptySounded;
 
         public IReadOnlyList<Weapon> Slots => slots;
         public bool HasEmptySlot => slots.Count < MaxSlots;
@@ -208,7 +212,11 @@ namespace PickShoot
             if (Time.timeScale <= 0f) return;
             var mouse = Mouse.current;
             if (mouse == null) return;
-            if (!mouse.leftButton.isPressed) return;
+            if (!mouse.leftButton.isPressed)
+            {
+                emptySounded = false;
+                return;
+            }
 
             float now = Time.time;
             if (now < nextGlobalShotTime) return;
@@ -225,7 +233,12 @@ namespace PickShoot
                     bestIdx = i;
                 }
             }
-            if (bestIdx < 0) return;
+            if (bestIdx < 0)
+            {
+                PlayEmptyFeedbackIfOutOfAmmo();
+                return;
+            }
+            emptySounded = false;
 
             Vector3 pos = slotVisuals[bestIdx].position;
             // 탄환은 그 무기의 위치에서 커서를 향해 날아간다 (Weapons §2) → 여러 자루의 발사선이 조준점으로 수렴.
@@ -235,6 +248,18 @@ namespace PickShoot
             PlayFireFeedback(bestIdx);
             Fired?.Invoke(slots[bestIdx]);
             nextGlobalShotTime = now + globalShotInterval;
+        }
+
+        // 쏠 수 있는 무기가 없는 이유가 쿨다운이 아니라 "전 자루 탄약 0"일 때만 헛방 소리를 낸다.
+        // 버튼을 누른 채 마지막 탄을 쏘면 다음 사격 차례(globalShotInterval 뒤)에 울려 사격음과 겹치지 않는다.
+        void PlayEmptyFeedbackIfOutOfAmmo()
+        {
+            if (emptySounded) return;
+            for (int i = 0; i < slots.Count; i++)
+                if (slots[i].CurrentAmmo > 0) return;
+
+            emptySounded = true;
+            if (emptyClip != null) SoundPlayer.Play(emptyClip);
         }
 
         // 발사 연출: 반동 킥 세팅 + 무기 비주얼의 자식으로 총구 화염 생성.

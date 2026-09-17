@@ -374,6 +374,7 @@ MonoBehaviour:
   recoilDistance: 0.15
   recoilAngleDegrees: 10
   recoilReturnSpeed: 18
+  emptyClip: {fileID: 8300000, guid: 26a45bd3e944b1c409960c7796663673, type: 3}
 --- !u!114 &142563686
 MonoBehaviour:
   m_ObjectHideFlags: 0
