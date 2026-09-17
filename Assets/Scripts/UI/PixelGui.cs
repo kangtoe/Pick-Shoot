@@ -17,11 +17,15 @@ namespace PickShoot
         public const int TextScale = 2;
         public const int DesignHeight = ReferenceHeightTexels * PanelScale;
 
+        // 지금 열려 있는 캔버스의 1픽셀이 차지하는 화면 픽셀 수. 캔버스 밖에서는 1. SnapToScreenPixels가 쓴다.
+        static float currentPixelSize = 1f;
+
         // BeginCanvas가 연 기준 캔버스. Dispose에서 GUI.matrix를 되돌리므로 using으로 감싼다.
         // 캔버스가 열려 있는 동안 Event.current.mousePosition도 캔버스 좌표다 (GUI.matrix의 역변환이 적용됨).
         public readonly struct CanvasScope : System.IDisposable
         {
             readonly Matrix4x4 savedMatrix;
+            readonly float savedPixelSize;
             // 캔버스 1픽셀이 차지하는 화면 픽셀 수 (화면 높이 / DesignHeight).
             public readonly float PixelSize;
             // 캔버스 크기 (캔버스 픽셀). 세로는 항상 DesignHeight, 가로는 화면비에 따라 달라진다.
@@ -31,10 +35,12 @@ namespace PickShoot
             internal CanvasScope(float pixelSize)
             {
                 savedMatrix = GUI.matrix;
+                savedPixelSize = currentPixelSize;
                 PixelSize = pixelSize;
                 Width = Mathf.RoundToInt(Screen.width / pixelSize);
                 Height = DesignHeight;
                 GUI.matrix = savedMatrix * Matrix4x4.Scale(new Vector3(pixelSize, pixelSize, 1f));
+                currentPixelSize = savedPixelSize * pixelSize;
             }
 
             // Camera.WorldToScreenPoint 결과(화면 픽셀, 원점 좌하단)를 캔버스 좌표(원점 좌상단)로 바꾼다.
@@ -46,6 +52,7 @@ namespace PickShoot
             public void Dispose()
             {
                 GUI.matrix = savedMatrix;
+                currentPixelSize = savedPixelSize;
             }
         }
 
@@ -91,17 +98,17 @@ namespace PickShoot
             float innerW = r.width - 2f * t;
             float innerH = r.height - 2f * t;
 
-            DrawSprite(tiles[0], new Rect(r.x, r.y, t, t));
+            DrawTile(tiles[0], new Rect(r.x, r.y, t, t), 0f, 0f, 1f, 1f);
             TileFill(tiles[1], new Rect(r.x + t, r.y, innerW, t), t);
-            DrawSprite(tiles[2], new Rect(r.xMax - t, r.y, t, t));
+            DrawTile(tiles[2], new Rect(r.xMax - t, r.y, t, t), 0f, 0f, 1f, 1f);
 
             TileFill(tiles[3], new Rect(r.x, r.y + t, t, innerH), t);
             TileFill(tiles[4], new Rect(r.x + t, r.y + t, innerW, innerH), t);
             TileFill(tiles[5], new Rect(r.xMax - t, r.y + t, t, innerH), t);
 
-            DrawSprite(tiles[6], new Rect(r.x, r.yMax - t, t, t));
+            DrawTile(tiles[6], new Rect(r.x, r.yMax - t, t, t), 0f, 0f, 1f, 1f);
             TileFill(tiles[7], new Rect(r.x + t, r.yMax - t, innerW, t), t);
-            DrawSprite(tiles[8], new Rect(r.xMax - t, r.yMax - t, t, t));
+            DrawTile(tiles[8], new Rect(r.xMax - t, r.yMax - t, t, t), 0f, 0f, 1f, 1f);
         }
 
         // 바를 양 끝 타일 반쪽씩으로 줄일 때의 최소 폭(텍셀). 반쪽 4텍셀 = 흰 선 1 + 테두리 2 + 안쪽 1.
@@ -112,25 +119,33 @@ namespace PickShoot
         // r.height는 타일 높이(tileSize * scale)여야 한다.
         public static void DrawBarStrip(PixelUiSkin.BarStrip strip, Rect r, int tileSize, int scale)
         {
+            DrawBarStrip(strip, r, tileSize, scale, r.width);
+        }
+
+        // visibleWidth: 바의 왼쪽 끝에서 이 폭까지만 그리고 나머지는 잘라낸다 (비율 게이지의 채움용). 배치는 r 전체 기준 그대로라
+        // 같은 r에 그린 프레임과 타일 이음매·텍셀 위치가 일치한다. GUI.BeginGroup으로 자르면 그룹 원점이 따로 반올림돼 프레임과 1px 어긋날 수 있다.
+        public static void DrawBarStrip(PixelUiSkin.BarStrip strip, Rect r, int tileSize, int scale, float visibleWidth)
+        {
             float t = tileSize * scale;
             if (r.width < MinBarWidthTexels * scale)
                 throw new System.Exception($"[PickShoot] PixelGui.DrawBarStrip: 폭({r.width})이 최소 폭({MinBarWidthTexels * scale})보다 작음.");
             if (!Mathf.Approximately(r.height, t))
                 throw new System.Exception($"[PickShoot] PixelGui.DrawBarStrip: 높이({r.height})가 타일 높이({t})와 다름.");
+            float clipRight = r.x + visibleWidth;
             if (r.width < 2f * t)
             {
                 float half = r.width / 2f;
-                DrawSpritePart(strip.left, new Rect(r.x, r.y, half, t), 0f, 0f, half / t, 1f);
-                DrawSpritePart(strip.right, new Rect(r.x + half, r.y, half, t), 1f - half / t, 0f, 1f, 1f);
+                DrawTileClipped(strip.left, new Rect(r.x, r.y, half, t), 0f, half / t, clipRight);
+                DrawTileClipped(strip.right, new Rect(r.x + half, r.y, half, t), 1f - half / t, 1f, clipRight);
                 return;
             }
-            DrawSprite(strip.left, new Rect(r.x, r.y, t, t));
+            DrawTileClipped(strip.left, new Rect(r.x, r.y, t, t), 0f, 1f, clipRight);
             for (float x = r.x + t; x < r.xMax - t; x += t)
             {
                 float w = Mathf.Min(t, r.xMax - t - x);
-                DrawSpritePart(strip.mid, new Rect(x, r.y, w, t), 0f, 0f, w / t, 1f);
+                DrawTileClipped(strip.mid, new Rect(x, r.y, w, t), 0f, w / t, clipRight);
             }
-            DrawSprite(strip.right, new Rect(r.xMax - t, r.y, t, t));
+            DrawTileClipped(strip.right, new Rect(r.xMax - t, r.y, t, t), 0f, 1f, clipRight);
         }
 
         public static int MeasureText(PixelUiSkin.BitmapFont font, string text, int scale)
@@ -202,9 +217,44 @@ namespace PickShoot
                 for (float x = area.x; x < area.xMax; x += t)
                 {
                     float w = Mathf.Min(t, area.xMax - x);
-                    DrawSpritePart(sprite, new Rect(x, y, w, h), 0f, 0f, w / t, h / t);
+                    DrawTile(sprite, new Rect(x, y, w, h), 0f, 0f, w / t, h / t);
                 }
             }
+        }
+
+        // 타일 조각(가로 구간 [left, right], 세로 전체)을 캔버스 x = clipRight에서 잘라 그린다. 잘린 비율만큼 UV 오른쪽도 줄인다.
+        static void DrawTileClipped(Sprite sprite, Rect rect, float left, float right, float clipRight)
+        {
+            if (rect.x >= clipRight) return;
+            if (rect.xMax > clipRight)
+            {
+                float visible = clipRight - rect.x;
+                right = left + (right - left) * (visible / rect.width);
+                rect.width = visible;
+            }
+            DrawTile(sprite, rect, left, 0f, right, 1f);
+        }
+
+        // 이웃 조각과 맞닿아야 하는 타일용 DrawSpritePart. 네 변을 각각 가장 가까운 화면 픽셀 경계로 옮겨 그린다.
+        // IMGUI는 GUI.matrix에 비정수 배율이 걸리면 쿼드마다 위치와 크기를 따로 화면 픽셀로 반올림한다. 그래서 캔버스 좌표로는 변을
+        // 공유하는 이웃 타일도 화면에서는 1px 벌어지거나 겹친다 — 720p에서 HUD 타일은 21.33px인데 폭은 21로 내리고 위치는 .67에서
+        // 올려, 세 칸마다 배경이 비치는 틈이 생겼다. 변을 미리 화면 픽셀에 맞춰 두면 위치·크기가 이미 정수라 엔진이 반올림해도 그대로고,
+        // 이웃 타일은 같은 변 값을 같은 식으로 맞추므로 항상 맞닿는다. 그 대신 타일 폭이 자리에 따라 1px씩 다르다 (비정수 배율에서
+        // 텍셀 폭이 고르지 않은 것과 같은 조건). 혼자 놓이는 조각(글자·아이콘)에는 쓰지 않는다 — 엔진의 반올림은 크기를 위치와
+        // 무관하게 지키므로, 움직이는 조각(데미지 숫자)이 자리에 따라 1px씩 커졌다 작아졌다 하지 않는다.
+        static void DrawTile(Sprite sprite, Rect rect, float left, float top, float right, float bottom)
+        {
+            rect = SnapToScreenPixels(rect);
+            if (rect.width <= 0f || rect.height <= 0f) return;
+            DrawSpritePart(sprite, rect, left, top, right, bottom);
+        }
+
+        // 결과도 캔버스 좌표다 (화면 픽셀로 옮겨 반올림한 뒤 되돌린다).
+        static Rect SnapToScreenPixels(Rect r)
+        {
+            float k = currentPixelSize;
+            return Rect.MinMaxRect(Mathf.Round(r.xMin * k) / k, Mathf.Round(r.yMin * k) / k,
+                Mathf.Round(r.xMax * k) / k, Mathf.Round(r.yMax * k) / k);
         }
 
         // 스프라이트의 일부를 그린다. left/top/right/bottom은 스프라이트 사각형 기준 0~1이며 top=0이 위쪽.

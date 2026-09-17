@@ -210,15 +210,13 @@ namespace PickShoot
             PixelGui.FillRect(new Rect(x, y, fillW, barH), playerGaugeFillColor);
         }
 
-        // 프레임 + 비율만큼 클리핑한 붉은 채움. 채움 조각은 프레임과 같은 자리에 그리면 안쪽에 딱 맞고, 오른쪽부터 줄어든다.
+        // 프레임 + 비율만큼 잘라낸 붉은 채움. 채움 조각은 프레임과 같은 자리에 그리면 안쪽에 딱 맞고, 오른쪽부터 줄어든다.
         void DrawGauge(Rect bar, float ratio, int s)
         {
             PixelGui.DrawBarStrip(skin.BarFrame, bar, skin.TileSize, s);
             int inset = BarFillInsetTexels * s;
             int fillW = inset + Mathf.RoundToInt((bar.width - 2 * inset) * Mathf.Clamp01(ratio));
-            GUI.BeginGroup(new Rect(bar.x, bar.y, fillW, bar.height));
-            PixelGui.DrawBarStrip(skin.BarFillRed, new Rect(0f, 0f, bar.width, bar.height), skin.TileSize, s);
-            GUI.EndGroup();
+            PixelGui.DrawBarStrip(skin.BarFillRed, bar, skin.TileSize, s, fillW);
         }
 
         // 하단 한쪽 회색 패널: 링의 해당 쪽에 있는 슬롯만. 슬롯마다 두 줄 — 윗줄은 이름·레벨, 아랫줄은 스프라이트(탄약 부족 표시가 그 위에 겹침)·탄약 핍.
