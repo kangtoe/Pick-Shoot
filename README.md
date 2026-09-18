@@ -42,4 +42,4 @@ Pick → Shoot → Pick → Shoot
 
 ## 프로젝트 상태
 
-Phase 1 — 핵심 프로토타입 진행 중. 자세한 단계는 [Docs/Roadmap.md](Docs/Roadmap.md) 참조.
+Phase 3 — 로그라이크 + 무기 시스템 구현 완료, 통과 판정(플레이 테스트) 대기. 자세한 단계는 [Docs/Roadmap.md](Docs/Roadmap.md) 참조.
