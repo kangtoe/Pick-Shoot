@@ -28,7 +28,8 @@ namespace PickShoot
         [SerializeField] float betweenWaveDelay = 2f;
         [SerializeField] float upgradeDelay = 2f;
         [SerializeField] float spawnInterval = 0.5f;
-        [SerializeField] float spawnWarningDuration = 0.6f;
+        // 예고 마커가 떠 있는 시간. 플레이어가 마커를 보고 자리를 옮길 여유 (Enemies §1).
+        [SerializeField, Min(0f)] float spawnWarningDuration = 1f;
         // 스폰 지점은 플레이어로부터 이 거리 범위 안에서 고른다 (Enemies §1).
         // 최소는 등장 직후 피할 여유, 최대는 경고 마커가 카메라 시야(직교 반높이 8.4375) 안에 뜨게 하는 값.
         [SerializeField, Min(0f)] float minSpawnDistanceFromPlayer = 5f;
@@ -66,6 +67,8 @@ namespace PickShoot
                     throw new System.Exception($"[PickShoot] WaveManager.waveEntries[{i}].prefab 미설정.");
             if (spawnWarningPrefab == null)
                 throw new System.Exception("[PickShoot] WaveManager.spawnWarningPrefab 미설정.");
+            if (spawnWarningDuration <= 0f)
+                throw new System.Exception($"[PickShoot] WaveManager.spawnWarningDuration이 0 이하 ({spawnWarningDuration}).");
             if (maxSpawnDistanceFromPlayer <= minSpawnDistanceFromPlayer)
                 throw new System.Exception($"[PickShoot] WaveManager 스폰 거리 범위가 비어 있음 (min {minSpawnDistanceFromPlayer} ≥ max {maxSpawnDistanceFromPlayer}).");
 
@@ -111,7 +114,9 @@ namespace PickShoot
                     }
                     if (elapsed >= nextSpawnAt)
                     {
-                        if (CountCommittedEnemies() < maxAlive)
+                        // 예고가 끝나기 전에 웨이브가 끝나면 스폰되지 않으므로 그런 예고는 아예 띄우지 않는다.
+                        bool warningFits = elapsed + spawnWarningDuration <= currentWaveDuration;
+                        if (warningFits && CountCommittedEnemies() < maxAlive)
                             StartCoroutine(SpawnWithWarning());
                         nextSpawnAt += spawnInterval;
                     }

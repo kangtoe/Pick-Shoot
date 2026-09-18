@@ -1014,7 +1014,7 @@ MonoBehaviour:
   betweenWaveDelay: 2
   upgradeDelay: 2
   spawnInterval: 0.8
-  spawnWarningDuration: 0.6
+  spawnWarningDuration: 1
   minSpawnDistanceFromPlayer: 5
   maxSpawnDistanceFromPlayer: 8
   baseMaxEnemies: 5
