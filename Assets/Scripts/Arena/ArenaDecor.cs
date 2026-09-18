@@ -22,6 +22,8 @@ namespace PickShoot
         [SerializeField, Min(1)] int variantRarity = 12;
 
         // 정렬 순서. 적(3)·탄환(4)·플레이어(5)보다 아래에 둔다 — 울타리에 붙은 탄환도 끝까지 보인다.
+        // 같은 순서끼리는 Renderer2D의 Custom Axis 정렬(가중 z 100 > y 1 > x 0.001)로
+        // z가 작은(카메라에 가까운) 쪽, 그다음 화면 아래쪽이 앞에 그려진다.
         const int GroundOrder = -10;
         const int GroundDetailOrder = -9;
         const int ShadowOrder = -8;
