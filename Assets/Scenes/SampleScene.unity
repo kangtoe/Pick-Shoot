@@ -1006,7 +1006,7 @@ MonoBehaviour:
   - prefab: {fileID: 957819507615294952, guid: a6b7c8d9e0f112131415161718192021, type: 3}
     unlockWave: 3
     weight: 1
-  spawnWarningPrefab: {fileID: 2111959392048050133, guid: 8be7c360e5e6e704d8d7ef8a64e077f4, type: 3}
+  spawnWarningPrefab: {fileID: 6795885622785629402, guid: 8be7c360e5e6e704d8d7ef8a64e077f4, type: 3}
   upgradeManager: {fileID: 1698421208}
   arenaHalfExtents: {x: 13, y: 13}
   baseWaveDuration: 20

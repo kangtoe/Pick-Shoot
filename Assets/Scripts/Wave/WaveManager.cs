@@ -19,7 +19,7 @@ namespace PickShoot
         }
 
         [SerializeField] WaveSpawnEntry[] waveEntries;
-        [SerializeField] GameObject spawnWarningPrefab;
+        [SerializeField] SpawnWarningMarker spawnWarningPrefab;
         [SerializeField] UpgradeManager upgradeManager;
         // 스폰 가능 영역(원점 기준 반폭). 아레나 안쪽 면(14)에서 한 칸 들여 적이 울타리에 걸쳐 나오지 않게 한다.
         [SerializeField] Vector2 arenaHalfExtents = new Vector2(13f, 13f);
@@ -45,6 +45,8 @@ namespace PickShoot
         WavePhase phase = WavePhase.Idle;
         int pendingWarnings;
         readonly List<EnemyHealth> spawnedEnemies = new List<EnemyHealth>();
+        // 예고 중인 마커. 웨이브가 끝나거나 플레이어가 죽으면 남은 예고 시간과 무관하게 함께 치운다.
+        readonly List<SpawnWarningMarker> pendingMarkers = new List<SpawnWarningMarker>();
         Transform player;
         PlayerPickup playerPickup;
         PlayerHealth playerHealth;
@@ -62,6 +64,8 @@ namespace PickShoot
             for (int i = 0; i < waveEntries.Length; i++)
                 if (waveEntries[i] == null || waveEntries[i].prefab == null)
                     throw new System.Exception($"[PickShoot] WaveManager.waveEntries[{i}].prefab 미설정.");
+            if (spawnWarningPrefab == null)
+                throw new System.Exception("[PickShoot] WaveManager.spawnWarningPrefab 미설정.");
             if (maxSpawnDistanceFromPlayer <= minSpawnDistanceFromPlayer)
                 throw new System.Exception($"[PickShoot] WaveManager 스폰 거리 범위가 비어 있음 (min {minSpawnDistanceFromPlayer} ≥ max {maxSpawnDistanceFromPlayer}).");
 
@@ -100,7 +104,11 @@ namespace PickShoot
                 float nextSpawnAt = 0f;
                 while (elapsed < currentWaveDuration)
                 {
-                    if (!CanSpawn()) yield break;
+                    if (!CanSpawn())
+                    {
+                        DestroyPendingMarkers();
+                        yield break;
+                    }
                     if (elapsed >= nextSpawnAt)
                     {
                         if (CountCommittedEnemies() < maxAlive)
@@ -115,6 +123,7 @@ namespace PickShoot
                 phase = WavePhase.Cleared;
 
                 DestroyAllEnemies();
+                DestroyPendingMarkers();
 
                 // 웨이브 클리어 연출: 필드에 남은 탄환을 sweep으로 회수한다.
                 // upgradeDelay 구간에 병합 — 시각 연출과 카드 등장 사이 리듬.
@@ -140,11 +149,18 @@ namespace PickShoot
             Vector2 pos = PickSpawnPoint();
 
             pendingWarnings++;
-            if (spawnWarningPrefab != null)
-                Instantiate(spawnWarningPrefab, pos, Quaternion.identity);
+            var marker = Instantiate(spawnWarningPrefab, pos, Quaternion.identity);
+            marker.Begin(spawnWarningDuration);
+            pendingMarkers.Add(marker);
 
             yield return new WaitForSeconds(spawnWarningDuration);
             pendingWarnings--;
+            // 웨이브 종료·사망 정리로 이미 치워졌을 수 있다.
+            if (marker != null)
+            {
+                pendingMarkers.Remove(marker);
+                Destroy(marker.gameObject);
+            }
 
             if (phase != WavePhase.Active) yield break;
             if (!CanSpawn()) yield break;
@@ -195,6 +211,13 @@ namespace PickShoot
             for (int i = 0; i < spawnedEnemies.Count; i++)
                 if (spawnedEnemies[i] != null) spawnedEnemies[i].Kill();
             spawnedEnemies.Clear();
+        }
+
+        void DestroyPendingMarkers()
+        {
+            for (int i = 0; i < pendingMarkers.Count; i++)
+                if (pendingMarkers[i] != null) Destroy(pendingMarkers[i].gameObject);
+            pendingMarkers.Clear();
         }
 
         // 스폰 영역 안에서 플레이어와의 거리가 [min, max]인 지점을 면적에 고르게 뽑는다.
