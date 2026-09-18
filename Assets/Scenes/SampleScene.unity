@@ -1016,6 +1016,7 @@ MonoBehaviour:
   spawnInterval: 0.8
   spawnWarningDuration: 1
   minSpawnDistanceFromPlayer: 5
+  spawnAbortDistance: 2.5
   maxSpawnDistanceFromPlayer: 8
   baseMaxEnemies: 5
   maxEnemiesPerWaveIncrement: 2

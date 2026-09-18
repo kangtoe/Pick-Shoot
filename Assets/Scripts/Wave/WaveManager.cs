@@ -34,6 +34,9 @@ namespace PickShoot
         // 최소는 등장 직후 피할 여유, 최대는 경고 마커가 카메라 시야(직교 반높이 8.4375) 안에 뜨게 하는 값.
         [SerializeField, Min(0f)] float minSpawnDistanceFromPlayer = 5f;
         [SerializeField] float maxSpawnDistanceFromPlayer = 8f;
+        // 예고가 끝난 시점에 플레이어가 마커에서 이 거리 안에 있으면 그 스폰은 건너뛴다 — 등장과 동시에 접촉 피해를 주는 스폰 방지.
+        // 적·플레이어 콜라이더 반지름 합(약 1.1)에 한 걸음의 여유. 최소 스폰 거리보다 작아야 한다.
+        [SerializeField, Min(0f)] float spawnAbortDistance = 2.5f;
         [SerializeField] int baseMaxEnemies = 8;
         [SerializeField] int maxEnemiesPerWaveIncrement = 2;
 
@@ -71,6 +74,8 @@ namespace PickShoot
                 throw new System.Exception($"[PickShoot] WaveManager.spawnWarningDuration이 0 이하 ({spawnWarningDuration}).");
             if (maxSpawnDistanceFromPlayer <= minSpawnDistanceFromPlayer)
                 throw new System.Exception($"[PickShoot] WaveManager 스폰 거리 범위가 비어 있음 (min {minSpawnDistanceFromPlayer} ≥ max {maxSpawnDistanceFromPlayer}).");
+            if (spawnAbortDistance >= minSpawnDistanceFromPlayer)
+                throw new System.Exception($"[PickShoot] WaveManager.spawnAbortDistance({spawnAbortDistance})가 최소 스폰 거리({minSpawnDistanceFromPlayer}) 이상 — 플레이어가 가만히 있어도 스폰이 건너뛰어진다.");
 
             var p = GameObject.FindWithTag("Player");
             if (p == null)
@@ -169,6 +174,8 @@ namespace PickShoot
 
             if (phase != WavePhase.Active) yield break;
             if (!CanSpawn()) yield break;
+            // 예고 중 플레이어가 마커까지 다가왔으면 이번 스폰은 건너뛴다. 다음 주기가 새 지점을 고르므로 재배치는 하지 않는다.
+            if (((Vector2)player.position - pos).sqrMagnitude < spawnAbortDistance * spawnAbortDistance) yield break;
 
             var enemy = Instantiate(prefab, pos, Quaternion.identity);
             var health = enemy.GetComponent<EnemyHealth>();
