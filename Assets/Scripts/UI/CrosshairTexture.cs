@@ -13,8 +13,8 @@ namespace PickShoot
     // 중심점은 조준점 그 자체다. 탄약이 바닥나 링이 전부 빈 색이어도 점은 채움 색 그대로라 조준점을 잃지 않는다.
     // 링 반경은 호출자가 정한다 (GameHud가 사격마다 벌렸다가 되돌린다). 띠 두께는 그대로 두고 반경만 바뀌므로 확대가 아니라 벌어짐이다.
     // 텍스처는 지금까지 본 가장 큰 반경에 맞춰 두고 줄이지 않는다 — 반경이 출렁여도 다시 할당하지 않으며, 링은 항상 텍스처 중심에 있다.
-    // 링 안팎 가장자리는 윤곽선 색 — 픽셀 스프라이트의 어두운 외곽선과 같은 역할. 중심점에는 윤곽선을 두르지 않는다 (이 텍셀 크기에서는
-    // 테두리가 점보다 커져 조준점이 뭉툭해진다). 탄약·설정이 바뀐 프레임에만 다시 그린다.
+    // 윤곽선은 링에도 중심점에도 두르지 않는다 — 시트 외곽선 색으로 링 안팎을 둘러 봤으나 이 텍셀 크기에서는 선이 띠만큼 두꺼워져
+    // 조준점이 무거워 보였다. 탄약·설정이 바뀐 프레임에만 다시 그린다.
     public class CrosshairTexture
     {
         Texture2D texture;
@@ -26,30 +26,28 @@ namespace PickShoot
         // 텍스처 한 변의 텍셀 수 (홀수 — 중심이 텍셀 한가운데). 링 지름보다 클 수 있다. Refresh 이후에만 유효.
         public int SizeTexels => texture != null ? texture.width : 0;
 
-        // radiusTexels: 링 채움 띠의 바깥 반경 (윤곽선 제외). thicknessTexels: 채움 띠 두께. outlineTexels: 링 안팎 윤곽선 두께.
+        // radiusTexels: 링 채움 띠의 바깥 반경. thicknessTexels: 채움 띠 두께.
         // dotRadiusTexels: 중심점 반경 (0이면 중심 텍셀 하나, 1이면 3×3텍셀).
-        public void Refresh(IReadOnlyList<Weapon> slots, int radiusTexels, int thicknessTexels, int outlineTexels, int dotRadiusTexels,
-            Color fillColor, Color emptyColor, Color outlineColor)
+        public void Refresh(IReadOnlyList<Weapon> slots, int radiusTexels, int thicknessTexels, int dotRadiusTexels,
+            Color fillColor, Color emptyColor)
         {
             if (slots == null || slots.Count == 0)
                 throw new System.Exception("[PickShoot] CrosshairTexture.Refresh: 무기 슬롯이 비어 있음.");
             if (thicknessTexels < 1)
                 throw new System.Exception($"[PickShoot] CrosshairTexture.Refresh: 띠 두께({thicknessTexels})는 1텍셀 이상이어야 함.");
-            if (outlineTexels < 1)
-                throw new System.Exception($"[PickShoot] CrosshairTexture.Refresh: 윤곽선 두께({outlineTexels})는 1텍셀 이상이어야 함.");
             if (dotRadiusTexels < 0)
                 throw new System.Exception($"[PickShoot] CrosshairTexture.Refresh: 중심점 반경({dotRadiusTexels})은 0텍셀 이상이어야 함.");
-            // 점과 링 안쪽 윤곽선 사이에 빈 텍셀이 적어도 한 겹은 있어야 점이 링에 붙어 보이지 않는다.
-            if (dotRadiusTexels >= radiusTexels - thicknessTexels - outlineTexels)
-                throw new System.Exception($"[PickShoot] CrosshairTexture.Refresh: 중심점(반경 {dotRadiusTexels})이 링 안쪽 윤곽선(반경 {radiusTexels} - 두께 {thicknessTexels} - 윤곽선 {outlineTexels})에 닿음.");
+            // 점과 링 안쪽 가장자리 사이에 빈 텍셀이 적어도 한 겹은 있어야 점이 링에 붙어 보이지 않는다.
+            if (dotRadiusTexels >= radiusTexels - thicknessTexels)
+                throw new System.Exception($"[PickShoot] CrosshairTexture.Refresh: 중심점(반경 {dotRadiusTexels})이 링 안쪽 가장자리(반경 {radiusTexels} - 두께 {thicknessTexels})에 닿음.");
 
-            if (!BuildSignature(slots, radiusTexels, thicknessTexels, outlineTexels, dotRadiusTexels, fillColor, emptyColor, outlineColor) && texture != null)
+            if (!BuildSignature(slots, radiusTexels, thicknessTexels, dotRadiusTexels, fillColor, emptyColor) && texture != null)
                 return;
 
             float ratio = AverageAmmoRatio(slots);
 
-            // 중심 텍셀 하나 + 양쪽으로 (반경 + 윤곽선)텍셀. 홀수 한 변이라 중심이 텍셀 한가운데에 놓여 상하좌우 대칭.
-            EnsureTexture((radiusTexels + outlineTexels) * 2 + 1);
+            // 중심 텍셀 하나 + 양쪽으로 반경만큼. 홀수 한 변이라 중심이 텍셀 한가운데에 놓여 상하좌우 대칭.
+            EnsureTexture(radiusTexels * 2 + 1);
             int size = texture.width;
 
             float c = size * 0.5f;
@@ -58,7 +56,6 @@ namespace PickShoot
             float dotEdge = dotRadiusTexels + 0.5f;
             Color32 fill = fillColor;
             Color32 empty = emptyColor;
-            Color32 outline = outlineColor;
             var clear = new Color32(0, 0, 0, 0);
 
             for (int y = 0; y < size; y++)
@@ -73,20 +70,13 @@ namespace PickShoot
                     {
                         col = fill;
                     }
-                    else if (d >= inner - outlineTexels && d < outer + outlineTexels)
+                    else if (d >= inner && d < outer)
                     {
-                        if (d < inner || d >= outer)
-                        {
-                            col = outline;
-                        }
-                        else
-                        {
-                            // 텍스처 +y가 화면 위쪽이므로 atan2(dx, dy)는 12시가 0, 오른쪽(3시)으로 갈수록 커진다 = 화면 시계 방향.
-                            float theta = Mathf.Atan2(dx, dy);
-                            if (theta < 0f) theta += 2f * Mathf.PI;
-                            float f = theta / (2f * Mathf.PI);
-                            col = f < ratio ? fill : empty;
-                        }
+                        // 텍스처 +y가 화면 위쪽이므로 atan2(dx, dy)는 12시가 0, 오른쪽(3시)으로 갈수록 커진다 = 화면 시계 방향.
+                        float theta = Mathf.Atan2(dx, dy);
+                        if (theta < 0f) theta += 2f * Mathf.PI;
+                        float f = theta / (2f * Mathf.PI);
+                        col = f < ratio ? fill : empty;
                     }
                     pixels[y * size + x] = col;
                 }
@@ -119,17 +109,15 @@ namespace PickShoot
         }
 
         // 그리기에 영향을 주는 값을 전부 정수 목록으로 모아 직전과 비교한다. 바뀌었으면 true.
-        bool BuildSignature(IReadOnlyList<Weapon> slots, int radiusTexels, int thicknessTexels, int outlineTexels, int dotRadiusTexels,
-            Color fillColor, Color emptyColor, Color outlineColor)
+        bool BuildSignature(IReadOnlyList<Weapon> slots, int radiusTexels, int thicknessTexels, int dotRadiusTexels,
+            Color fillColor, Color emptyColor)
         {
             signature.Clear();
             signature.Add(radiusTexels);
             signature.Add(thicknessTexels);
-            signature.Add(outlineTexels);
             signature.Add(dotRadiusTexels);
             signature.Add(Pack(fillColor));
             signature.Add(Pack(emptyColor));
-            signature.Add(Pack(outlineColor));
             signature.Add(slots.Count);
             for (int i = 0; i < slots.Count; i++)
             {

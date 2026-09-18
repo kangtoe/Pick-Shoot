@@ -30,14 +30,12 @@ namespace PickShoot
         [Header("Crosshair")]
         // 커서 자리의 크로스헤어 = 중심점 + 탄약 링. 치수는 텍셀 단위이며 다른 HUD(TextScale)와 달리 월드 텍셀 배율(PixelGui.PanelScale)로
         // 확대된다 — HUD 배율은 텍셀이 월드 스프라이트 픽셀의 절반이라 링이 매끈한 원으로 보여 픽셀아트와 겉돈다.
-        // 반경은 중심 텍셀에서 센 텍셀 수 (CrosshairTexture 참고). 중심점은 링의 채움 색을 쓰고 윤곽선은 두르지 않는다.
+        // 반경은 중심 텍셀에서 센 텍셀 수 (CrosshairTexture 참고). 중심점은 링의 채움 색을 쓴다. 윤곽선은 링에도 중심점에도 두르지 않는다 —
+        // 시트 외곽선 색(#47324B)으로 링 안팎을 둘러 봤으나 이 텍셀 크기에서는 선이 띠만큼 두꺼워져 조준점이 무거워 보였다.
         [SerializeField, Min(2)] int cursorRingRadiusTexels = 6;
         [SerializeField, Min(1)] int cursorRingThicknessTexels = 2;
-        // 링 안팎 윤곽선 두께.
-        [SerializeField, Min(1)] int cursorRingOutlineTexels = 1;
         [SerializeField] Color cursorRingFillColor = Color.white;
         [SerializeField] Color cursorRingEmptyColor = new Color(0.25f, 0.22f, 0.2f, 0.6f);
-        [SerializeField] Color cursorRingOutlineColor = new Color(0.1f, 0.08f, 0.08f, 0.85f);
         // 중심점 반경. 0이면 중심 텍셀 하나, 1이면 3×3텍셀.
         [SerializeField, Min(0)] int cursorDotRadiusTexels = 0;
         // 사격 한 번에 링 반경이 벌어지는 양: 쏜 무기의 반동 배율(WeaponData.RecoilStrength) 1당 텍셀 수. 무거운 무기일수록 크게 벌어진다.
@@ -367,8 +365,7 @@ namespace PickShoot
         void DrawCrosshair(int s)
         {
             int radius = cursorRingRadiusTexels + Mathf.RoundToInt(cursorRingKick);
-            crosshair.Refresh(playerWeapons.Slots, radius, cursorRingThicknessTexels, cursorRingOutlineTexels, cursorDotRadiusTexels,
-                cursorRingFillColor, cursorRingEmptyColor, cursorRingOutlineColor);
+            crosshair.Refresh(playerWeapons.Slots, radius, cursorRingThicknessTexels, cursorDotRadiusTexels, cursorRingFillColor, cursorRingEmptyColor);
 
             int size = crosshair.SizeTexels * s;
             // 캔버스가 열린 동안 Repaint 이벤트의 mousePosition은 캔버스 좌표(위가 0)라 그대로 중심으로 쓴다.
