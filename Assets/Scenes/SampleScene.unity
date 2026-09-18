@@ -943,6 +943,7 @@ GameObject:
   - component: {fileID: 1698421205}
   - component: {fileID: 1698421207}
   - component: {fileID: 1698421208}
+  - component: {fileID: 1698421209}
   m_Layer: 0
   m_Name: GameManager
   m_TagString: Untagged
@@ -1037,6 +1038,22 @@ MonoBehaviour:
   - {fileID: 11400000, guid: d2b3c4e5f6a789b012345cdef6789abc, type: 2}
   cardsToShow: 3
   selectClip: {fileID: 8300000, guid: 460e5219f0f84004790b551e7a638e25, type: 3}
+  skin: {fileID: 11400000, guid: 75b98a2d2daa9a04797ea6f248de2474, type: 2}
+  dimAlpha: 0.7
+--- !u!114 &1698421209
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1698421204}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b56b814b7fea27dc3d71622537457c22, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::PickShoot.PauseScreen
+  playerHealth: {fileID: 142563684}
+  upgradeManager: {fileID: 1698421208}
   skin: {fileID: 11400000, guid: 75b98a2d2daa9a04797ea6f248de2474, type: 2}
   dimAlpha: 0.7
 --- !u!1 &1905229426
@@ -1261,6 +1278,7 @@ MonoBehaviour:
   playerWeapons: {fileID: 142563685}
   waveManager: {fileID: 1698421207}
   upgradeManager: {fileID: 1698421208}
+  pauseScreen: {fileID: 1698421209}
   spentPipAlpha: 0.25
   emptyBlinkInterval: 0.3
   cursorRingRadiusTexels: 6

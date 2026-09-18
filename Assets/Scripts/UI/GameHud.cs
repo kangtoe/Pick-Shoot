@@ -13,7 +13,7 @@ namespace PickShoot
     // 레이아웃은 텍셀 단위로 정의하고 HUD 배율(PixelGui.TextScale — 업그레이드 카드의 글자 배율과 같은 값, 패널 배율의 절반)을
     // 곱해 기준 캔버스 픽셀로 바꾼다. 카드 패널보다 얇은 테두리라 게임 화면을 덜 가린다. 캔버스는 월드 카메라와 같은 규칙
     // (화면 세로 = 270텍셀)으로 보이므로 해상도·종횡비가 달라도 HUD가 화면에서 차지하는 비율은 월드 스프라이트처럼 그대로다.
-    // 다른 OnGUI(피격 플래시·데스 화면)보다 뒤에 깔리도록 GUI.depth를 크게 두고, 업그레이드 카드가 떠 있는 동안은 아예 숨긴다.
+    // 다른 OnGUI(피격 플래시·데스 화면)보다 뒤에 깔리도록 GUI.depth를 크게 두고, 업그레이드 카드·일시정지 화면이 떠 있는 동안은 아예 숨긴다.
     public class GameHud : MonoBehaviour
     {
         [SerializeField] PixelUiSkin skin;
@@ -21,6 +21,7 @@ namespace PickShoot
         [SerializeField] PlayerWeapons playerWeapons;
         [SerializeField] WaveManager waveManager;
         [SerializeField] UpgradeManager upgradeManager;
+        [SerializeField] PauseScreen pauseScreen;
         // 소진한 탄약 핍의 투명도. 남은 탄약은 불투명.
         [SerializeField, Range(0f, 1f)] float spentPipAlpha = 0.25f;
         // 탄약이 부족해 쏠 수 없는 무기 스프라이트 위 X 아이콘의 깜빡임 주기 (초, 실시간).
@@ -84,8 +85,8 @@ namespace PickShoot
 
         // HUD(크로스헤어 포함)를 그리는 조건.
         //   플레이어는 사망 시 파괴된다. 그 뒤는 데스 화면이 이어받으므로 HUD를 걷는다.
-        //   카드 선택 화면은 게임을 멈추고 화면을 덮는다. 그 위에 HUD가 보이면 어색하므로 숨긴다.
-        bool HudVisible => playerHealth != null && !upgradeManager.IsActive;
+        //   카드 선택·일시정지 화면은 게임을 멈추고 화면을 덮는다. 그 위에 HUD가 보이면 어색하므로 숨긴다.
+        bool HudVisible => playerHealth != null && !upgradeManager.IsActive && !pauseScreen.IsPaused;
 
         void Awake()
         {
@@ -99,6 +100,8 @@ namespace PickShoot
                 throw new System.Exception("[PickShoot] GameHud.waveManager 미할당.");
             if (upgradeManager == null)
                 throw new System.Exception("[PickShoot] GameHud.upgradeManager 미할당 (카드 선택 중 HUD 숨김 판정에 필요).");
+            if (pauseScreen == null)
+                throw new System.Exception("[PickShoot] GameHud.pauseScreen 미할당 (일시정지 중 HUD 숨김 판정에 필요).");
             playerSprite = playerHealth.GetComponent<SpriteRenderer>();
             if (playerSprite == null)
                 throw new System.Exception("[PickShoot] GameHud: 플레이어에 SpriteRenderer 없음 (머리 위 게이지 위치 기준).");
@@ -122,7 +125,7 @@ namespace PickShoot
 
         void Update()
         {
-            // 크로스헤어가 커서를 대신하는 동안만 하드웨어 커서를 숨긴다. HUD가 걷히는 카드 선택·데스 화면에서는 커서가 돌아온다
+            // 크로스헤어가 커서를 대신하는 동안만 하드웨어 커서를 숨긴다. HUD가 걷히는 카드 선택·일시정지·데스 화면에서는 커서가 돌아온다
             // (카드는 클릭으로 고른다). 상태가 바뀌는 순간만 잡지 않고 매 프레임 맞춘다 — 에디터는 Esc로 커서를 되살린다.
             Cursor.visible = !HudVisible;
 
