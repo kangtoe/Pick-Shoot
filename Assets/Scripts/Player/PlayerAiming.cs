@@ -29,6 +29,9 @@ namespace PickShoot
 
         void Update()
         {
+            // 게임이 멈춘 동안(일시정지·카드 선택, timeScale 0)은 조준을 갱신하지 않는다 — 하드웨어 커서로 UI를 조작하는 동안
+            // 무기가 커서를 따라 도는 것을 막는다. 사격(PlayerWeapons)과 같은 기준.
+            if (Time.timeScale <= 0f) return;
             var mouse = Mouse.current;
             if (mouse == null) return;
 
