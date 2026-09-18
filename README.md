@@ -42,4 +42,4 @@ Pick → Shoot → Pick → Shoot
 
 ## 프로젝트 상태
 
-Phase 3 — 로그라이크 + 무기 시스템 구현 완료, 통과 판정(플레이 테스트) 대기. 자세한 단계는 [Docs/Roadmap.md](Docs/Roadmap.md) 참조.
+Phase 4 — 콘텐츠 확장 착수. Phase 3(무기 시스템)는 확장 기반 구축으로 완료했고, 재미 검증은 Phase 4에서 무기·적을 늘린 뒤 판정한다. 자세한 단계는 [Docs/Roadmap.md](Docs/Roadmap.md) 참조.
