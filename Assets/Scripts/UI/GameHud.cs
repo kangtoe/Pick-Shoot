@@ -7,7 +7,7 @@ namespace PickShoot
     //   체력: 좌상단 패널에 칸 단위 핍으로 자세히, 플레이어 머리 위에는 비율만 보이는 작은 게이지.
     //   대시: 쿨다운 중에만 머리 위 체력 게이지 위쪽에 시계 방향으로 차오르는 작은 원판 (GDD §3.5).
     //   무기: 링에서 조준 기준 왼쪽에 있는 슬롯은 화면 하단 왼쪽 구석, 오른쪽 슬롯은 하단 오른쪽 구석에 거울상으로.
-    //         패널 배경 없이 슬롯마다 한 줄(스프라이트 · 레벨 · 탄창)만 바닥 위에 바로 그린다.
+    //         패널 배경 없이 슬롯마다 한 줄(스프라이트 · 레벨 · 탄창)만 바닥 위에 바로 그린다. 스프라이트 밑에만 작은 판을 깐다.
     //   웨이브: 상단 중앙 배너 + 남은 시간 바.
     //   커서: 하드웨어 커서를 숨기고 그 자리에 크로스헤어 — 중심점(조준점) + 모든 자루의 탄창 비율 평균을 보여주는 링.
     //         링은 사격마다 벌어졌다가 서서히 되돌아온다 (시트에 링 조각이 없어 CrosshairTexture가 런타임에 텍셀 단위로 그린다).
@@ -27,6 +27,9 @@ namespace PickShoot
         // 소진한 탄약 핍에 곱하는 색. 남은 탄약은 원래 색 그대로. 기본값은 반투명 검정 — 핍이 탄창에 난 빈 자리(어두운 실루엣)로 보인다.
         // 패널 없이 바닥 위에 바로 그리므로, 원래 색을 흐리게만 하면 밝은 바닥에 묻혀 최대치가 읽히지 않는다.
         [SerializeField] Color spentPipColor = new Color(0f, 0f, 0f, 0.35f);
+        // 무기 스프라이트 밑에 까는 작은 판의 색. 기본값은 시트 회색 패널의 바탕색과 시트 외곽선 색(#47324B).
+        [SerializeField] Color weaponPlateFillColor = new Color32(153, 154, 196, 255);
+        [SerializeField] Color weaponPlateOutlineColor = new Color32(71, 50, 75, 255);
         // 탄약이 부족해 쏠 수 없는 무기 스프라이트 위 X 아이콘의 깜빡임 주기 (초, 실시간).
         [SerializeField, Min(0.01f)] float emptyBlinkInterval = 0.3f;
 
@@ -63,7 +66,15 @@ namespace PickShoot
         const int HpPipStrideTexels = 12;
         // 무기 줄 사이의 세로 간격(줄 위 가장자리 → 다음 줄 위 가장자리). 글자·핍 타일(16텍셀)보다 조금 넓다.
         // 무기 스프라이트 타일(24텍셀)은 이보다 크지만 위아래가 투명 여백이라 이웃 줄과 겹쳐도 그림끼리는 닿지 않는다.
+        // 그림은 그 밑의 판(WeaponPlate*) 안에 들어간다.
         const int WeaponRowPitchTexels = 20;
+        // 무기 스프라이트 밑에 까는 판. 무기 그림은 어두운 보라 계열이라 바닥·울타리·적 위에 바로 놓으면 묻히기 쉬워 아이콘에만
+        // 작은 배경을 준다. 시트 조각 없이 단색 사각형으로 그린다 — 시트의 작은 판 조각은 흰 테두리와 리벳이 총 그림과 겹쳐 어수선했다.
+        // 외곽선 두께는 글꼴·핍의 외곽선과 같은 2텍셀, 네 귀는 1텍셀씩 깎는다. 크기는 가장 큰 그림(라이플 22×12텍셀)에 외곽선과
+        // 여백 1텍셀을 두른 값이고, 높이가 줄 간격(WeaponRowPitchTexels)보다 작아 이웃 줄의 판과 2텍셀 떨어진다.
+        const int WeaponPlateWidthTexels = 28;
+        const int WeaponPlateHeightTexels = 18;
+        const int WeaponPlateOutlineTexels = 2;
         // 탄약 핍(시트 16텍셀 타일)에서 실제 그림이 있는 가로 구간: 왼쪽 여백 4텍셀 뒤로 8텍셀 (외곽선 2 + 몸통 4 + 외곽선 2).
         const int AmmoPipInsetTexels = 4;
         const int AmmoPipWidthTexels = 8;
@@ -268,8 +279,9 @@ namespace PickShoot
             PixelGui.DrawBarStrip(skin.BarFillRed, bar, skin.TileSize, s, fillW);
         }
 
-        // 하단 한쪽 구석: 링의 해당 쪽에 있는 슬롯만, 슬롯마다 한 줄. 패널 배경은 두지 않는다 — 글꼴·핍·무기 스프라이트 모두 시트의
+        // 하단 한쪽 구석: 링의 해당 쪽에 있는 슬롯만, 슬롯마다 한 줄. 줄 전체를 감싸는 패널 배경은 두지 않는다 — 글꼴·핍은 시트의
         // 어두운 외곽선을 두르고 있어 바닥 위에서 그대로 읽히고, 전투 공간을 가리는 면적이 그림 자체뿐이다.
+        // 무기 스프라이트만 작은 판(DrawWeaponPlate) 위에 얹는다.
         // 한 줄은 화면 가장자리에서 안쪽으로 무기 스프라이트(탄약 부족 표시가 그 위에 겹침) · 레벨 · 탄창 순이다. 오른쪽 구석은 왼쪽의
         // 거울상 — 스프라이트도 좌우 반전해 양쪽 모두 총구가 탄창 쪽(화면 안쪽)을 향한다.
         // 무기 이름과 슬롯 번호는 카드에서만 쓰고 HUD에는 두지 않는다 — 종류는 스프라이트로 구분되고, 이름 줄이 없어야
@@ -290,9 +302,11 @@ namespace PickShoot
             int margin = MarginTexels * s;
 
             // 열 폭은 그쪽 모든 줄에서 공통 — 스프라이트 크기가 달라도 레벨과 탄창이 세로로 나란히 정렬되도록.
-            // 아이콘 열은 무기 스프라이트와 그 위에 겹쳐 깜빡이는 탄약 부족 X(타일 한 칸) 중 넓은 쪽. X에 따로 자리를 주지 않아
+            // 아이콘 열은 판·무기 스프라이트·그 위에 겹쳐 깜빡이는 탄약 부족 X(타일 한 칸) 중 가장 넓은 쪽. X에 따로 자리를 주지 않아
             // 깜빡여도 레벨·탄창이 움직이지 않는다. 레벨 열은 고정 폭(levelColumnTexels)이라 레벨이 올라도 탄창이 밀리지 않는다.
-            int iconW = tile;
+            int plateW = WeaponPlateWidthTexels * s;
+            int plateH = WeaponPlateHeightTexels * s;
+            int iconW = Mathf.Max(tile, plateW);
             for (int k = 0; k < sideSlots.Count; k++)
                 iconW = Mathf.Max(iconW, Mathf.RoundToInt(slots[sideSlots[k]].Data.WeaponSprite.rect.width) * s);
 
@@ -307,7 +321,8 @@ namespace PickShoot
             {
                 var w = slots[sideSlots[k]];
 
-                // 스프라이트는 아이콘 열 가로 가운데·줄(타일 높이) 세로 가운데. 타일보다 큰 스프라이트는 줄 위아래로 고르게 넘친다.
+                // 판과 스프라이트는 아이콘 열 가로 가운데·줄(타일 높이) 세로 가운데. 타일보다 크면 줄 위아래로 고르게 넘친다.
+                DrawWeaponPlate(new Rect(InwardX(edge, leftSide, (iconW - plateW) / 2, plateW), y + (tile - plateH) / 2, plateW, plateH), s);
                 var sprite = w.Data.WeaponSprite;
                 int sw = Mathf.RoundToInt(sprite.rect.width) * s;
                 int sh = Mathf.RoundToInt(sprite.rect.height) * s;
@@ -334,6 +349,16 @@ namespace PickShoot
         static int InwardX(int edge, bool leftSide, int inset, int width)
         {
             return leftSide ? edge + inset : edge - inset - width;
+        }
+
+        // 무기 스프라이트 밑의 판: 네 귀를 1텍셀씩 깎은 외곽선 색 사각형 위에 바탕색을 채운다.
+        // 귀를 깎은 모양은 가로로 긴 사각형과 세로로 긴 사각형을 겹쳐 만든다 — 겹쳐 그리므로 비정수 배율에서도 조각 사이에 틈이 없다.
+        void DrawWeaponPlate(Rect r, int s)
+        {
+            int o = WeaponPlateOutlineTexels * s;
+            PixelGui.FillRect(new Rect(r.x + s, r.y, r.width - 2 * s, r.height), weaponPlateOutlineColor);
+            PixelGui.FillRect(new Rect(r.x, r.y + s, r.width, r.height - 2 * s), weaponPlateOutlineColor);
+            PixelGui.FillRect(new Rect(r.x + o, r.y + o, r.width - 2 * o, r.height - 2 * o), weaponPlateFillColor);
         }
 
         // 탄창: 탄환 한 발이 핍 하나. 핍을 외곽선이 포개지는 간격으로 붙여 한 덩이로 그린다. 레벨 쪽 끝(rowX)부터 남은 탄약만큼은
