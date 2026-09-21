@@ -31,7 +31,7 @@ namespace PickShoot
                     var owner = bullet.OwnerWeapon;
                     if (owner == null)
                         throw new System.Exception("[PickShoot] 회수 대상 Bullet에 OwnerWeapon이 null. 발사 경로에서 귀속이 누락되었습니다.");
-                    if (!owner.TryAddAmmo()) return;
+                    if (!owner.TryAddAmmo()) continue;
                     PlayPickupFeedback(bullet.transform.position);
                     Destroy(bullet.gameObject);
                     continue;
