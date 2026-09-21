@@ -7,7 +7,7 @@ namespace PickShoot
     public class PlayerPickup : MonoBehaviour
     {
         [SerializeField] float pickupRadius = 0.9f;
-        [SerializeField] float magnetRadius = 2.8f;
+        [SerializeField] float magnetRadius = 1.8f;
         [SerializeField] float magnetTargetSpeed = 18f;
         [SerializeField] float magnetBlendRate = 12f;
         // 자석에 걸린 탄환의 끌림이 거리와 무관하게 최대까지 차오르는 데 걸리는 시간.

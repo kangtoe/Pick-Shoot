@@ -322,7 +322,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PickShoot.PlayerPickup
   pickupRadius: 0.9
-  magnetRadius: 2.8
+  magnetRadius: 1.8
   magnetTargetSpeed: 18
   magnetBlendRate: 12
   sweepSpeed: 30
