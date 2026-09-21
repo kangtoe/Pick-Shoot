@@ -172,6 +172,13 @@ MonoBehaviour:
   acceleration: 60
   friction: 15
   wallBounceRetention: 0.75
+  dashDistance: 3
+  dashDuration: 0.1
+  dashCooldown: 1.5
+  dashClip: {fileID: 8300000, guid: bdcad12f2d0bdfc4ba0ac15f83be152a, type: 3}
+  afterimageSpacing: 0.5
+  afterimageDuration: 0.25
+  afterimageColor: {r: 0.6, g: 0.85, b: 1, a: 0.6}
 --- !u!58 &142563677
 CircleCollider2D:
   m_ObjectHideFlags: 0
