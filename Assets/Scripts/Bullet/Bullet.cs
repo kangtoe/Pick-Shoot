@@ -45,6 +45,11 @@ namespace PickShoot
         public bool IsSettled => !active;
         public Weapon OwnerWeapon => ownerWeapon;
 
+        // 플레이어 자석에 한 번 걸리면 회수될 때까지 풀리지 않는다. 걸기·끌림 세기(0~1) 갱신은 PlayerPickup이 한다.
+        public bool IsMagnetized { get; private set; }
+        public float MagnetPull { get; set; }
+        public void Magnetize() => IsMagnetized = true;
+
         // 웨이브 클리어 sweep 등에서 튕김 페이즈를 강제 종료해 회수 대상으로 만든다.
         // FixedUpdate가 다음 프레임에 damping·layer를 정착 상태로 반영한다.
         public void ForceSettle() => active = false;

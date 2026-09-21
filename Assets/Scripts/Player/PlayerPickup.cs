@@ -1,4 +1,5 @@
 using System.Collections;
+using System.Collections.Generic;
 using UnityEngine;
 
 namespace PickShoot
@@ -9,19 +10,31 @@ namespace PickShoot
         [SerializeField] float magnetRadius = 2.8f;
         [SerializeField] float magnetTargetSpeed = 18f;
         [SerializeField] float magnetBlendRate = 12f;
+        // 자석에 걸린 탄환의 끌림이 거리와 무관하게 최대까지 차오르는 데 걸리는 시간.
+        [SerializeField, Min(0.01f)] float magnetRampTime = 0.5f;
         [SerializeField] float sweepSpeed = 30f;
         [SerializeField] GameObject pickupEffectPrefab;
         [SerializeField] AudioClip pickupClip;
 
         readonly Collider2D[] hits = new Collider2D[16];
+        // 자석 반경에 한 번 들어온 탄환. 반경을 벗어나도 회수될 때까지 계속 끌려온다.
+        readonly List<Bullet> magnetized = new List<Bullet>();
 
         void FixedUpdate()
         {
-            int count = Physics2D.OverlapCircleNonAlloc(transform.position, magnetRadius, hits);
-            for (int i = 0; i < count; i++)
+            MagnetizeBulletsInRange();
+
+            float span = Mathf.Max(0.0001f, magnetRadius - pickupRadius);
+            float alpha = 1f - Mathf.Exp(-magnetBlendRate * Time.fixedDeltaTime);
+            for (int i = magnetized.Count - 1; i >= 0; i--)
             {
-                var bullet = hits[i].GetComponent<Bullet>();
-                if (bullet == null || !bullet.IsSettled) continue;
+                var bullet = magnetized[i];
+                // 웨이브 클리어 sweep이 먼저 회수해 간 탄환.
+                if (bullet == null)
+                {
+                    magnetized.RemoveAt(i);
+                    continue;
+                }
 
                 Vector2 toPlayer = (Vector2)transform.position - (Vector2)bullet.transform.position;
                 float d = toPlayer.magnitude;
@@ -34,18 +47,34 @@ namespace PickShoot
                     if (!owner.TryAddAmmo()) continue;
                     PlayPickupFeedback(bullet.transform.position);
                     Destroy(bullet.gameObject);
+                    magnetized.RemoveAt(i);
                     continue;
                 }
 
                 var rb = bullet.GetComponent<Rigidbody2D>();
                 if (rb == null) continue;
 
-                float span = Mathf.Max(0.0001f, magnetRadius - pickupRadius);
+                // 끌림은 가까울수록 세고, 한 번 오른 세기는 멀어져도 줄지 않는다. 반경 밖에서도 시간에 따라
+                // 최대까지 차오르므로 스치고 지나간 탄환도 달아나는 플레이어를 끝내 따라잡는다.
                 float t = Mathf.Clamp01((magnetRadius - d) / span);
+                bullet.MagnetPull = Mathf.Min(1f, Mathf.Max(t, bullet.MagnetPull + Time.fixedDeltaTime / magnetRampTime));
+
                 Vector2 dir = toPlayer / Mathf.Max(0.0001f, d);
-                Vector2 targetVel = dir * magnetTargetSpeed * t;
-                float alpha = 1f - Mathf.Exp(-magnetBlendRate * Time.fixedDeltaTime);
+                Vector2 targetVel = dir * magnetTargetSpeed * bullet.MagnetPull;
                 rb.linearVelocity = Vector2.Lerp(rb.linearVelocity, targetVel, alpha);
+            }
+        }
+
+        void MagnetizeBulletsInRange()
+        {
+            int count = Physics2D.OverlapCircleNonAlloc(transform.position, magnetRadius, hits);
+            for (int i = 0; i < count; i++)
+            {
+                var bullet = hits[i].GetComponent<Bullet>();
+                if (bullet == null || !bullet.IsSettled || bullet.IsMagnetized) continue;
+
+                bullet.Magnetize();
+                magnetized.Add(bullet);
             }
         }
 
