@@ -73,8 +73,10 @@ namespace PickShoot
                     candidates.Add(UpgradeOption.Acquire(d));
             }
 
+            // 최대 레벨(Weapon.MaxLevel) 자루는 레벨업 후보에서 뺀다. 슬롯이 가득 차고 전부 최대 레벨이면 후보가 없어 카드 화면을 건너뛴다.
             for (int i = 0; i < weapons.Slots.Count; i++)
-                candidates.Add(UpgradeOption.LevelUpSlot(i));
+                if (!weapons.Slots[i].IsMaxLevel)
+                    candidates.Add(UpgradeOption.LevelUpSlot(i));
 
             // Fisher-Yates
             for (int i = candidates.Count - 1; i > 0; i--)

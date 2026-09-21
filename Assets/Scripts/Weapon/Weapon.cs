@@ -5,9 +5,11 @@ namespace PickShoot
     // 무기 인스턴스 런타임 상태. WeaponData(정의) + 현재 탄창 + 다음 준비 시각 + 레벨.
     // 강화는 자루 단위 레벨업 단일 축 (GDD §7.3). 레벨업 시 3항목이 함께 상승한다:
     //   damage ×1.5, cooldown ×0.75, maxAmmo +2 (각 레벨업당 누적).
-    // 새로 획득한 자루는 항상 Lv.1로 시작.
+    // 새로 획득한 자루는 항상 Lv.1로 시작하고 MaxLevel까지 오른다 (Weapons §3).
     public class Weapon
     {
+        // 레벨 상한. 한 자리 수로 묶어 HUD·카드의 레벨 표기가 늘 "LV n" 한 자리이고, 최대 탄약(HUD 탄창 줄 길이)도 이 안에 머문다.
+        public const int MaxLevel = 9;
         public const float LevelDamageMultiplier = 1.5f;
         public const float LevelCooldownMultiplier = 0.75f;
         public const int LevelMaxAmmoAdd = 2;
@@ -19,6 +21,7 @@ namespace PickShoot
 
         public WeaponData Data => data;
         public int Level => level;
+        public bool IsMaxLevel => level >= MaxLevel;
         public int CurrentAmmo => currentAmmo;
         public int MaxAmmo => MaxAmmoAtLevel(data, level);
         public float NextReadyTime => nextReadyTime;
@@ -109,8 +112,11 @@ namespace PickShoot
         }
 
         // 자루 단위 레벨업 (GDD §7.3). 최대 탄약 상승분만큼 현재 탄약도 함께 충전한다.
+        // 호출자가 IsMaxLevel을 먼저 검증해야 한다 (레벨업 카드 후보·디버그 버튼).
         public void LevelUp()
         {
+            if (IsMaxLevel)
+                throw new System.Exception($"[PickShoot] Weapon.LevelUp: '{data.DisplayName}'는 이미 최대 레벨({MaxLevel}). 호출자가 IsMaxLevel을 먼저 검증해야 함.");
             level++;
             currentAmmo = Mathf.Min(currentAmmo + LevelMaxAmmoAdd, MaxAmmo);
         }

@@ -76,9 +76,12 @@ namespace PickShoot
                 using (new EditorGUILayout.HorizontalScope())
                 {
                     EditorGUILayout.LabelField($"{i + 1}. {w.Data.DisplayName}   Lv {w.Level}   {w.CurrentAmmo}/{w.MaxAmmo}");
-                    // 자루 단위 레벨업 (Weapons §3). 카드 없이 즉시 올려 탄창 확대·HUD 핍 배치를 확인한다. 레벨 상한은 없다.
-                    if (GUILayout.Button("Lv +", GUILayout.Width(48f)))
-                        w.LevelUp();
+                    // 자루 단위 레벨업 (Weapons §3). 카드 없이 즉시 올려 탄창 확대·HUD 핍 배치를 확인한다. 최대 레벨(Weapon.MaxLevel)이면 잠근다.
+                    using (new EditorGUI.DisabledScope(w.IsMaxLevel))
+                    {
+                        if (GUILayout.Button("Lv +", GUILayout.Width(48f)))
+                            w.LevelUp();
+                    }
                 }
             }
 
