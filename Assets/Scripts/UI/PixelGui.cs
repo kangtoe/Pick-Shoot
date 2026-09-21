@@ -76,6 +76,12 @@ namespace PickShoot
             DrawSpritePart(sprite, screenRect, 0f, 0f, 1f, 1f);
         }
 
+        // 좌우 반전. 화면 오른쪽에 거울상으로 놓는 조각(HUD 무기 스프라이트)용 — UV의 가로 구간을 뒤집어 넘긴다.
+        public static void DrawSpriteMirrored(Sprite sprite, Rect screenRect)
+        {
+            DrawSpritePart(sprite, screenRect, 1f, 0f, 0f, 1f);
+        }
+
         // 화면 기준 시계방향 회전. 위쪽 화살표 아이콘을 90°로 돌리면 오른쪽 화살표가 된다.
         // GUIUtility.RotateAroundPivot은 피벗을 GUI.matrix 적용 뒤의 좌표로 해석해 캔버스 배율이 걸리면 어긋난다.
         // 그래서 회전을 캔버스 좌표에서 먼저 하고 그 바깥에 기존 행렬(캔버스 배율)이 걸리도록 직접 합성한다.

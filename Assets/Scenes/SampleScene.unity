@@ -1291,7 +1291,7 @@ MonoBehaviour:
   waveManager: {fileID: 1698421207}
   upgradeManager: {fileID: 1698421208}
   pauseScreen: {fileID: 1698421209}
-  spentPipAlpha: 0.25
+  spentPipColor: {r: 0, g: 0, b: 0, a: 0.35}
   emptyBlinkInterval: 0.3
   cursorRingRadiusTexels: 6
   cursorRingThicknessTexels: 2

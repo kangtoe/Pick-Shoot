@@ -6,7 +6,8 @@ namespace PickShoot
     // 인게임 HUD 단일 창구. PixelUiSkin(Kenney Interface 시트)으로 OnGUI에 그린다.
     //   체력: 좌상단 패널에 칸 단위 핍으로 자세히, 플레이어 머리 위에는 비율만 보이는 작은 게이지.
     //   대시: 쿨다운 중에만 머리 위 체력 게이지 위쪽에 시계 방향으로 차오르는 작은 원판 (GDD §3.5).
-    //   무기: 링에서 조준 기준 왼쪽에 있는 슬롯은 화면 하단 왼쪽 패널, 오른쪽 슬롯은 하단 오른쪽 패널.
+    //   무기: 링에서 조준 기준 왼쪽에 있는 슬롯은 화면 하단 왼쪽 구석, 오른쪽 슬롯은 하단 오른쪽 구석에 거울상으로.
+    //         패널 배경 없이 슬롯마다 한 줄(스프라이트 · 레벨 · 탄창)만 바닥 위에 바로 그린다.
     //   웨이브: 상단 중앙 배너 + 남은 시간 바.
     //   커서: 하드웨어 커서를 숨기고 그 자리에 크로스헤어 — 중심점(조준점) + 모든 자루의 탄창 비율 평균을 보여주는 링.
     //         링은 사격마다 벌어졌다가 서서히 되돌아온다 (시트에 링 조각이 없어 CrosshairTexture가 런타임에 텍셀 단위로 그린다).
@@ -23,8 +24,9 @@ namespace PickShoot
         [SerializeField] WaveManager waveManager;
         [SerializeField] UpgradeManager upgradeManager;
         [SerializeField] PauseScreen pauseScreen;
-        // 소진한 탄약 핍의 투명도. 남은 탄약은 불투명.
-        [SerializeField, Range(0f, 1f)] float spentPipAlpha = 0.25f;
+        // 소진한 탄약 핍에 곱하는 색. 남은 탄약은 원래 색 그대로. 기본값은 반투명 검정 — 핍이 탄창에 난 빈 자리(어두운 실루엣)로 보인다.
+        // 패널 없이 바닥 위에 바로 그리므로, 원래 색을 흐리게만 하면 밝은 바닥에 묻혀 최대치가 읽히지 않는다.
+        [SerializeField] Color spentPipColor = new Color(0f, 0f, 0f, 0.35f);
         // 탄약이 부족해 쏠 수 없는 무기 스프라이트 위 X 아이콘의 깜빡임 주기 (초, 실시간).
         [SerializeField, Min(0.01f)] float emptyBlinkInterval = 0.3f;
 
@@ -53,15 +55,22 @@ namespace PickShoot
 
         // IMGUI는 depth가 작을수록 위에 그린다. 다른 스크립트는 기본값 0이므로 HUD는 그 뒤에 깔린다.
         const int HudGuiDepth = 10;
-        const int MarginTexels = 8;      // 화면 가장자리 → 패널
+        const int MarginTexels = 8;      // 화면 가장자리 → 패널·무기 줄
         const int PaddingTexels = 8;     // 패널 테두리 → 내용
         const int GapTexels = 4;         // 행 사이·이웃 요소 사이
         const int ColumnGapTexels = 8;   // 열 사이
-        const int EntryGapTexels = 8;    // 무기 항목(두 줄) 사이 — 행 간격보다 넓혀 항목 경계가 보이도록
         // 체력 핍은 16텍셀 타일이지만 보이는 칸이 10텍셀이라 타일 간격보다 촘촘히 겹쳐 놓는다. 여백 2텍셀.
         const int HpPipStrideTexels = 12;
-        // 탄약 핍 줄의 고정 폭. 탄창 크기와 무관하게 이 폭을 양 끝까지 채우므로 탄창이 커져도 패널은 그대로고 핍 간격만 줄어든다.
-        const int AmmoPipRowTexels = 96;
+        // 무기 줄 사이의 세로 간격(줄 위 가장자리 → 다음 줄 위 가장자리). 글자·핍 타일(16텍셀)보다 조금 넓다.
+        // 무기 스프라이트 타일(24텍셀)은 이보다 크지만 위아래가 투명 여백이라 이웃 줄과 겹쳐도 그림끼리는 닿지 않는다.
+        const int WeaponRowPitchTexels = 20;
+        // 탄약 핍(시트 16텍셀 타일)에서 실제 그림이 있는 가로 구간: 왼쪽 여백 4텍셀 뒤로 8텍셀 (외곽선 2 + 몸통 4 + 외곽선 2).
+        const int AmmoPipInsetTexels = 4;
+        const int AmmoPipWidthTexels = 8;
+        // 이웃 핍 사이의 간격. 몸통 4 + 외곽선 2 = 6이면 이웃끼리 외곽선이 정확히 포개져, 낱발이 빈틈없이 꽂힌 탄창 한 덩이로 보인다.
+        // 탄창 크기와 무관하게 늘 이 간격이다 — 탄창이 큰 만큼 줄이 길어질 뿐 핍이 촘촘해지거나 간격이 들쭉날쭉해지지 않는다.
+        // 레벨 상한(Weapon.MaxLevel)이 탄창 크기를 묶으므로 줄 길이도 그 안에 머문다 (산탄총 Lv9 = 25발 = 152텍셀).
+        const int AmmoPipStrideTexels = 6;
         // 게이지 채움 조각의 둥근 양 끝이 프레임 안쪽에서 시작하는 위치. 채움 폭은 이 안쪽 구간에 비례한다.
         const int BarFillInsetTexels = 3;
         // 플레이어 머리 위 체력 게이지. 시트 조각 없이 단색 사각형 두 장(바탕 + 채움)으로 그린다 — 시트의 게이지 프레임은 선이 아주
@@ -91,6 +100,9 @@ namespace PickShoot
         readonly RadialFillTexture dashDial = new RadialFillTexture();
         // 크로스헤어 링이 사격으로 벌어져 있는 양 (텍셀, 0 = 제자리). 발사 시 세팅되고 지수 감쇠로 복귀.
         float cursorRingKick;
+        // 무기 줄의 레벨 열 폭(텍셀). 레벨은 한 자리(1~Weapon.MaxLevel)뿐이라 "LV n" 중 가장 넓은 것에 맞춰 Awake에서 한 번 잰다 —
+        // 글꼴이 가변폭이라 숫자마다 폭이 다르다.
+        int levelColumnTexels;
 
         // HUD(크로스헤어 포함)를 그리는 조건.
         //   플레이어는 사망 시 파괴된다. 그 뒤는 데스 화면이 이어받으므로 HUD를 걷는다.
@@ -121,6 +133,8 @@ namespace PickShoot
             if (cam == null)
                 throw new System.Exception("[PickShoot] MainCamera가 필요합니다 (머리 위 게이지 월드→화면 변환용).");
             skin.Validate();
+            for (int level = 1; level <= Weapon.MaxLevel; level++)
+                levelColumnTexels = Mathf.Max(levelColumnTexels, PixelGui.MeasureText(skin.FontPlain, LevelLabel(level), 1));
             playerWeapons.Fired += OnWeaponFired;
         }
 
@@ -164,8 +178,8 @@ namespace PickShoot
             int hudScale = PixelGui.TextScale;
             using var canvas = PixelGui.BeginCanvas();
             DrawHealthPanel(hudScale);
-            DrawWeaponPanel(canvas, hudScale, leftSide: true);
-            DrawWeaponPanel(canvas, hudScale, leftSide: false);
+            DrawWeaponRows(canvas, hudScale, leftSide: true);
+            DrawWeaponRows(canvas, hudScale, leftSide: false);
             DrawWaveBanner(canvas, hudScale);
             // 커서는 패널 위로 지나갈 수 있으므로 마지막에 그려 항상 패널 위에 보이게 한다. 월드 위에 뜨는 표시라 월드 텍셀 배율로 그린다.
             DrawCrosshair(PixelGui.PanelScale);
@@ -254,10 +268,14 @@ namespace PickShoot
             PixelGui.DrawBarStrip(skin.BarFillRed, bar, skin.TileSize, s, fillW);
         }
 
-        // 하단 한쪽 회색 패널: 링의 해당 쪽에 있는 슬롯만. 슬롯마다 두 줄 — 윗줄은 이름·레벨, 아랫줄은 스프라이트(탄약 부족 표시가 그 위에 겹침)·탄약 핍.
-        // 한 줄에 늘어놓는 것보다 폭이 좁아 게임 화면을 덜 가린다. 슬롯 번호는 카드에서만 쓰므로 HUD에는 두지 않는다.
-        // 해당 쪽에 슬롯이 없으면 패널도 그리지 않는다.
-        void DrawWeaponPanel(PixelGui.CanvasScope canvas, int s, bool leftSide)
+        // 하단 한쪽 구석: 링의 해당 쪽에 있는 슬롯만, 슬롯마다 한 줄. 패널 배경은 두지 않는다 — 글꼴·핍·무기 스프라이트 모두 시트의
+        // 어두운 외곽선을 두르고 있어 바닥 위에서 그대로 읽히고, 전투 공간을 가리는 면적이 그림 자체뿐이다.
+        // 한 줄은 화면 가장자리에서 안쪽으로 무기 스프라이트(탄약 부족 표시가 그 위에 겹침) · 레벨 · 탄창 순이다. 오른쪽 구석은 왼쪽의
+        // 거울상 — 스프라이트도 좌우 반전해 양쪽 모두 총구가 탄창 쪽(화면 안쪽)을 향한다.
+        // 무기 이름과 슬롯 번호는 카드에서만 쓰고 HUD에는 두지 않는다 — 종류는 스프라이트로 구분되고, 이름 줄이 없어야
+        // 12슬롯(한쪽 6줄)까지 늘어도 구석에 낮게 머문다. 마지막 줄이 화면 아래 여백선에 닿고 슬롯이 늘면 위로 쌓인다.
+        // 해당 쪽에 슬롯이 없으면 아무것도 그리지 않는다.
+        void DrawWeaponRows(PixelGui.CanvasScope canvas, int s, bool leftSide)
         {
             var slots = playerWeapons.Slots;
             sideSlots.Clear();
@@ -267,95 +285,74 @@ namespace PickShoot
 
             var font = skin.FontPlain;
             int tile = skin.TileSize * s;
-            int lineH = font.lineHeight * s;
-            int pad = PaddingTexels * s;
             int gap = GapTexels * s;
-            int colGap = ColumnGapTexels * s;
-            int entryGap = EntryGapTexels * s;
+            int rowPitch = WeaponRowPitchTexels * s;
             int margin = MarginTexels * s;
 
-            // 열 폭은 패널 안 모든 항목에서 공통 — 이름 길이가 달라도 레벨과 핍이 세로로 나란히 정렬되도록.
-            int spriteW = 0, spriteH = 0, nameW = 0, levelW = 0;
+            // 열 폭은 그쪽 모든 줄에서 공통 — 스프라이트 크기가 달라도 레벨과 탄창이 세로로 나란히 정렬되도록.
+            // 아이콘 열은 무기 스프라이트와 그 위에 겹쳐 깜빡이는 탄약 부족 X(타일 한 칸) 중 넓은 쪽. X에 따로 자리를 주지 않아
+            // 깜빡여도 레벨·탄창이 움직이지 않는다. 레벨 열은 고정 폭(levelColumnTexels)이라 레벨이 올라도 탄창이 밀리지 않는다.
+            int iconW = tile;
             for (int k = 0; k < sideSlots.Count; k++)
-            {
-                var w = slots[sideSlots[k]];
-                var r = w.Data.WeaponSprite.rect;
-                spriteW = Mathf.Max(spriteW, Mathf.RoundToInt(r.width) * s);
-                spriteH = Mathf.Max(spriteH, Mathf.RoundToInt(r.height) * s);
-                nameW = Mathf.Max(nameW, PixelGui.MeasureText(font, NameLabel(w), s));
-                levelW = Mathf.Max(levelW, PixelGui.MeasureText(font, LevelLabel(w), s));
-            }
-            // 핍 줄 폭은 고정 — 탄창이 커져도 패널이 넓어지지 않고 핍 간격이 줄어든다.
-            int pipsW = AmmoPipRowTexels * s;
-            // 아이콘 열: 무기 스프라이트와 그 위에 겹쳐 깜빡이는 탄약 부족 X(타일 한 칸) 중 넓은 쪽.
-            // X에 따로 자리를 주지 않아 그만큼 패널이 좁고, 깜빡여도 핍이 움직이지 않는다.
-            int iconW = Mathf.Max(spriteW, tile);
-            // 두 줄 중 넓은 쪽이 항목 폭.
-            int ammoLineH = Mathf.Max(Mathf.Max(lineH, tile), spriteH);
-            int entryH = lineH + gap + ammoLineH;
-            int contentW = Mathf.Max(nameW + colGap + levelW, iconW + gap + pipsW);
-            int contentH = sideSlots.Count * entryH + (sideSlots.Count - 1) * entryGap;
+                iconW = Mathf.Max(iconW, Mathf.RoundToInt(slots[sideSlots[k]].Data.WeaponSprite.rect.width) * s);
 
-            int panelW = CeilToMultiple(contentW + 2 * pad, tile);
-            int panelH = CeilToMultiple(contentH + 2 * pad, tile);
-            int panelX = leftSide ? margin : canvas.Width - margin - panelW;
-            var panel = new Rect(panelX, canvas.Height - margin - panelH, panelW, panelH);
-            PixelGui.DrawNineSlice(skin.PanelGrey, panel, skin.TileSize, s);
-
-            int x0 = (int)panel.x + (panelW - contentW) / 2;
-            int y = (int)panel.y + (panelH - contentH) / 2;
+            // 가로 배치는 여백선(edge)에서 화면 안쪽으로 잰 거리로 다룬다 (InwardX). 왼쪽 구석은 +x, 오른쪽 구석은 -x로 자란다.
+            int edge = leftSide ? margin : canvas.Width - margin;
+            int levelInset = iconW + gap;
+            int pipsInset = levelInset + levelColumnTexels * s + gap;
+            int y = canvas.Height - margin - tile - (sideSlots.Count - 1) * rowPitch;
 
             bool blinkOn = Mathf.FloorToInt(Time.unscaledTime / emptyBlinkInterval) % 2 == 0;
             for (int k = 0; k < sideSlots.Count; k++)
             {
-                if (k > 0) y += entryGap;
                 var w = slots[sideSlots[k]];
 
-                PixelGui.DrawText(font, NameLabel(w), x0, y, s);
-                PixelGui.DrawText(font, LevelLabel(w), x0 + nameW + colGap, y, s);
-
-                int lineY = y + lineH + gap;
-                int iconY = lineY + (ammoLineH - tile) / 2;
+                // 스프라이트는 아이콘 열 가로 가운데·줄(타일 높이) 세로 가운데. 타일보다 큰 스프라이트는 줄 위아래로 고르게 넘친다.
                 var sprite = w.Data.WeaponSprite;
                 int sw = Mathf.RoundToInt(sprite.rect.width) * s;
                 int sh = Mathf.RoundToInt(sprite.rect.height) * s;
-                PixelGui.DrawSprite(sprite, new Rect(x0 + (iconW - sw) / 2, lineY + (ammoLineH - sh) / 2, sw, sh));
+                var spriteRect = new Rect(InwardX(edge, leftSide, (iconW - sw) / 2, sw), y + (tile - sh) / 2, sw, sh);
+                if (leftSide) PixelGui.DrawSprite(sprite, spriteRect);
+                else PixelGui.DrawSpriteMirrored(sprite, spriteRect);
 
                 // 탄약이 0이라 쏠 수 없으면 무기 스프라이트 위에 붉은 X를 깜빡여 회수를 재촉한다.
                 // (사격분에 못 미치는 잔량은 남은 만큼 발사되므로 부족 표시 대상이 아니다 — Weapons §4)
                 if (w.CurrentAmmo <= 0 && blinkOn)
-                    PixelGui.DrawSprite(skin.IconCross, new Rect(x0 + (iconW - tile) / 2, iconY, tile, tile));
+                    PixelGui.DrawSprite(skin.IconCross, new Rect(InwardX(edge, leftSide, (iconW - tile) / 2, tile), y, tile, tile));
 
-                DrawAmmoPips(w, x0 + iconW + gap, iconY, s);
-                y += entryH;
+                // 레벨은 열 안에서 스프라이트 쪽 끝에 붙인다 (왼쪽 구석은 왼쪽 정렬, 오른쪽 구석은 오른쪽 정렬).
+                string level = LevelLabel(w.Level);
+                PixelGui.DrawText(font, level, InwardX(edge, leftSide, levelInset, PixelGui.MeasureText(font, level, s)), y, s);
+
+                DrawAmmoPips(w, InwardX(edge, leftSide, pipsInset, 0), leftSide, y, s);
+                y += rowPitch;
             }
         }
 
-        // 탄환 한 발이 핍 하나. 왼쪽부터 남은 탄약만큼 불투명, 나머지는 흐리게 — 최대치와 잔량이 한눈에 보인다.
-        // 간격이 좁아 겹칠 때 남은 탄약(왼쪽)이 위에 오도록 오른쪽부터 그린다.
-        void DrawAmmoPips(Weapon w, int x, int y, int s)
+        // 여백선 edge에서 화면 안쪽으로 inset만큼 떨어져 시작하는 폭 width짜리 요소의 왼쪽 x.
+        // 오른쪽 구석(leftSide = false)에서는 안쪽이 -x 방향이라 요소의 오른쪽 끝이 edge - inset에 온다.
+        static int InwardX(int edge, bool leftSide, int inset, int width)
+        {
+            return leftSide ? edge + inset : edge - inset - width;
+        }
+
+        // 탄창: 탄환 한 발이 핍 하나. 핍을 외곽선이 포개지는 간격으로 붙여 한 덩이로 그린다. 레벨 쪽 끝(rowX)부터 남은 탄약만큼은
+        // 원래 색, 나머지는 spentPipColor를 곱한 어두운 빈 자리 — 최대치와 잔량이 한눈에 보인다. 쏠수록 화면 안쪽 끝부터 빈다.
+        // growRight: 줄이 rowX에서 오른쪽으로 자라는가 (왼쪽 구석). 아니면 왼쪽으로 자란다.
+        // 간격은 탄창 크기와 무관하게 AmmoPipStrideTexels로 일정하다.
+        // 이웃끼리 겹치므로 남은 탄약이 빈 자리 위에 오도록 줄 끝(index가 큰 쪽)부터 그린다 — 경계에서 남은 핍의 외곽선이 온전히 보인다.
+        void DrawAmmoPips(Weapon w, int rowX, bool growRight, int y, int s)
         {
             int tile = skin.TileSize * s;
-            var spent = new Color(1f, 1f, 1f, spentPipAlpha);
             for (int i = w.MaxAmmo - 1; i >= 0; i--)
             {
-                GUI.color = i < w.CurrentAmmo ? Color.white : spent;
-                PixelGui.DrawSprite(skin.IconBulletPlain, new Rect(x + AmmoPipOffsetTexels(i, w.MaxAmmo) * s, y, tile, tile));
+                int offset = i * AmmoPipStrideTexels * s;
+                // 핍 그림(타일 안 AmmoPipInsetTexels부터 AmmoPipWidthTexels 폭)의 왼쪽 x → 타일의 왼쪽 x.
+                int pipX = growRight ? rowX + offset : rowX - offset - AmmoPipWidthTexels * s;
+                GUI.color = i < w.CurrentAmmo ? Color.white : spentPipColor;
+                PixelGui.DrawSprite(skin.IconBulletPlain, new Rect(pipX - AmmoPipInsetTexels * s, y, tile, tile));
             }
             GUI.color = Color.white;
-        }
-
-        // i번째 핍의 줄 안 x 오프셋(텍셀). 탄창 크기와 무관하게 첫 핍은 왼쪽 끝·마지막 핍은 오른쪽 끝에 고정하고 사이를
-        // 최대한 고르게 나눈다 — 반올림 탓에 이웃 간격이 1텍셀씩 다를 수 있다. 간격을 정수로 내려 같은 값으로 늘어놓으면
-        // 개수에 따라 줄 끝이 비어 배열 폭이 들쭉날쭉해지므로 그렇게 하지 않는다.
-        int AmmoPipOffsetTexels(int index, int count)
-        {
-            if (count <= 1) return 0;
-            int span = AmmoPipRowTexels - skin.TileSize;
-            if (count - 1 > span)
-                throw new System.Exception($"[PickShoot] GameHud: 탄약 핍 {count}개는 폭 {AmmoPipRowTexels}텍셀 줄에 들어가지 않는다. AmmoPipRowTexels를 늘려야 한다.");
-            // index * span / (count - 1)을 정수 연산으로 반올림.
-            return (2 * index * span + (count - 1)) / (2 * (count - 1));
         }
 
         // 상단 중앙 붉은 배너 "WAVE N" + 그 아래 남은 시간 게이지. 게이지 위에는 단계별 문구(READY / 남은 초 / CLEAR).
@@ -407,8 +404,7 @@ namespace PickShoot
         }
 
         // 글꼴에 있는 문자(A-Z 0-9 % + - 공백)만 써야 한다. 없는 문자는 PixelGui가 예외로 알린다.
-        static string NameLabel(Weapon w) => w.Data.DisplayName.ToUpperInvariant();
-        static string LevelLabel(Weapon w) => $"LV {w.Level}";
+        static string LevelLabel(int level) => $"LV {level}";
 
         // 핍 n개가 차지하는 폭. 마지막 핍은 타일 전체 폭으로 센다.
         int PipsWidth(int count, int strideTexels, int s)
