@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.InputSystem;
+using UnityEngine.Rendering;
 
 namespace PickShoot
 {
@@ -11,6 +12,9 @@ namespace PickShoot
     // 무기 스프라이트는 오른쪽(+x)을 향해 그려져 있으므로, 자기 조준 방향이 왼쪽인 무기는 상하 반전해 거꾸로 보이지 않게 한다.
     // 발사 연출(반동 킥·총구 화염)도 여기서 담당한다. 무기 비주얼을 소유하는 곳이 링 위치와 반동 오프셋을 함께 계산해야
     // 매 프레임 RearrangeRing이 위치를 덮어써도 반동이 살아남기 때문.
+    // 링 위에서 겹친 무기는 슬롯 순서대로 위에 그린다 (슬롯 0이 맨 위). 링 전체를 SortingGroup 하나로 묶고 그 안에서만 슬롯별
+    // 순서를 준다 — 같은 순서로 두면 2D 렌더러의 축 정렬(y)이 위아래를 정해 링이 돌 때마다 겹침이 뒤바뀌고, 그룹 없이 슬롯별
+    // 순서를 주면 12자루가 다른 스프라이트(총구 화염·이펙트)의 순서 값을 침범한다.
     public class PlayerWeapons : MonoBehaviour
     {
         public const int MaxSlots = 12;
@@ -20,6 +24,7 @@ namespace PickShoot
         [SerializeField, Min(0f)] float ringRadiusPerExtraWeapon = 0.04f;
         [SerializeField] float arcBaseDegrees = 30f;
         [SerializeField, Range(0f, 1f)] float arcExponent = 0.7f;
+        // 링 전체(SortingGroup)가 다른 스프라이트와 겨루는 순서. 무기끼리의 순서는 그룹 안에서 슬롯별로 따로 준다 (CreateVisual).
         [SerializeField] int weaponSortingOrder = 6;
         [SerializeField, Min(0f)] float globalShotInterval = 0.1f;
         [SerializeField, Min(0f)] float ringMaxAngularSpeed = 720f;
@@ -77,6 +82,7 @@ namespace PickShoot
 
             ringPivot = new GameObject("WeaponRingPivot").transform;
             ringPivot.SetParent(transform, false);
+            ringPivot.gameObject.AddComponent<SortingGroup>().sortingOrder = weaponSortingOrder;
             currentRingAngleDeg = aiming.AimAngleDeg;
             ringPivot.rotation = Quaternion.Euler(0f, 0f, currentRingAngleDeg);
 
@@ -119,7 +125,7 @@ namespace PickShoot
         void AddSlot(WeaponData data)
         {
             slots.Add(new Weapon(data));
-            slotVisuals.Add(CreateVisual(data));
+            slotVisuals.Add(CreateVisual(data, slots.Count - 1));
             slotRecoil.Add(0f);
         }
 
@@ -134,13 +140,15 @@ namespace PickShoot
                 slotRecoil[i] = slotRecoil[i] < 0.01f ? 0f : slotRecoil[i] * decay;
         }
 
-        Transform CreateVisual(WeaponData data)
+        Transform CreateVisual(WeaponData data, int slotIndex)
         {
             var go = new GameObject($"Weapon_{data.DisplayName}");
             go.transform.SetParent(ringPivot, false);
             var sr = go.AddComponent<SpriteRenderer>();
             sr.sprite = data.WeaponSprite;
-            sr.sortingOrder = weaponSortingOrder;
+            // 링 그룹 안에서의 순서: 슬롯 0이 0, 뒤 슬롯일수록 낮아져 밑에 깔린다. 총구 화염(프리팹의 양수 순서)은 무기의 자식이라
+            // 같은 그룹에 들어가 늘 모든 무기 위에 그려진다.
+            sr.sortingOrder = -slotIndex;
             slotRenderers.Add(sr);
             return go.transform;
         }
