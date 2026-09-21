@@ -175,6 +175,10 @@ MonoBehaviour:
   dashDistance: 3
   dashDuration: 0.1
   dashCooldown: 1.5
+  dashEvadeGrace: 0.2
+  dashPassThroughLayers:
+    serializedVersion: 2
+    m_Bits: 512
   dashClip: {fileID: 8300000, guid: bdcad12f2d0bdfc4ba0ac15f83be152a, type: 3}
   afterimageSpacing: 0.5
   afterimageDuration: 0.25

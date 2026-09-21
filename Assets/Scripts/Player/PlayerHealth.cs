@@ -3,6 +3,7 @@ using UnityEngine;
 
 namespace PickShoot
 {
+    [RequireComponent(typeof(PlayerMovement))]
     public class PlayerHealth : MonoBehaviour
     {
         [SerializeField] int maxHp = 3;
@@ -18,6 +19,7 @@ namespace PickShoot
         float invincibleUntil;
         float damageFlashStart = -1f;
         SpriteRenderer sr;
+        PlayerMovement movement;
         Color originalColor;
 
         public int Current => current;
@@ -31,6 +33,7 @@ namespace PickShoot
         {
             current = maxHp;
             sr = GetComponent<SpriteRenderer>();
+            movement = GetComponent<PlayerMovement>();
             if (sr != null) originalColor = sr.color;
         }
 
@@ -66,9 +69,11 @@ namespace PickShoot
             TryTakeDamage(1);
         }
 
+        // 회피 중(대시 + 끝난 뒤 짧은 유예)에는 어떤 피해도 받지 않는다 (GDD §3.5). 적의 몸은 PlayerMovement가 충돌을 꺼서 통과시키므로 접촉 피해는 애초에
+        // 들어오지 않고, 여기서는 접촉 없이 들어오는 피해(추후 적 탄환 등)까지 막는다. false를 받은 공격은 빗나간 것으로 다뤄야 한다.
         public bool TryTakeDamage(int amount)
         {
-            if (!IsAlive || IsInvincible) return false;
+            if (!IsAlive || IsInvincible || movement.IsEvading) return false;
             current -= amount;
             invincibleUntil = Time.time + invincibilityTime;
             damageFlashStart = Time.time;

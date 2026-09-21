@@ -7,7 +7,9 @@ namespace PickShoot
     // 입력을 놓은 뒤 관성으로 미끄러지는 동안은 정지 포즈를 유지한다.
     // 대시(GDD §3.5)는 시작 순간 속도를 한 번 실어 주고 끝날 때까지 가속·마찰을 멈추는 방식이다 — 그동안 속도는 물리에 맡기므로
     // 벽에 닿으면 평소처럼 튕겨 나온다. 끝나면 속도를 이동 속도 이하로 잘라 평소 이동으로 매끄럽게 이어진다.
-    // 대시 중에는 지나온 궤적에 일정 간격으로 잔상(DashAfterimage)을 남긴다.
+    // 대시 중에는 지나온 궤적에 일정 간격으로 잔상(DashAfterimage)을 남기고, 회피 대상 레이어(적·추후 적 탄환)와는 충돌하지 않아
+    // 몸이 그대로 통과한다. 이 회피는 대시가 끝난 뒤에도 짧은 유예(dashEvadeGrace) 동안 이어진다 — 적과 겹친 채 끝나도 빠져나올
+    // 틈을 준다. 회피 중 피해를 받지 않는 것은 PlayerHealth가 IsEvading을 보고 처리한다.
     [RequireComponent(typeof(Rigidbody2D))]
     [RequireComponent(typeof(SpriteWalkCycle))]
     [RequireComponent(typeof(PlayerAiming))]
@@ -24,6 +26,10 @@ namespace PickShoot
         [SerializeField, Min(0.01f)] float dashDuration = 0.1f;
         // 대시를 시작한 순간부터 다음 대시가 가능해질 때까지 (초).
         [SerializeField, Min(0f)] float dashCooldown = 1.5f;
+        // 대시가 끝난 뒤에도 회피(통과·피해 무시)가 이어지는 시간 (초).
+        [SerializeField, Min(0f)] float dashEvadeGrace = 0.2f;
+        // 회피 중 몸이 통과하는 레이어 (적, 추후 적 탄환). 벽은 넣지 않는다 — 대시로 아레나를 벗어날 수 없어야 한다.
+        [SerializeField] LayerMask dashPassThroughLayers;
         [SerializeField] AudioClip dashClip;
         // 잔상 사이의 거리 (월드 유닛). 프레임 단위가 아니라 궤적 위에 이 간격으로 놓으므로 프레임률과 무관하게 고르다.
         [SerializeField, Min(0.05f)] float afterimageSpacing = 0.5f;
@@ -42,10 +48,17 @@ namespace PickShoot
         float dashTimeLeft;
         float dashStartTime;
         float dashReadyTime;
+        bool evading;
+        // 대시가 끝난 뒤 회피가 풀리는 시각. 대시 중에는 쓰지 않는다.
+        float evadeEndTime;
+        // 회피 중이 아닐 때의 Rigidbody2D.excludeLayers. 회피가 끝나면 이 값으로 되돌린다.
+        LayerMask baseExcludeLayers;
         // 마지막 잔상을 놓은 자리. 여기서 afterimageSpacing만큼 멀어질 때마다 다음 잔상을 놓는다.
         Vector2 lastAfterimagePosition;
 
         public bool IsDashing => dashTimeLeft > 0f;
+        // 회피 중 = 대시 중 + 끝난 뒤 유예. 이동안 적을 통과하고 피해를 받지 않는다.
+        public bool IsEvading => evading;
         public bool DashReady => Time.time >= dashReadyTime;
         // 대시 쿨다운 진행도. 0 = 방금 대시함, 1 = 사용 가능. GameHud의 머리 위 원형 표시가 읽는다.
         public float DashCooldownProgress => DashReady ? 1f : Mathf.InverseLerp(dashStartTime, dashReadyTime, Time.time);
@@ -56,6 +69,9 @@ namespace PickShoot
             walkCycle = GetComponent<SpriteWalkCycle>();
             aiming = GetComponent<PlayerAiming>();
             sr = GetComponent<SpriteRenderer>();
+            if (dashPassThroughLayers.value == 0)
+                throw new System.Exception("[PickShoot] PlayerMovement.dashPassThroughLayers 미설정. 대시 중 통과할 레이어(Enemy 등) 필요.");
+            baseExcludeLayers = rb.excludeLayers;
         }
 
         void Update()
@@ -113,7 +129,15 @@ namespace PickShoot
                 // 부동소수 오차로 스텝 하나가 더 돌거나 덜 돌지 않도록 반 스텝 기준으로 끝을 판정한다.
                 if (dashTimeLeft > Time.fixedDeltaTime * 0.5f) return;
                 dashTimeLeft = 0f;
+                evadeEndTime = Time.time + dashEvadeGrace;
                 rb.linearVelocity = Vector2.ClampMagnitude(rb.linearVelocity, moveSpeed);
+            }
+
+            // 유예까지 지나면 충돌을 되살린다. 이 순간에도 적과 겹쳐 있으면 접촉이 새로 시작돼 평소대로 피해를 입는다 (GDD §3.5).
+            if (evading && Time.time >= evadeEndTime)
+            {
+                evading = false;
+                rb.excludeLayers = baseExcludeLayers;
             }
 
             var target = input * moveSpeed;
@@ -130,6 +154,8 @@ namespace PickShoot
             dashTimeLeft = dashDuration + Time.fixedDeltaTime;
             dashStartTime = Time.time;
             dashReadyTime = dashStartTime + dashCooldown;
+            evading = true;
+            rb.excludeLayers = baseExcludeLayers | dashPassThroughLayers;
 
             // 첫 잔상은 떠난 자리에.
             lastAfterimagePosition = transform.position;
