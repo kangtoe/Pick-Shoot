@@ -285,7 +285,8 @@ namespace PickShoot
         // 한 줄은 화면 가장자리에서 안쪽으로 무기 스프라이트(탄약 부족 표시가 그 위에 겹침) · 레벨 · 탄창 순이다. 오른쪽 구석은 왼쪽의
         // 거울상 — 스프라이트도 좌우 반전해 양쪽 모두 총구가 탄창 쪽(화면 안쪽)을 향한다.
         // 무기 이름과 슬롯 번호는 카드에서만 쓰고 HUD에는 두지 않는다 — 종류는 스프라이트로 구분되고, 이름 줄이 없어야
-        // 12슬롯(한쪽 6줄)까지 늘어도 구석에 낮게 머문다. 마지막 줄이 화면 아래 여백선에 닿고 슬롯이 늘면 위로 쌓인다.
+        // 12슬롯(한쪽 6줄)까지 늘어도 구석에 낮게 머문다. 그쪽의 첫 슬롯이 화면 아래 여백선에 닿고, 이후 슬롯은 슬롯 순서대로
+        // 그 위에 쌓인다 — 슬롯의 좌우는 고정(짝수 인덱스는 왼쪽, 홀수는 오른쪽)이라 무기가 늘어도 기존 줄은 제자리에 있다.
         // 해당 쪽에 슬롯이 없으면 아무것도 그리지 않는다.
         void DrawWeaponRows(PixelGui.CanvasScope canvas, int s, bool leftSide)
         {
@@ -314,7 +315,7 @@ namespace PickShoot
             int edge = leftSide ? margin : canvas.Width - margin;
             int levelInset = iconW + gap;
             int pipsInset = levelInset + levelColumnTexels * s + gap;
-            int y = canvas.Height - margin - tile - (sideSlots.Count - 1) * rowPitch;
+            int y = canvas.Height - margin - tile;
 
             bool blinkOn = Mathf.FloorToInt(Time.unscaledTime / emptyBlinkInterval) % 2 == 0;
             for (int k = 0; k < sideSlots.Count; k++)
@@ -340,7 +341,7 @@ namespace PickShoot
                 PixelGui.DrawText(font, level, InwardX(edge, leftSide, levelInset, PixelGui.MeasureText(font, level, s)), y, s);
 
                 DrawAmmoPips(w, InwardX(edge, leftSide, pipsInset, 0), leftSide, y, s);
-                y += rowPitch;
+                y -= rowPitch;
             }
         }
 
