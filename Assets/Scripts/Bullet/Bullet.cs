@@ -25,6 +25,7 @@ namespace PickShoot
         Camera mainCam;
         Rigidbody2D rb;
         SpriteRenderer sr;
+        Collider2D bodyCollider;
         Vector2 lastVelocity;
         Vector3 baseScale;
         Color baseColor;
@@ -48,7 +49,16 @@ namespace PickShoot
         // 플레이어 자석에 한 번 걸리면 회수될 때까지 풀리지 않는다. 걸기·끌림 세기(0~1) 갱신은 PlayerPickup이 한다.
         public bool IsMagnetized { get; private set; }
         public float MagnetPull { get; set; }
-        public void Magnetize() => IsMagnetized = true;
+
+        // 끌려오는 탄환은 아무것에도 막히지 않는다. 콜라이더를 꺼 벽에 걸리지 않게 하고, 다른 탄환의
+        // 분리 탐색(OverlapCircle)에도 잡히지 않게 한다. 자신이 받는 분리 힘은 FixedUpdate에서 건너뛴다.
+        public void Magnetize()
+        {
+            if (active)
+                throw new System.Exception("[PickShoot] Bullet.Magnetize: 튕김 페이즈의 탄환은 자석에 걸 수 없습니다. 정착(ForceSettle) 후 호출해야 합니다.");
+            IsMagnetized = true;
+            bodyCollider.enabled = false;
+        }
 
         // 웨이브 클리어 sweep 등에서 튕김 페이즈를 강제 종료해 회수 대상으로 만든다.
         // FixedUpdate가 다음 프레임에 damping·layer를 정착 상태로 반영한다.
@@ -58,6 +68,9 @@ namespace PickShoot
         {
             rb = GetComponent<Rigidbody2D>();
             sr = GetComponent<SpriteRenderer>();
+            bodyCollider = GetComponent<Collider2D>();
+            if (bodyCollider == null)
+                throw new System.Exception("[PickShoot] Bullet에 Collider2D가 필요합니다.");
             if (sr != null) baseColor = sr.color;
             baseScale = transform.localScale;
 
@@ -119,9 +132,12 @@ namespace PickShoot
             if (!active)
                 rb.linearDamping = decayLinearDamping;
 
-            Vector2 separation = ComputeSeparation();
-            if (separation.sqrMagnitude > 0.0001f)
-                rb.linearVelocity += separation * Time.fixedDeltaTime;
+            if (!IsMagnetized)
+            {
+                Vector2 separation = ComputeSeparation();
+                if (separation.sqrMagnitude > 0.0001f)
+                    rb.linearVelocity += separation * Time.fixedDeltaTime;
+            }
 
             lastVelocity = rb.linearVelocity;
 
