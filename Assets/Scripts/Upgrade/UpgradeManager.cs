@@ -7,23 +7,39 @@ namespace PickShoot
     // 웨이브 클리어 시 3장 카드(획득/강화 혼합)를 제시하고 선택을 대기한다.
     // 게임 흐름 제어를 위해 Time.timeScale=0로 일시정지, 선택 시 원복. WaveManager가 코루틴으로 호출.
     // 카드는 IMGUI 위에 PixelUiSkin(Kenney Interface 시트)으로 그린다. 글꼴이 A-Z 0-9만 있어 UI 문구는 영문 대문자.
+    // 카드 밑의 리롤 버튼은 카드 화면마다 정해진 횟수만큼 3장을 통째로 다시 뽑는다 (Weapons §3).
     public class UpgradeManager : MonoBehaviour
     {
         [SerializeField] PlayerWeapons weapons;
         [SerializeField] List<WeaponData> weaponPool = new List<WeaponData>();
         [SerializeField] int cardsToShow = 3;
+        // 카드 화면 한 번에 쓸 수 있는 리롤 횟수 (무료). 0이면 버튼을 두지 않는다.
+        [SerializeField, Min(0)] int rerollsPerReward = 1;
         [SerializeField] AudioClip selectClip;
+        [SerializeField] AudioClip rerollClip;
 
         [Header("Presentation")]
         [SerializeField] PixelUiSkin skin;
         [SerializeField, Range(0f, 1f)] float dimAlpha = 0.7f;
 
+        // 글꼴에 있는 문자(A-Z 0-9 % + - 공백)만 써야 한다. 없는 문자는 PixelGui가 예외로 알린다.
+        const string RerollLabel = "REROLL";
+        const int ButtonPaddingTexels = 8;   // 버튼 패널 테두리 → 글자
+        const int HoverLiftTexels = 4;       // 카드(UpgradeCardPainter)와 같은 텍셀 수. 버튼은 글자 배율이라 화면에서는 절반.
+        static readonly Color DisabledTint = new Color(0.5f, 0.5f, 0.5f, 1f);
+
+        // 이번 카드 화면의 후보 전체(획득 + 레벨업, 순서 고정). 처음 카드도 리롤도 여기서 뽑는다.
+        List<UpgradeOption> candidates;
         UpgradeOption[] currentCards;
         int clearedWave;
+        int rerollsLeft;
         bool active;
         bool selected;
 
         public bool IsActive => active;
+
+        // 후보가 카드 수 이하면 다시 뽑아도 같은 카드가 순서만 바뀌어 나오므로 리롤 버튼을 두지 않는다.
+        bool RerollOffered => rerollsPerReward > 0 && candidates.Count > currentCards.Length;
 
         void Awake()
         {
@@ -49,8 +65,10 @@ namespace PickShoot
             if (clearedWave < 1)
                 throw new System.Exception($"[PickShoot] UpgradeManager.PresentAndWait: clearedWave가 1 미만 ({clearedWave}).");
             this.clearedWave = clearedWave;
-            currentCards = BuildCandidates();
-            if (currentCards.Length == 0) yield break;
+            candidates = BuildCandidates();
+            if (candidates.Count == 0) yield break;
+            currentCards = Draw(null);
+            rerollsLeft = rerollsPerReward;
 
             active = true;
             selected = false;
@@ -63,31 +81,54 @@ namespace PickShoot
             active = false;
         }
 
-        UpgradeOption[] BuildCandidates()
+        List<UpgradeOption> BuildCandidates()
         {
-            var candidates = new List<UpgradeOption>();
+            var result = new List<UpgradeOption>();
 
             if (weapons.HasEmptySlot)
             {
                 foreach (var d in weaponPool)
-                    candidates.Add(UpgradeOption.Acquire(d));
+                    result.Add(UpgradeOption.Acquire(d));
             }
 
             // 최대 레벨(Weapon.MaxLevel) 자루는 레벨업 후보에서 뺀다. 슬롯이 가득 차고 전부 최대 레벨이면 후보가 없어 카드 화면을 건너뛴다.
             for (int i = 0; i < weapons.Slots.Count; i++)
                 if (!weapons.Slots[i].IsMaxLevel)
-                    candidates.Add(UpgradeOption.LevelUpSlot(i));
+                    result.Add(UpgradeOption.LevelUpSlot(i));
+
+            return result;
+        }
+
+        // 후보를 섞어 앞에서 cardsToShow장을 뽑는다. shown(지금 보이는 카드)이 있으면 그 카드들을 섞인 순서 그대로 맨 뒤로
+        // 미룬 채 뽑는다 — 후보가 넉넉하면 전부 새 카드, 모자라면 겹치는 만큼만 다시 나온다. 리롤은 "다른 걸 보여 달라"는
+        // 요청이라, 독립 추첨으로 같은 카드가 순서만 바뀌어 나오면 리롤이 먹히지 않은 것처럼 보이기 때문.
+        UpgradeOption[] Draw(UpgradeOption[] shown)
+        {
+            var order = new List<UpgradeOption>(candidates);
 
             // Fisher-Yates
-            for (int i = candidates.Count - 1; i > 0; i--)
+            for (int i = order.Count - 1; i > 0; i--)
             {
                 int j = Random.Range(0, i + 1);
-                (candidates[i], candidates[j]) = (candidates[j], candidates[i]);
+                (order[i], order[j]) = (order[j], order[i]);
             }
 
-            int take = Mathf.Min(cardsToShow, candidates.Count);
+            if (shown != null)
+            {
+                var fresh = new List<UpgradeOption>(order.Count);
+                var repeat = new List<UpgradeOption>(shown.Length);
+                foreach (var o in order)
+                {
+                    if (System.Array.IndexOf(shown, o) >= 0) repeat.Add(o);
+                    else fresh.Add(o);
+                }
+                fresh.AddRange(repeat);
+                order = fresh;
+            }
+
+            int take = Mathf.Min(cardsToShow, order.Count);
             var result = new UpgradeOption[take];
-            for (int i = 0; i < take; i++) result[i] = candidates[i];
+            for (int i = 0; i < take; i++) result[i] = order[i];
             return result;
         }
 
@@ -96,6 +137,15 @@ namespace PickShoot
             currentCards[index].Apply(weapons);
             if (selectClip != null) SoundPlayer.Play(selectClip);
             selected = true;
+        }
+
+        void Reroll()
+        {
+            if (rerollsLeft <= 0)
+                throw new System.Exception("[PickShoot] UpgradeManager.Reroll: 남은 리롤이 없는데 호출됨.");
+            rerollsLeft--;
+            currentCards = Draw(currentCards);
+            if (rerollClip != null) SoundPlayer.Play(rerollClip);
         }
 
         void OnGUI()
@@ -128,11 +178,20 @@ namespace PickShoot
             int titleW = PixelGui.MeasureText(skin.FontOutlined, title, scale);
             int bannerW = CeilToMultiple(titleW + 2 * tile, tile);
             int bannerH = 2 * tile;
-            int subtitleH = skin.FontPlain.lineHeight * textScale;
+            int lineH = skin.FontPlain.lineHeight * textScale;
             int gap = tile;
 
-            // 배너·부제·카드 묶음을 화면 세로 중앙에 놓는다.
-            int blockH = bannerH + subtitleH + gap + cardSize.y;
+            // 리롤 버튼은 일시정지 화면의 안내 패널과 같은 결: 글자 배율 회색 패널에 한 줄. 남은 횟수를 함께 적는다.
+            bool rerollOffered = RerollOffered;
+            string rerollText = $"{RerollLabel} {rerollsLeft}";
+            int textTile = skin.TileSize * textScale;
+            int buttonPad = ButtonPaddingTexels * textScale;
+            int buttonW = CeilToMultiple(PixelGui.MeasureText(skin.FontPlain, rerollText, textScale) + 2 * buttonPad, textTile);
+            int buttonH = CeilToMultiple(lineH + 2 * buttonPad, textTile);
+
+            // 배너·부제·카드·리롤 버튼 묶음을 화면 세로 중앙에 놓는다.
+            int blockH = bannerH + lineH + gap + cardSize.y;
+            if (rerollOffered) blockH += gap + buttonH;
             int blockY = (canvas.Height - blockH) / 2;
             int centerX = canvas.Width / 2;
 
@@ -142,7 +201,7 @@ namespace PickShoot
                 blockY + (bannerH - skin.FontOutlined.lineHeight * scale) / 2, scale);
             PixelGui.DrawTextCentered(skin.FontPlain, subtitle, centerX, blockY + bannerH, textScale);
 
-            int cardsY = blockY + bannerH + subtitleH + gap;
+            int cardsY = blockY + bannerH + lineH + gap;
             int totalW = currentCards.Length * cardSize.x + (currentCards.Length - 1) * gap;
             int startX = centerX - totalW / 2;
             var mouse = Event.current.mousePosition;
@@ -156,6 +215,23 @@ namespace PickShoot
                 if (GUI.Button(r, GUIContent.none, GUIStyle.none))
                     Select(i);
             }
+
+            if (!rerollOffered) return;
+
+            // 다 쓴 뒤에도 어둡게 남겨 둔다 — 카드 묶음이 움직이지 않고, 리롤이 있었다는 것도 읽힌다.
+            bool rerollEnabled = rerollsLeft > 0;
+            var button = new Rect(centerX - buttonW / 2, cardsY + cardSize.y + gap, buttonW, buttonH);
+            bool buttonHovered = rerollEnabled && button.Contains(mouse);
+            var drawn = button;
+            if (buttonHovered) drawn.y -= HoverLiftTexels * textScale;
+            GUI.color = rerollEnabled ? Color.white : DisabledTint;
+            PixelGui.DrawNineSlice(skin.PanelGrey, drawn, skin.TileSize, textScale);
+            PixelGui.DrawTextCentered(skin.FontPlain, rerollText, centerX, (int)drawn.y + (buttonH - lineH) / 2, textScale);
+            GUI.color = Color.white;
+            if (buttonHovered)
+                PixelGui.DrawNineSlice(skin.SelectionFrame, drawn, skin.TileSize, textScale);
+            if (rerollEnabled && GUI.Button(button, GUIContent.none, GUIStyle.none))
+                Reroll();
         }
 
         static int CeilToMultiple(int value, int multiple)

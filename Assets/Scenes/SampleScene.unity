@@ -1049,7 +1049,9 @@ MonoBehaviour:
   - {fileID: 11400000, guid: c1a2b3d4e5f6789012345abcdef01234, type: 2}
   - {fileID: 11400000, guid: d2b3c4e5f6a789b012345cdef6789abc, type: 2}
   cardsToShow: 3
+  rerollsPerReward: 1
   selectClip: {fileID: 8300000, guid: 460e5219f0f84004790b551e7a638e25, type: 3}
+  rerollClip: {fileID: 8300000, guid: be6acc78056b18742bf774689a87c295, type: 3}
   skin: {fileID: 11400000, guid: 75b98a2d2daa9a04797ea6f248de2474, type: 2}
   dimAlpha: 0.7
 --- !u!114 &1698421209

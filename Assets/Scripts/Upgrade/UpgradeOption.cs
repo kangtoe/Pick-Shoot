@@ -11,7 +11,8 @@ namespace PickShoot
     // 업그레이드 선택 카드 하나. Kind에 따라 필드가 달라진다:
     //   AcquireWeapon → acquireData 사용
     //   LevelUp       → targetSlotIndex 사용 (자루 단위 레벨업, GDD §7.3)
-    public readonly struct UpgradeOption
+    // 같은 종류·같은 대상이면 같은 카드다 — 리롤이 지금 보이는 카드를 골라내는 기준.
+    public readonly struct UpgradeOption : System.IEquatable<UpgradeOption>
     {
         public readonly UpgradeKind Kind;
         public readonly WeaponData AcquireData;   // AcquireWeapon 전용
@@ -36,6 +37,21 @@ namespace PickShoot
             if (slotIndex < 0)
                 throw new System.Exception($"[PickShoot] UpgradeOption.LevelUpSlot: slotIndex 음수 ({slotIndex}).");
             return new UpgradeOption(UpgradeKind.LevelUp, null, slotIndex);
+        }
+
+        public bool Equals(UpgradeOption other)
+        {
+            return Kind == other.Kind && AcquireData == other.AcquireData && TargetSlotIndex == other.TargetSlotIndex;
+        }
+
+        public override bool Equals(object obj)
+        {
+            return obj is UpgradeOption other && Equals(other);
+        }
+
+        public override int GetHashCode()
+        {
+            return System.HashCode.Combine(Kind, AcquireData, TargetSlotIndex);
         }
 
         public void Apply(PlayerWeapons weapons)
