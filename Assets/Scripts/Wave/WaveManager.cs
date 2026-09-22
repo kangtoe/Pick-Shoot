@@ -47,6 +47,8 @@ namespace PickShoot
         float currentWaveDuration;
         float waveTimeRemaining;
         WavePhase phase = WavePhase.Idle;
+        // EndWaveNow가 세운다. 진행 중인 웨이브가 남은 시간을 무시하고 다음 프레임에 끝난다.
+        bool endWaveRequested;
         int pendingWarnings;
         readonly List<EnemyHealth> spawnedEnemies = new List<EnemyHealth>();
         // 예고 중인 마커. 웨이브가 끝나거나 플레이어가 죽으면 남은 예고 시간과 무관하게 함께 치운다.
@@ -110,7 +112,7 @@ namespace PickShoot
                 phase = WavePhase.Active;
                 float elapsed = 0f;
                 float nextSpawnAt = 0f;
-                while (elapsed < currentWaveDuration)
+                while (elapsed < currentWaveDuration && !endWaveRequested)
                 {
                     if (!CanSpawn())
                     {
@@ -129,6 +131,7 @@ namespace PickShoot
                     yield return null;
                     elapsed += Time.deltaTime;
                 }
+                endWaveRequested = false;
                 waveTimeRemaining = 0f;
                 phase = WavePhase.Cleared;
 
@@ -150,6 +153,14 @@ namespace PickShoot
 
         // 스폰 가능 조건: 플레이어가 살아 있어야 함. 사망(파괴) 시 웨이브 진행·스폰·업그레이드 UI 중단.
         bool CanSpawn() => player != null;
+
+        // 진행 중인 웨이브를 즉시 끝낸다 (디버그 도구용). 시간이 다 된 것과 같은 경로 — 적 정리 → sweep → 회복 → 카드 — 로 이어진다.
+        public void EndWaveNow()
+        {
+            if (phase != WavePhase.Active)
+                throw new System.Exception($"[PickShoot] WaveManager.EndWaveNow: 진행 중인 웨이브가 없음 (phase {phase}).");
+            endWaveRequested = true;
+        }
 
         IEnumerator SpawnWithWarning()
         {

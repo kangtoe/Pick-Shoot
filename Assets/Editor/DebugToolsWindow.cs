@@ -5,7 +5,7 @@ namespace PickShoot
 {
     // 플레이 모드 디버그 도구 창 (메뉴 PickShoot/Debug Tools). 장기 보존 도구 (DEVELOPMENT §2.1).
     // 씬 참조 없이 플레이 중인 오브젝트를 찾아 조작하므로 씬·프리팹을 건드리지 않고, 빌드에도 들어가지 않는다.
-    // 현재 제공: 무기 종류를 골라 추가 / 마지막 무기 버리기 / 자루별 레벨업.
+    // 현재 제공: 진행 중인 웨이브 즉시 클리어 / 무기 종류를 골라 추가 / 마지막 무기 버리기 / 자루별 레벨업.
     public class DebugToolsWindow : EditorWindow
     {
         const int AddButtonsPerRow = 3;
@@ -56,6 +56,14 @@ namespace PickShoot
                 EditorGUILayout.HelpBox("플레이 모드에서만 동작합니다.", MessageType.Info);
                 return;
             }
+            var waves = FindFirstObjectByType<WaveManager>();
+            if (waves == null)
+                EditorGUILayout.HelpBox("씬에 WaveManager가 없습니다.", MessageType.Warning);
+            else
+                DrawWave(waves);
+
+            EditorGUILayout.Space();
+
             var weapons = FindFirstObjectByType<PlayerWeapons>();
             if (weapons == null)
             {
@@ -64,6 +72,18 @@ namespace PickShoot
             }
 
             DrawWeapons(weapons);
+        }
+
+        // 진행 중인 웨이브를 남은 시간과 무관하게 끝낸다. 시간이 다 된 것과 같은 경로(적 정리 → sweep → 회복 → 카드)를 타므로
+        // 카드 화면·리롤·다음 웨이브의 적 해금을 기다리지 않고 본다. 카운트다운·클리어 중에는 끝낼 웨이브가 없어 잠근다.
+        void DrawWave(WaveManager waves)
+        {
+            GUILayout.Label($"Wave {waves.CurrentWave}   {waves.Phase}   {waves.WaveTimeRemaining:0.0}s", EditorStyles.boldLabel);
+            using (new EditorGUI.DisabledScope(waves.Phase != WavePhase.Active))
+            {
+                if (GUILayout.Button("Clear Wave Now"))
+                    waves.EndWaveNow();
+            }
         }
 
         void DrawWeapons(PlayerWeapons weapons)
