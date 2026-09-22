@@ -25,6 +25,7 @@ namespace PickShoot
         // 글꼴에 있는 문자(A-Z 0-9 % + - 공백)만 써야 한다. 없는 문자는 PixelGui가 예외로 알린다.
         const string RerollLabel = "REROLL";
         const int ButtonPaddingTexels = 8;   // 버튼 패널 테두리 → 글자
+        const int SubtitleGapTexels = 4;     // 배너 아래 안내 문구("CHOOSE A CARD")까지 간격 (패널 텍셀)
         const int HoverLiftTexels = 4;       // 카드(UpgradeCardPainter)와 같은 텍셀 수. 버튼은 글자 배율이라 화면에서는 절반.
         static readonly Color DisabledTint = new Color(0.5f, 0.5f, 0.5f, 1f);
 
@@ -185,7 +186,8 @@ namespace PickShoot
             int buttonH = CeilToMultiple(lineH + 2 * buttonPad, textTile);
 
             // 배너·부제·카드·리롤 버튼 묶음을 화면 세로 중앙에 놓는다.
-            int blockH = bannerH + lineH + gap + cardSize.y;
+            int subtitleGap = SubtitleGapTexels * scale;
+            int blockH = bannerH + subtitleGap + lineH + gap + cardSize.y;
             if (rerollOffered) blockH += gap + buttonH;
             int blockY = (canvas.Height - blockH) / 2;
             int centerX = canvas.Width / 2;
@@ -194,9 +196,9 @@ namespace PickShoot
             PixelGui.DrawNineSlice(skin.PanelRed, banner, skin.TileSize, scale);
             PixelGui.DrawTextCentered(skin.FontOutlined, title, centerX,
                 blockY + (bannerH - skin.FontOutlined.lineHeight * scale) / 2, scale);
-            PixelGui.DrawTextCentered(skin.FontPlain, subtitle, centerX, blockY + bannerH, textScale);
+            PixelGui.DrawTextCentered(skin.FontPlain, subtitle, centerX, blockY + bannerH + subtitleGap, textScale);
 
-            int cardsY = blockY + bannerH + lineH + gap;
+            int cardsY = blockY + bannerH + subtitleGap + lineH + gap;
             int totalW = currentCards.Length * cardSize.x + (currentCards.Length - 1) * gap;
             int startX = centerX - totalW / 2;
             var mouse = Event.current.mousePosition;
