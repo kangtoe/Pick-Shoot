@@ -26,11 +26,12 @@ namespace PickShoot
         const string NoValue = "-";
         // 종류 배지: 패널 한 줄, 패널 색과 문구로 구분 — 획득은 노란 NEW!, 레벨업은 카드 본체와 같은 파란 LV UP — 카드에서 이어진 탭처럼 보이고 새 무기만 튄다. 느낌표는 새 무기에만.
         // 패널·글자 모두 이름과 같은 배율 3. 카드 위쪽 끝에 걸쳐 BadgeInsetTexels(패널 텍셀)만큼 카드 안으로 들어온다 — 배지 높이의 2/3.
-        // 문구는 짧게 — "LEVEL UP"은 배율 3에서 카드 폭의 3/4을 차지한다.
+        // 문구는 짧게 — "LEVEL UP"은 배율 3에서 카드 폭의 2/3을 차지한다.
         const string NewBadgeText = "NEW!";
         const string LevelUpBadgeText = "LV UP";
         const int BadgeScale = 3;
-        const int BadgePaddingTexels = 8;  // 배지 패널 테두리 → 글자 (배지 배율)
+        const int BadgePaddingXTexels = 10; // 배지 패널 테두리 → 글자, 좌우 (배지 배율)
+        const int BadgePaddingYTexels = 8;  // 위아래
         const int BadgeInsetTexels = 16;
 
         // 글꼴에 있는 문자(A-Z 0-9 % + - ! 공백)만 써야 한다. 없는 문자는 PixelGui가 예외로 알린다.
@@ -138,10 +139,13 @@ namespace PickShoot
         static void DrawBadge(PixelUiSkin skin, Rect card, int scale, string text, PixelUiSkin.NineSlice panel)
         {
             int badgeTile = skin.TileSize * BadgeScale;
-            int pad = BadgePaddingTexels * BadgeScale;
+            int padX = BadgePaddingXTexels * BadgeScale;
+            int padY = BadgePaddingYTexels * BadgeScale;
             int lineH = skin.FontPlain.lineHeight * BadgeScale;
-            int w = CeilToMultiple(PixelGui.MeasureText(skin.FontPlain, text, BadgeScale) + 2 * pad, badgeTile);
-            int h = CeilToMultiple(lineH + 2 * pad, badgeTile);
+            // 폭은 타일 배수로 올리지 않는다 — 올리면 문구에 따라 글자 양옆 여백이 들쭉날쭉해진다. 9-slice는 부분 타일을 지원하고
+            // 모서리 2개(타일 2개)보다는 넓어야 한다.
+            int w = Mathf.Max(2 * badgeTile, PixelGui.MeasureText(skin.FontPlain, text, BadgeScale) + 2 * padX);
+            int h = lineH + 2 * padY;
             if (w > (int)card.width)
                 throw new System.Exception($"[PickShoot] UpgradeCardPainter: 배지 '{text}'의 폭 {w}px가 카드 폭 {(int)card.width}px를 넘음. 문구를 줄이거나 BadgeScale을 낮출 것.");
             int centerX = (int)card.center.x;
@@ -221,11 +225,6 @@ namespace PickShoot
             // 위쪽 화살표 아이콘을 시계방향 90° 돌려 오른쪽 화살표로 쓴다.
             PixelGui.DrawSpriteRotated(skin.IconArrowUp, new Rect(arrowX, y, iconSize, iconSize), 90f);
             PixelGui.DrawText(skin.FontPlain, next, arrowX + iconSize + space, y, textScale);
-        }
-
-        static int CeilToMultiple(int value, int multiple)
-        {
-            return ((value + multiple - 1) / multiple) * multiple;
         }
     }
 }
