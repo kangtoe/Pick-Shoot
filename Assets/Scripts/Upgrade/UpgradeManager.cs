@@ -165,13 +165,8 @@ namespace PickShoot
             // 클릭 판정(GUI.Button)도 캔버스 좌표로 하므로 Repaint뿐 아니라 모든 이벤트에서 캔버스를 연다.
             using var canvas = PixelGui.BeginCanvas();
 
-            // 모든 카드를 같은 크기로: 내용상 가장 큰 카드에 맞춘다.
-            var cardSize = Vector2Int.zero;
-            for (int i = 0; i < currentCards.Length; i++)
-            {
-                var size = UpgradeCardPainter.Measure(skin, currentCards[i], weapons, scale, textScale);
-                cardSize = Vector2Int.Max(cardSize, size);
-            }
+            // 카드 크기는 고정 (UpgradeCardPainter). 어떤 조합이 나와도 세 장이 같은 크기·자리에 놓인다.
+            var cardSize = UpgradeCardPainter.CardSize(skin, scale);
 
             string title = $"WAVE {clearedWave} CLEAR";
             const string subtitle = "CHOOSE A CARD";
