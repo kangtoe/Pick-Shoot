@@ -177,9 +177,9 @@ namespace PickShoot
             int lineH = skin.FontPlain.lineHeight * textScale;
             int gap = tile;
 
-            // 리롤 버튼은 일시정지 화면의 안내 패널과 같은 결: 글자 배율 회색 패널에 한 줄. 남은 횟수를 함께 적는다.
+            // 리롤 버튼은 일시정지 화면의 안내 패널과 같은 결: 글자 배율 회색 패널에 한 줄. 남은 횟수를 괄호에 넣어 함께 적는다.
             bool rerollOffered = RerollOffered;
-            string rerollText = $"{RerollLabel} {rerollsLeft}";
+            string rerollText = $"{RerollLabel} ({rerollsLeft})";
             int textTile = skin.TileSize * textScale;
             int buttonPad = ButtonPaddingTexels * textScale;
             int buttonW = CeilToMultiple(PixelGui.MeasureText(skin.FontPlain, rerollText, textScale) + 2 * buttonPad, textTile);
