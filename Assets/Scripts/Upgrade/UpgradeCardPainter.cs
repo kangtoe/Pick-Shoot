@@ -5,7 +5,7 @@ namespace PickShoot
     // 업그레이드 카드 한 장의 IMGUI 그리기 (Kenney Interface 시트 기반 픽셀 UI).
     // 레이아웃은 텍셀 단위로 정의하고 scale(패널·아이콘)과 textScale(글자)을 곱해 픽셀로 바꾼다.
     // 카드 크기는 타일 단위로 고정이며 내용에 맞춰 늘리지 않는다 — 내용이 카드를 넘치면 예외로 알린다.
-    // 획득·레벨업 카드는 같은 패널·같은 줄 구성이고, 종류는 카드 위쪽 끝에 걸치는 배지(노란 NEW! / 회색 LV UP)로만 표기한다.
+    // 획득·레벨업 카드는 같은 패널·같은 줄 구성이고, 종류는 카드 위쪽 끝에 걸치는 배지(노란 NEW! / 카드와 같은 파란 LV UP)로만 표기한다.
     public static class UpgradeCardPainter
     {
         const int CardWidthTiles = 7;
@@ -24,7 +24,7 @@ namespace PickShoot
         const int NameScale = 3;
         // 획득·레벨업 카드는 줄 구성이 같다 — 값 열은 늘 "현재 → 다음". 새 무기는 현재 값이 없으므로 "-"를 둔다.
         const string NoValue = "-";
-        // 종류 배지: 패널 한 줄, 패널 색과 문구로 구분 — 획득은 노란 NEW!, 레벨업은 회색 LV UP (파랑은 카드 본체, 빨강은 배너·체력 색). 느낌표는 새 무기에만.
+        // 종류 배지: 패널 한 줄, 패널 색과 문구로 구분 — 획득은 노란 NEW!, 레벨업은 카드 본체와 같은 파란 LV UP — 카드에서 이어진 탭처럼 보이고 새 무기만 튄다. 느낌표는 새 무기에만.
         // 패널·글자 모두 이름과 같은 배율 3. 카드 위쪽 끝에 걸쳐 BadgeInsetTexels(패널 텍셀)만큼 카드 안으로 들어온다 — 배지 높이의 2/3.
         // 문구는 짧게 — "LEVEL UP"은 배율 3에서 카드 폭의 3/4을 차지한다.
         const string NewBadgeText = "NEW!";
@@ -186,7 +186,7 @@ namespace PickShoot
                     return new CardContent
                     {
                         Badge = LevelUpBadgeText,
-                        BadgePanel = skin.PanelGrey,
+                        BadgePanel = skin.PanelBlue,
                         WeaponSprite = w.Data.WeaponSprite,
                         Name = w.Data.DisplayName.ToUpperInvariant(),
                         SlotLabel = $"SLOT {option.TargetSlotIndex + 1}",
