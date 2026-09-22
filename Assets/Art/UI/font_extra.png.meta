@@ -8,6 +8,18 @@ TextureImporter:
   - first:
       213: 7000000000000000102
     second: font_extra_1
+  - first:
+      213: 7000000000000000103
+    second: font_extra_2
+  - first:
+      213: 7000000000000000104
+    second: font_extra_3
+  - first:
+      213: 7000000000000000105
+    second: font_extra_4
+  - first:
+      213: 7000000000000000106
+    second: font_extra_5
   externalObjects: {}
   serializedVersion: 13
   mipmaps:
@@ -159,6 +171,94 @@ TextureImporter:
       indices:
       edges: []
       weights: []
+    - serializedVersion: 2
+      name: font_extra_2
+      rect:
+        serializedVersion: 2
+        x: 32
+        y: 0
+        width: 16
+        height: 16
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData:
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 255a9c3ed171494c9667d4ba24a16aa3
+      internalID: 7000000000000000103
+      vertices: []
+      indices:
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: font_extra_3
+      rect:
+        serializedVersion: 2
+        x: 48
+        y: 0
+        width: 16
+        height: 16
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData:
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 45bc9d3bfa6a4b11bc48c886eccacc90
+      internalID: 7000000000000000104
+      vertices: []
+      indices:
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: font_extra_4
+      rect:
+        serializedVersion: 2
+        x: 64
+        y: 0
+        width: 16
+        height: 16
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData:
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 34418c013d3e41c38e69c420658e07f7
+      internalID: 7000000000000000105
+      vertices: []
+      indices:
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: font_extra_5
+      rect:
+        serializedVersion: 2
+        x: 80
+        y: 0
+        width: 16
+        height: 16
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData:
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 0b317e5c93194d5ab44e193ed5ad98e8
+      internalID: 7000000000000000106
+      vertices: []
+      indices:
+      edges: []
+      weights: []
     outline: []
     customData:
     physicsShape: []
@@ -175,6 +275,10 @@ TextureImporter:
     nameFileIdTable:
       font_extra_0: 7000000000000000101
       font_extra_1: 7000000000000000102
+      font_extra_2: 7000000000000000103
+      font_extra_3: 7000000000000000104
+      font_extra_4: 7000000000000000105
+      font_extra_5: 7000000000000000106
   mipmapLimitGroupName: 
   pSDRemoveMatte: 0
   userData: 
