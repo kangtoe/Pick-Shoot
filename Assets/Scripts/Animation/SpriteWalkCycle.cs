@@ -7,6 +7,7 @@ namespace PickShoot
     // 멈추면 첫 프레임(정지 포즈)으로 돌아간다. 좌우 반전(flipX)·색(피격 플래시)은 건드리지 않는다.
     // 걷기는 스스로 추진 중일 때만 재생한다(Propelled). 입력을 놓고 관성으로 미끄러지는 동안은 정지 포즈다.
     // Animator·AnimationClip 대신 이 컴포넌트 하나로 처리하며, 프레임 목록은 프리팹(플레이어는 씬)이 보관한다.
+    // 포즈를 직접 정하는 동안(돌진형의 준비·돌진·회복)은 이 컴포넌트를 끈다. 다시 켜지면 기준 위치를 새로 잡는다.
     [RequireComponent(typeof(SpriteRenderer))]
     public class SpriteWalkCycle : MonoBehaviour
     {
@@ -21,6 +22,8 @@ namespace PickShoot
         // 스스로 추진 중인지. 입력이 있을 때만 걷는 플레이어가 매 프레임 갱신하고,
         // 추적 중 항상 걷는 적은 기본값(true)을 그대로 둔다.
         public bool Propelled { get; set; } = true;
+        // 정지 포즈. 이 컴포넌트를 끄고 포즈를 직접 정하는 쪽이 돌아갈 그림으로 쓴다.
+        public Sprite IdleFrame => frames[0];
 
         void Awake()
         {
@@ -31,7 +34,13 @@ namespace PickShoot
                     throw new System.Exception($"[PickShoot] SpriteWalkCycle.frames[{i}] 미설정 ({name}).");
 
             sr = GetComponent<SpriteRenderer>();
+        }
+
+        // 꺼져 있던 동안 옮겨진 거리를 걷기로 세지 않도록 기준 위치를 다시 잡는다. 첫 활성화 때도 여기서 잡는다.
+        void OnEnable()
+        {
             lastPosition = transform.position;
+            traveled = 0f;
         }
 
         void LateUpdate()
