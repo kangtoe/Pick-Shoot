@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using UnityEngine;
 
 namespace PickShoot
@@ -18,9 +19,12 @@ namespace PickShoot
         [SerializeField] float separationStrength = 3f;
         [SerializeField] LayerMask bulletLayerMask;
         [SerializeField] GameObject hitEffectPrefab;
+        // 폭발 탄환의 폭발 연출. 폭발 반경을 넘겨 재생하므로 컴포넌트로 참조한다.
+        [SerializeField] ExplosionBurst explosionEffectPrefab;
 
         const string ActiveLayerName = "Bullet";
         const string InactiveLayerName = "BulletInactive";
+        const string EnemyLayerName = "Enemy";
 
         Camera mainCam;
         Rigidbody2D rb;
@@ -40,11 +44,16 @@ namespace PickShoot
         float knockbackForce;
         int remainingBounces;
         int remainingPenetration;
+        // 0이면 보통 탄환. 양수면 폭발 탄환 — 튕김 페이즈의 모든 접촉(적·벽·화면 가장자리)에서 접촉 지점을 중심으로 폭발한다 (Weapons §7).
+        float explosionRadius;
+        ContactFilter2D enemyFilter;
         readonly Collider2D[] neighbors = new Collider2D[8];
+        static readonly List<Collider2D> explosionHits = new List<Collider2D>();
 
         // active=true: 튕김 페이즈 (속도·충돌판정 유지). active=false: 정착 (감속·픽업·Inactive 레이어).
         public bool IsSettled => !active;
         public Weapon OwnerWeapon => ownerWeapon;
+        bool IsExplosive => explosionRadius > 0f;
 
         // 플레이어 자석에 한 번 걸리면 회수될 때까지 풀리지 않는다. 걸기·끌림 세기(0~1) 갱신은 PlayerPickup이 한다.
         public bool IsMagnetized { get; private set; }
@@ -82,9 +91,14 @@ namespace PickShoot
             inactiveLayerIdx = LayerMask.NameToLayer(InactiveLayerName);
             if (activeLayerIdx < 0 || inactiveLayerIdx < 0)
                 throw new System.Exception($"[PickShoot] 레이어 미설정: '{ActiveLayerName}' / '{InactiveLayerName}'. Project Settings > Tags and Layers에서 추가 필요.");
+
+            int enemyLayerIdx = LayerMask.NameToLayer(EnemyLayerName);
+            if (enemyLayerIdx < 0)
+                throw new System.Exception($"[PickShoot] 레이어 미설정: '{EnemyLayerName}'. 폭발 범위 판정에 필요.");
+            enemyFilter = new ContactFilter2D { useLayerMask = true, layerMask = 1 << enemyLayerIdx, useTriggers = false };
         }
 
-        public void Launch(Vector2 velocity, Weapon owner, int damage, float knockbackForce, int maxBounces, int penetration)
+        public void Launch(Vector2 velocity, Weapon owner, int damage, float knockbackForce, int maxBounces, int penetration, float explosionRadius)
         {
             if (owner == null)
                 throw new System.Exception("[PickShoot] Bullet.Launch: owner Weapon이 null. 탄환은 반드시 무기에 귀속되어야 회수 시 탄창 충전이 가능합니다.");
@@ -92,11 +106,16 @@ namespace PickShoot
                 throw new System.Exception($"[PickShoot] Bullet.Launch: maxBounces는 0 이상이어야 합니다. 전달값={maxBounces}");
             if (penetration < 0)
                 throw new System.Exception($"[PickShoot] Bullet.Launch: penetration은 0 이상이어야 합니다. 전달값={penetration}");
+            if (explosionRadius < 0f)
+                throw new System.Exception($"[PickShoot] Bullet.Launch: explosionRadius는 0 이상이어야 합니다. 전달값={explosionRadius}");
+            if (explosionRadius > 0f && explosionEffectPrefab == null)
+                throw new System.Exception($"[PickShoot] Bullet.Launch: '{owner.Data.DisplayName}'는 폭발 탄환인데 Bullet 프리팹에 explosionEffectPrefab 미할당.");
             ownerWeapon = owner;
             this.damage = damage;
             this.knockbackForce = knockbackForce;
             remainingBounces = maxBounces;
             remainingPenetration = penetration;
+            this.explosionRadius = explosionRadius;
 
             // 발사한 무기의 색을 탄환 색으로 반영 (baseColor는 튕김 flash 복원용).
             if (sr != null)
@@ -166,7 +185,8 @@ namespace PickShoot
             // 위치는 어느 분기든 viewport 안으로 복귀시켜 재검출 방지.
             Vector3 clampedVp = new Vector3(Mathf.Clamp01(vp.x), Mathf.Clamp01(vp.y), vp.z);
             rb.position = mainCam.ViewportToWorldPoint(clampedVp);
-            PlayBounceSound();
+            if (IsExplosive) Explode(rb.position);
+            else PlayBounceSound();
 
             if (remainingBounces > 0)
             {
@@ -216,7 +236,9 @@ namespace PickShoot
                 return;
             }
 
-            PlayBounceSound();
+            // 폭발 탄환은 접촉 지점에서 폭발한다. 폭발음이 튕김음을 대신한다.
+            if (IsExplosive) Explode(ContactPoint(col));
+            else PlayBounceSound();
             if (remainingBounces > 0)
             {
                 HandleWallBounce(col);
@@ -231,16 +253,21 @@ namespace PickShoot
 
         void HandleEnemyHit(Collision2D col, EnemyHealth enemy)
         {
-            enemy.TakeDamage(damage);
-
-            var movement = col.collider.GetComponent<EnemyMovement>();
-            if (movement != null && lastVelocity.sqrMagnitude > 0.01f)
-                movement.ApplyKnockback(lastVelocity.normalized * knockbackForce);
-
-            if (hitEffectPrefab != null)
+            if (IsExplosive)
             {
-                Vector3 hitPos = col.contactCount > 0 ? (Vector3)col.GetContact(0).point : transform.position;
-                Instantiate(hitEffectPrefab, hitPos, Quaternion.identity);
+                // 직접 맞은 적도 폭발로만 피해를 받는다 (직격 보너스 없음). 연출도 폭발이 명중 파문을 대신한다.
+                Explode(ContactPoint(col));
+            }
+            else
+            {
+                enemy.TakeDamage(damage);
+
+                var movement = col.collider.GetComponent<EnemyMovement>();
+                if (movement != null && lastVelocity.sqrMagnitude > 0.01f)
+                    movement.ApplyKnockback(lastVelocity.normalized * knockbackForce);
+
+                if (hitEffectPrefab != null)
+                    Instantiate(hitEffectPrefab, ContactPoint(col), Quaternion.identity);
             }
 
             if (remainingPenetration > 0)
@@ -261,6 +288,38 @@ namespace PickShoot
             {
                 active = false;
             }
+        }
+
+        // 폭발 탄환의 접촉 처리. center를 중심으로 반경 안의 모든 적에게 공격력만큼 피해(거리 감쇠 없음)와 중심에서 바깥으로 미는
+        // 넉백을 준다. 플레이어와 다른 탄환은 영향받지 않는다. 폭발은 튕김·관통 카운트를 건드리지 않고, 그 뒤의 튕김·정착은
+        // 호출자가 공통 규칙대로 잇는다 (Weapons §7).
+        void Explode(Vector2 center)
+        {
+            Instantiate(explosionEffectPrefab, center, Quaternion.identity).Play(explosionRadius);
+            var clip = ownerWeapon.Data.ExplosionClip;
+            if (clip != null) SoundPlayer.Play(clip);
+
+            Physics2D.OverlapCircle(center, explosionRadius, enemyFilter, explosionHits);
+            foreach (var hit in explosionHits)
+            {
+                var enemy = hit.GetComponent<EnemyHealth>();
+                if (enemy == null)
+                    throw new System.Exception($"[PickShoot] Bullet.Explode: '{EnemyLayerName}' 레이어의 콜라이더 '{hit.name}'에 EnemyHealth 없음.");
+                enemy.TakeDamage(damage);
+
+                var movement = hit.GetComponent<EnemyMovement>();
+                if (movement == null) continue;
+                Vector2 away = (Vector2)hit.transform.position - center;
+                // 접촉 지점이 적 중심과 겹쳐 방향이 정의되지 않으면 탄환 진행 방향으로 민다.
+                if (away.sqrMagnitude < 0.0001f) away = lastVelocity;
+                if (away.sqrMagnitude < 0.0001f) continue;
+                movement.ApplyKnockback(away.normalized * knockbackForce);
+            }
+        }
+
+        Vector2 ContactPoint(Collision2D col)
+        {
+            return col.contactCount > 0 ? col.GetContact(0).point : (Vector2)transform.position;
         }
 
         void HandleWallBounce(Collision2D col)

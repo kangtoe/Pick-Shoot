@@ -99,7 +99,7 @@ namespace PickShoot
                 if (shooterCollider != null)
                     Physics2D.IgnoreCollision(shooterCollider, bulletCol, true);
 
-                bullet.Launch(dir * data.BulletSpeed, this, EffectiveDamage, data.KnockbackForce, data.MaxBounces, data.Penetration);
+                bullet.Launch(dir * data.BulletSpeed, this, EffectiveDamage, data.KnockbackForce, data.MaxBounces, data.Penetration, data.ExplosionRadius);
             }
         }
 

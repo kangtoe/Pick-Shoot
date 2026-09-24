@@ -18,11 +18,15 @@ namespace PickShoot
         [SerializeField] float knockbackForce = 6f;
         [SerializeField, Min(0), FormerlySerializedAs("maxEnemyHits")] int maxBounces = 0;
         [SerializeField, Min(0)] int penetration = 0;
+        // 0이면 보통 탄환. 양수면 폭발 탄환 — 튕김 페이즈의 접촉 지점을 중심으로 이 반경(월드 단위) 안의 모든 적에게 damage·knockbackForce를 준다 (Weapons §7).
+        [SerializeField, Min(0f)] float explosionRadius = 0f;
         [SerializeField] Color visualColor = Color.white;
 
         [Header("Presentation")]
         [SerializeField] Sprite weaponSprite;
         [SerializeField] AudioClip shootClip;
+        // 폭발 탄환의 폭발음. 접촉 지점에서 튕김음·명중 파문 대신 난다.
+        [SerializeField] AudioClip explosionClip;
         // 무기 중심에서 총구 화염이 뜨는 지점까지의 거리 (스프라이트 +x 방향, 월드 단위).
         [SerializeField, Min(0f)] float muzzleOffset = 0.5f;
         // 반동 연출 배율. PlayerWeapons의 반동 거리·각도에 곱한다 (무거운 무기일수록 크게).
@@ -39,9 +43,11 @@ namespace PickShoot
         public float KnockbackForce => knockbackForce;
         public int MaxBounces => maxBounces;
         public int Penetration => penetration;
+        public float ExplosionRadius => explosionRadius;
         public Color VisualColor => visualColor;
         public Sprite WeaponSprite => weaponSprite;
         public AudioClip ShootClip => shootClip;
+        public AudioClip ExplosionClip => explosionClip;
         public float MuzzleOffset => muzzleOffset;
         public float RecoilStrength => recoilStrength;
     }
