@@ -11,7 +11,7 @@ namespace PickShoot
     // 업그레이드 선택 카드 하나. Kind에 따라 필드가 달라진다:
     //   AcquireWeapon → acquireData 사용
     //   LevelUp       → targetSlotIndex 사용 (자루 단위 레벨업, GDD §7.3)
-    // 같은 종류·같은 대상이면 같은 카드다 — 리롤이 지금 보이는 카드를 골라내는 기준.
+    // 같은 종류·같은 대상이면 같은 카드다 — 리롤이 뺄 카드를 후보에서 찾는 기준.
     public readonly struct UpgradeOption : System.IEquatable<UpgradeOption>
     {
         public readonly UpgradeKind Kind;

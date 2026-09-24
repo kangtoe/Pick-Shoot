@@ -7,7 +7,7 @@ namespace PickShoot
     // 웨이브 클리어 시 3장 카드(획득/강화 혼합)를 제시하고 선택을 대기한다.
     // 게임 흐름 제어를 위해 Time.timeScale=0로 일시정지, 선택 시 원복. WaveManager가 코루틴으로 호출.
     // 카드는 IMGUI 위에 PixelUiSkin(Kenney Interface 시트)으로 그린다. 글꼴이 A-Z 0-9만 있어 UI 문구는 영문 대문자.
-    // 카드 밑의 리롤 버튼은 카드 화면마다 정해진 횟수만큼 3장을 통째로 다시 뽑는다 (Weapons §3).
+    // 카드 밑의 리롤 버튼은 카드 화면마다 정해진 횟수만큼 3장을 다시 뽑는다 — 보이는 카드 중 한 장은 반드시 바뀐다 (Weapons §3).
     public class UpgradeManager : MonoBehaviour
     {
         [SerializeField] PlayerWeapons weapons;
@@ -39,7 +39,8 @@ namespace PickShoot
 
         public bool IsActive => active;
 
-        // 후보가 카드 수 이하면 다시 뽑아도 같은 카드가 순서만 바뀌어 나오므로 리롤 버튼을 두지 않는다.
+        // 후보가 카드 수 이하면 다시 뽑아도 같은 카드가 순서만 바뀌어 나오므로 리롤 버튼을 두지 않는다. 후보가 카드 수보다 많으면
+        // 한 장을 빼도(Reroll) 카드를 채울 수 있다.
         bool RerollOffered => rerollsPerReward > 0 && candidates.Count > currentCards.Length;
 
         void Awake()
@@ -68,7 +69,7 @@ namespace PickShoot
             this.clearedWave = clearedWave;
             candidates = BuildCandidates();
             if (candidates.Count == 0) yield break;
-            currentCards = Draw(null);
+            currentCards = Draw(candidates);
             rerollsLeft = rerollsPerReward;
 
             active = true;
@@ -100,31 +101,16 @@ namespace PickShoot
             return result;
         }
 
-        // 후보를 섞어 앞에서 cardsToShow장을 뽑는다. shown(지금 보이는 카드)이 있으면 그 카드들을 섞인 순서 그대로 맨 뒤로
-        // 미룬 채 뽑는다 — 후보가 넉넉하면 전부 새 카드, 모자라면 겹치는 만큼만 다시 나온다. 리롤은 "다른 걸 보여 달라"는
-        // 요청이라, 독립 추첨으로 같은 카드가 순서만 바뀌어 나오면 리롤이 먹히지 않은 것처럼 보이기 때문.
-        UpgradeOption[] Draw(UpgradeOption[] shown)
+        // pool을 섞어 앞에서 cardsToShow장을 뽑는다.
+        UpgradeOption[] Draw(List<UpgradeOption> pool)
         {
-            var order = new List<UpgradeOption>(candidates);
+            var order = new List<UpgradeOption>(pool);
 
             // Fisher-Yates
             for (int i = order.Count - 1; i > 0; i--)
             {
                 int j = Random.Range(0, i + 1);
                 (order[i], order[j]) = (order[j], order[i]);
-            }
-
-            if (shown != null)
-            {
-                var fresh = new List<UpgradeOption>(order.Count);
-                var repeat = new List<UpgradeOption>(shown.Length);
-                foreach (var o in order)
-                {
-                    if (System.Array.IndexOf(shown, o) >= 0) repeat.Add(o);
-                    else fresh.Add(o);
-                }
-                fresh.AddRange(repeat);
-                order = fresh;
             }
 
             int take = Mathf.Min(cardsToShow, order.Count);
@@ -140,12 +126,19 @@ namespace PickShoot
             selected = true;
         }
 
+        // 지금 보이는 카드 중 무작위 한 장을 뺀 후보에서 다시 뽑는다 — 한 장은 반드시 바뀌고, 나머지는 독립 추첨이라 되돌아올 수
+        // 있다. 보이는 카드를 전부 빼면 후보가 6장 이하인 초반에는 결과가 정해져 뽑기가 아니게 되기 때문 (Weapons §3). 후보에 같은
+        // 카드는 둘 없으므로 동등성으로 빼면 정확하다.
         void Reroll()
         {
             if (rerollsLeft <= 0)
                 throw new System.Exception("[PickShoot] UpgradeManager.Reroll: 남은 리롤이 없는데 호출됨.");
             rerollsLeft--;
-            currentCards = Draw(currentCards);
+            var pool = new List<UpgradeOption>(candidates);
+            var excluded = currentCards[Random.Range(0, currentCards.Length)];
+            if (!pool.Remove(excluded))
+                throw new System.Exception("[PickShoot] UpgradeManager.Reroll: 보이는 카드가 후보에 없음. currentCards는 candidates에서 뽑혀야 함.");
+            currentCards = Draw(pool);
             if (rerollClip != null) SoundPlayer.Play(rerollClip);
         }
 
