@@ -1048,6 +1048,7 @@ MonoBehaviour:
   - {fileID: 11400000, guid: 5d504b5a584fe1f45a2d1fc8867d4291, type: 2}
   - {fileID: 11400000, guid: c1a2b3d4e5f6789012345abcdef01234, type: 2}
   - {fileID: 11400000, guid: d2b3c4e5f6a789b012345cdef6789abc, type: 2}
+  - {fileID: 11400000, guid: 58079aef756d4ecbb86608b1608e74d4, type: 2}
   cardsToShow: 3
   rerollsPerReward: 1
   selectClip: {fileID: 8300000, guid: 460e5219f0f84004790b551e7a638e25, type: 3}
