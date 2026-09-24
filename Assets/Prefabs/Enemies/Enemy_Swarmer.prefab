@@ -170,7 +170,7 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 7c57d7d561da43749a7968c6d2abf7da, type: 3}
   m_Name:
-  m_EditorClassIdentifier: Assembly-CSharp::PickShoot.EnemyMovement
+  m_EditorClassIdentifier: Assembly-CSharp::PickShoot.EnemyChaser
   data: {fileID: 11400000, guid: d3e4f5a6b7c809101112131415161718, type: 2}
   knockbackDamping: 20
   separationRadius: 0.9

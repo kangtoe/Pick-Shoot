@@ -262,7 +262,7 @@ namespace PickShoot
             {
                 enemy.TakeDamage(damage);
 
-                var movement = col.collider.GetComponent<EnemyMovement>();
+                var movement = col.collider.GetComponent<EnemyMover>();
                 if (movement != null && lastVelocity.sqrMagnitude > 0.01f)
                     movement.ApplyKnockback(lastVelocity.normalized * knockbackForce);
 
@@ -307,7 +307,7 @@ namespace PickShoot
                     throw new System.Exception($"[PickShoot] Bullet.Explode: '{EnemyLayerName}' 레이어의 콜라이더 '{hit.name}'에 EnemyHealth 없음.");
                 enemy.TakeDamage(damage);
 
-                var movement = hit.GetComponent<EnemyMovement>();
+                var movement = hit.GetComponent<EnemyMover>();
                 if (movement == null) continue;
                 Vector2 away = (Vector2)hit.transform.position - center;
                 // 접촉 지점이 적 중심과 겹쳐 방향이 정의되지 않으면 탄환 진행 방향으로 민다.
