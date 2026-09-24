@@ -8,6 +8,7 @@ namespace PickShoot
     // 게임 흐름 제어를 위해 Time.timeScale=0로 일시정지, 선택 시 원복. WaveManager가 코루틴으로 호출.
     // 카드는 IMGUI 위에 PixelUiSkin(Kenney Interface 시트)으로 그린다. 글꼴이 A-Z 0-9만 있어 UI 문구는 영문 대문자.
     // 카드 밑의 리롤 버튼은 카드 화면마다 정해진 횟수만큼 3장을 다시 뽑는다 — 보이는 카드 중 한 장은 반드시 바뀐다 (Weapons §3).
+    // 카드는 (다시) 뽑힐 때마다 화면 아래 밖에서 차례로 튀어 올라 스프링처럼 흔들리며 멎는다 — 멎기 전에는 카드도 버튼도 입력을 받지 않는다.
     public class UpgradeManager : MonoBehaviour
     {
         [SerializeField] PlayerWeapons weapons;
@@ -22,6 +23,15 @@ namespace PickShoot
         [SerializeField] PixelUiSkin skin;
         [SerializeField, Range(0f, 1f)] float dimAlpha = 0.7f;
 
+        [Header("Card Entrance")]
+        // 등장 연출은 위치만 움직이고 크기는 바꾸지 않는다 — 픽셀 UI의 정수 배율을 지킨다. 카드 화면은 timeScale 0이라 실시간 기준.
+        [SerializeField, Min(0.01f)] float enterTravelSeconds = 0.15f;   // 화면 아래 밖에서 제자리까지 (가속)
+        [SerializeField, Min(0.01f)] float enterWobbleSeconds = 0.35f;   // 제자리에 닿은 뒤 튀었다 멎기까지
+        [SerializeField, Min(0f)] float enterOvershootTexels = 12f;      // 첫 튐의 높이 (패널 텍셀)
+        [SerializeField, Min(0f)] float enterStaggerSeconds = 0.07f;     // 다음 장이 출발하기까지
+        // 흔들림의 감쇠. 되밀림(두 번째 튐)은 첫 튐의 e^(-WobbleDecay/2) — 2.5면 약 29%.
+        const float WobbleDecay = 2.5f;
+
         // 글꼴에 있는 문자(A-Z 0-9 % + - 공백)만 써야 한다. 없는 문자는 PixelGui가 예외로 알린다.
         const string RerollLabel = "REROLL";
         const int ButtonPaddingTexels = 8;   // 버튼 패널 테두리 → 글자
@@ -34,6 +44,8 @@ namespace PickShoot
         UpgradeOption[] currentCards;
         int clearedWave;
         int rerollsLeft;
+        // 지금 카드들이 뽑힌 실시간 — 등장 연출의 기준.
+        float cardsShownAt;
         bool active;
         bool selected;
 
@@ -71,6 +83,7 @@ namespace PickShoot
             if (candidates.Count == 0) yield break;
             currentCards = Draw(candidates);
             rerollsLeft = rerollsPerReward;
+            cardsShownAt = Time.unscaledTime;
 
             active = true;
             selected = false;
@@ -139,6 +152,7 @@ namespace PickShoot
             if (!pool.Remove(excluded))
                 throw new System.Exception("[PickShoot] UpgradeManager.Reroll: 보이는 카드가 후보에 없음. currentCards는 candidates에서 뽑혀야 함.");
             currentCards = Draw(pool);
+            cardsShownAt = Time.unscaledTime;
             if (rerollClip != null) SoundPlayer.Play(rerollClip);
         }
 
@@ -195,33 +209,68 @@ namespace PickShoot
             int totalW = currentCards.Length * cardSize.x + (currentCards.Length - 1) * gap;
             int startX = centerX - totalW / 2;
             var mouse = Event.current.mousePosition;
+            // 마지막 카드까지 멎기 전에는 카드도 버튼도 반응하지 않는다 — 날아가는 카드는 자리가 정해지지 않았고, 버튼 위를 지나간다.
+            float sinceShown = Time.unscaledTime - cardsShownAt;
+            bool interactable = sinceShown >= EnterTotalSeconds(currentCards.Length);
+
+            // 리롤 버튼은 카드보다 먼저 그린다 — 화면 아래에서 올라오는 카드가 버튼 위를 지나가므로 카드가 앞에 보여야 한다.
+            if (rerollOffered)
+                DrawRerollButton(new Rect(centerX - buttonW / 2, cardsY + cardSize.y + gap, buttonW, buttonH),
+                    rerollText, lineH, textScale, mouse, interactable);
 
             for (int i = 0; i < currentCards.Length; i++)
             {
+                float t = sinceShown - i * enterStaggerSeconds;
+                if (t < 0f) continue;   // 아직 출발 전
                 var r = new Rect(startX + i * (cardSize.x + gap), cardsY, cardSize.x, cardSize.y);
-                bool hovered = r.Contains(mouse);
+                // 출발점은 카드 위쪽 끝이 화면 아래 끝에 닿는 곳 — 화면 밖에서 들어온다.
+                r.y += EnterOffset(t, canvas.Height - cardsY, scale);
+                bool hovered = interactable && r.Contains(mouse);
                 UpgradeCardPainter.Draw(skin, currentCards[i], weapons, r, scale, textScale, hovered);
                 // 보이지 않는 버튼으로 클릭만 받는다. 카드 그림은 위에서 직접 그렸다.
-                if (GUI.Button(r, GUIContent.none, GUIStyle.none))
+                if (interactable && GUI.Button(r, GUIContent.none, GUIStyle.none))
                     Select(i);
             }
+        }
 
-            if (!rerollOffered) return;
-
+        void DrawRerollButton(Rect button, string text, int lineH, int textScale, Vector2 mouse, bool interactable)
+        {
             // 다 쓴 뒤에도 어둡게 남겨 둔다 — 카드 묶음이 움직이지 않고, 리롤이 있었다는 것도 읽힌다.
-            bool rerollEnabled = rerollsLeft > 0;
-            var button = new Rect(centerX - buttonW / 2, cardsY + cardSize.y + gap, buttonW, buttonH);
-            bool buttonHovered = rerollEnabled && button.Contains(mouse);
+            bool enabled = interactable && rerollsLeft > 0;
+            bool hovered = enabled && button.Contains(mouse);
             var drawn = button;
-            if (buttonHovered) drawn.y -= HoverLiftTexels * textScale;
-            GUI.color = rerollEnabled ? Color.white : DisabledTint;
+            if (hovered) drawn.y -= HoverLiftTexels * textScale;
+            GUI.color = rerollsLeft > 0 ? Color.white : DisabledTint;
             PixelGui.DrawNineSlice(skin.PanelGrey, drawn, skin.TileSize, textScale);
-            PixelGui.DrawTextCentered(skin.FontPlain, rerollText, centerX, (int)drawn.y + (buttonH - lineH) / 2, textScale);
+            PixelGui.DrawTextCentered(skin.FontPlain, text, (int)button.center.x, (int)drawn.y + ((int)button.height - lineH) / 2, textScale);
             GUI.color = Color.white;
-            if (buttonHovered)
+            if (hovered)
                 PixelGui.DrawNineSlice(skin.SelectionFrame, drawn, skin.TileSize, textScale);
-            if (rerollEnabled && GUI.Button(button, GUIContent.none, GUIStyle.none))
+            if (enabled && GUI.Button(button, GUIContent.none, GUIStyle.none))
                 Reroll();
+        }
+
+        // 카드 등장의 세로 오프셋(캔버스 픽셀, 아래가 +). t는 그 카드가 출발한 뒤 지난 실시간(초), startOffset은 출발점.
+        // 화면 밖에서 정지 상태로 출발해 가속하며 올라와 제자리에 최고 속도로 닿는다 — 이어지는 튐이 그 충격으로 읽힌다.
+        // 닿은 뒤는 감쇠 사인 한 주기: 위로 튀었다(w=0.25) → 되돌아와(0.5) → 아래로 살짝 되밀렸다(0.75) → 제자리(1).
+        // 끝에서 정확히 0이라 멎을 때 튀지 않는다. 첫 튐의 높이가 enterOvershootTexels가 되도록 진폭을 맞춘다.
+        int EnterOffset(float t, int startOffset, int scale)
+        {
+            if (t < enterTravelSeconds)
+            {
+                float s = t / enterTravelSeconds;
+                return Mathf.RoundToInt(startOffset * (1f - s * s));
+            }
+            float w = (t - enterTravelSeconds) / enterWobbleSeconds;
+            if (w >= 1f) return 0;
+            float amplitude = enterOvershootTexels * scale / Mathf.Exp(-WobbleDecay * 0.25f);
+            return -Mathf.RoundToInt(amplitude * Mathf.Exp(-WobbleDecay * w) * Mathf.Sin(2f * Mathf.PI * w));
+        }
+
+        // 마지막 카드가 멎기까지 걸리는 실시간(초).
+        float EnterTotalSeconds(int cardCount)
+        {
+            return (cardCount - 1) * enterStaggerSeconds + enterTravelSeconds + enterWobbleSeconds;
         }
 
         static int CeilToMultiple(int value, int multiple)
