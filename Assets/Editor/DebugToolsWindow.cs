@@ -11,6 +11,8 @@ namespace PickShoot
     {
         // 드롭다운 옆 실행 버튼(Spawn/Add) 너비. 드롭다운이 남는 폭을 다 차지한다.
         const float ActionButtonWidth = 64f;
+        const float SeparatorMargin = 6f;
+        static readonly Color SeparatorColor = new Color(0.5f, 0.5f, 0.5f, 0.5f);
 
         // 프로젝트의 모든 WeaponData 자산. 획득 카드 풀(UpgradeManager.weaponPool)에 아직 없는 무기도 시험할 수 있게
         // 씬 참조가 아니라 자산 DB에서 직접 찾는다. 자산이 추가·삭제되면 OnProjectChange에서 다시 찾는다.
@@ -102,7 +104,7 @@ namespace PickShoot
             else
                 DrawWave(waves);
 
-            EditorGUILayout.Space();
+            DrawSeparator();
 
             var weapons = FindFirstObjectByType<PlayerWeapons>();
             if (weapons == null)
@@ -115,10 +117,21 @@ namespace PickShoot
             if (waves != null)
             {
                 DrawEnemySpawn(waves);
-                EditorGUILayout.Space();
+                DrawSeparator();
             }
 
+            DrawAddWeapon(weapons);
+            DrawSeparator();
             DrawWeapons(weapons);
+        }
+
+        // 섹션 사이 가로 구분선. 위아래 여백을 두고 한 픽셀 높이의 반투명 선을 그린다.
+        static void DrawSeparator()
+        {
+            EditorGUILayout.Space(SeparatorMargin);
+            var rect = EditorGUILayout.GetControlRect(false, 1f);
+            EditorGUI.DrawRect(rect, SeparatorColor);
+            EditorGUILayout.Space(SeparatorMargin);
         }
 
         // 드롭다운에서 적 종류를 고르고 Spawn — 예고 없이 곧바로 플레이어 주변 스폰 거리에 나온다. 해금 웨이브까지 기다리지 않고
@@ -169,8 +182,6 @@ namespace PickShoot
                     }
                 }
             }
-
-            DrawAddWeapon(weapons);
 
             // 최소 1자루는 유지 (Weapons §2 시작 슬롯 1). PlayerWeapons.RemoveLastWeapon도 같은 조건을 검사한다.
             using (new EditorGUI.DisabledScope(slots.Count <= 1))
