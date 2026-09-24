@@ -162,6 +162,17 @@ namespace PickShoot
             endWaveRequested = true;
         }
 
+        // 예고 없이 곧바로 스폰한다 (디버그 도구용). 편성·해금·동시 수 상한과 무관하게 아무 프리팹이나 플레이어 주변 스폰 거리에 놓고,
+        // 목록에 등록하므로 웨이브 종료 정리는 평소대로 받는다. 웨이브가 진행 중이 아니어도 된다 — 해금 전 적을 시험하는 용도.
+        public void SpawnNow(GameObject prefab)
+        {
+            if (prefab == null)
+                throw new System.Exception("[PickShoot] WaveManager.SpawnNow: prefab이 null.");
+            if (!CanSpawn())
+                throw new System.Exception("[PickShoot] WaveManager.SpawnNow: 플레이어가 없음 (사망 후).");
+            SpawnEnemy(prefab, PickSpawnPoint());
+        }
+
         IEnumerator SpawnWithWarning()
         {
             var prefab = PickEnemyPrefab();
@@ -188,6 +199,11 @@ namespace PickShoot
             // 예고 중 플레이어가 마커까지 다가왔으면 이번 스폰은 건너뛴다. 다음 주기가 새 지점을 고르므로 재배치는 하지 않는다.
             if (((Vector2)player.position - pos).sqrMagnitude < spawnAbortDistance * spawnAbortDistance) yield break;
 
+            SpawnEnemy(prefab, pos);
+        }
+
+        void SpawnEnemy(GameObject prefab, Vector2 pos)
+        {
             var enemy = Instantiate(prefab, pos, Quaternion.identity);
             var health = enemy.GetComponent<EnemyHealth>();
             if (health == null)

@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using UnityEditor;
 using UnityEngine;
 
@@ -5,14 +6,17 @@ namespace PickShoot
 {
     // 플레이 모드 디버그 도구 창 (메뉴 PickShoot/Debug Tools). 장기 보존 도구 (DEVELOPMENT §2.1).
     // 씬 참조 없이 플레이 중인 오브젝트를 찾아 조작하므로 씬·프리팹을 건드리지 않고, 빌드에도 들어가지 않는다.
-    // 현재 제공: 진행 중인 웨이브 즉시 클리어 / 무기 종류를 골라 추가 / 마지막 무기 버리기 / 자루별 레벨업.
+    // 현재 제공: 진행 중인 웨이브 즉시 클리어 / 적 종류를 골라 즉시 스폰 / 무기 종류를 골라 추가 / 마지막 무기 버리기 / 자루별 레벨업.
     public class DebugToolsWindow : EditorWindow
     {
-        const int AddButtonsPerRow = 3;
+        const int ButtonsPerRow = 3;
 
         // 프로젝트의 모든 WeaponData 자산. 획득 카드 풀(UpgradeManager.weaponPool)에 아직 없는 무기도 시험할 수 있게
         // 씬 참조가 아니라 자산 DB에서 직접 찾는다. 자산이 추가·삭제되면 OnProjectChange에서 다시 찾는다.
         WeaponData[] weaponAssets = new WeaponData[0];
+        // 프로젝트의 모든 적 프리팹(EnemyHealth가 붙은 프리팹). 웨이브 편성에 없거나 아직 해금되지 않은 적도 시험할 수 있게
+        // 씬의 편성이 아니라 자산 DB에서 직접 찾는다.
+        GameObject[] enemyPrefabs = new GameObject[0];
 
         [MenuItem("PickShoot/Debug Tools")]
         static void Open()
@@ -23,11 +27,13 @@ namespace PickShoot
         void OnEnable()
         {
             RefreshWeaponAssets();
+            RefreshEnemyPrefabs();
         }
 
         void OnProjectChange()
         {
             RefreshWeaponAssets();
+            RefreshEnemyPrefabs();
         }
 
         void RefreshWeaponAssets()
@@ -41,6 +47,21 @@ namespace PickShoot
                 if (weaponAssets[i] == null)
                     throw new System.Exception($"[PickShoot] DebugToolsWindow: WeaponData 자산 로드 실패: {path}");
             }
+        }
+
+        void RefreshEnemyPrefabs()
+        {
+            var guids = AssetDatabase.FindAssets("t:Prefab");
+            var found = new List<GameObject>();
+            for (int i = 0; i < guids.Length; i++)
+            {
+                string path = AssetDatabase.GUIDToAssetPath(guids[i]);
+                var prefab = AssetDatabase.LoadAssetAtPath<GameObject>(path);
+                if (prefab == null)
+                    throw new System.Exception($"[PickShoot] DebugToolsWindow: 프리팹 로드 실패: {path}");
+                if (prefab.GetComponent<EnemyHealth>() != null) found.Add(prefab);
+            }
+            enemyPrefabs = found.ToArray();
         }
 
         // 플레이 중 슬롯 상태(탄약·레벨)가 바뀌는 대로 창을 갱신한다 (약 10Hz).
@@ -71,7 +92,27 @@ namespace PickShoot
                 return;
             }
 
+            // 적 스폰은 플레이어가 살아 있어야 하므로 (WaveManager.SpawnNow가 거부) 무기 섹션과 같은 조건 뒤에 둔다.
+            if (waves != null)
+            {
+                DrawEnemySpawn(waves);
+                EditorGUILayout.Space();
+            }
+
             DrawWeapons(weapons);
+        }
+
+        // 적 종류마다 스폰 버튼 하나 — 예고 없이 곧바로 플레이어 주변 스폰 거리에 나온다. 해금 웨이브까지 기다리지 않고
+        // 새 적의 행동을 시험하는 용도. 편성·동시 수 상한은 무시하고, 웨이브 종료 정리는 평소대로 받는다.
+        void DrawEnemySpawn(WaveManager waves)
+        {
+            GUILayout.Label("Spawn Enemy", EditorStyles.boldLabel);
+            if (enemyPrefabs.Length == 0)
+            {
+                EditorGUILayout.HelpBox("프로젝트에 EnemyHealth가 붙은 프리팹이 없습니다.", MessageType.Error);
+                return;
+            }
+            DrawButtonRows(enemyPrefabs.Length, i => enemyPrefabs[i].name, i => waves.SpawnNow(enemyPrefabs[i]));
         }
 
         // 진행 중인 웨이브를 남은 시간과 무관하게 끝낸다. 시간이 다 된 것과 같은 경로(적 정리 → sweep → 회복 → 카드)를 타므로
@@ -116,7 +157,6 @@ namespace PickShoot
         }
 
         // 무기 종류마다 추가 버튼 하나 — 한 번 클릭으로 그 종류의 새 자루가 다음 슬롯에 들어간다 (Weapons §3, 항상 Lv.1).
-        // 종류가 늘어도 창이 옆으로 넓어지지 않게 한 줄에 AddButtonsPerRow개씩 끊는다.
         void DrawAddButtons(PlayerWeapons weapons)
         {
             GUILayout.Label("Add Weapon", EditorStyles.boldLabel);
@@ -127,17 +167,21 @@ namespace PickShoot
             }
 
             using (new EditorGUI.DisabledScope(!weapons.HasEmptySlot))
+                DrawButtonRows(weaponAssets.Length, i => weaponAssets[i].DisplayName, i => weapons.AddWeapon(weaponAssets[i]));
+        }
+
+        // 항목마다 버튼 하나. 항목이 늘어도 창이 옆으로 넓어지지 않게 한 줄에 ButtonsPerRow개씩 끊는다.
+        static void DrawButtonRows(int count, System.Func<int, string> label, System.Action<int> onClick)
+        {
+            for (int rowStart = 0; rowStart < count; rowStart += ButtonsPerRow)
             {
-                for (int rowStart = 0; rowStart < weaponAssets.Length; rowStart += AddButtonsPerRow)
+                using (new EditorGUILayout.HorizontalScope())
                 {
-                    using (new EditorGUILayout.HorizontalScope())
+                    int rowEnd = Mathf.Min(rowStart + ButtonsPerRow, count);
+                    for (int i = rowStart; i < rowEnd; i++)
                     {
-                        int rowEnd = Mathf.Min(rowStart + AddButtonsPerRow, weaponAssets.Length);
-                        for (int i = rowStart; i < rowEnd; i++)
-                        {
-                            if (GUILayout.Button(weaponAssets[i].DisplayName))
-                                weapons.AddWeapon(weaponAssets[i]);
-                        }
+                        if (GUILayout.Button(label(i)))
+                            onClick(i);
                     }
                 }
             }
