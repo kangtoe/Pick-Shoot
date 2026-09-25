@@ -4,8 +4,9 @@ namespace PickShoot
 {
     // 돌진형 적 (Enemies §4). 접근 → 준비 → 돌진 → 회복을 돈다.
     //   접근: 플레이어를 향해 느리게 추적. 트리거 거리에 들어오면 준비로.
-    //   준비: 정지. 돌진 방향은 이 순간의 플레이어 방향으로 고정하고 그쪽을 본다. 걷기 프레임 대신 액션 포즈와 정지 포즈를
-    //         번갈아 깜빡이며 끝이 가까우면 빨라진다 (SpawnWarningMarker와 같은 문법). 색은 히트 플래시가 쓰므로 건드리지 않는다.
+    //   준비: 정지. 돌진 방향은 이 순간의 플레이어 방향으로 고정하고 그쪽을 본다. 머리 위에 느낌표(EnemyAttackWarning)를 띄우고,
+    //         걷기 프레임 대신 액션 포즈와 정지 포즈를 번갈아 깜빡이며 끝이 가까우면 빨라진다 (SpawnWarningMarker와 같은 문법).
+    //         색은 히트 플래시가 쓰므로 건드리지 않는다. 느낌표는 돌진이 시작되는 순간 내린다.
     //   돌진: 고정 방향으로 고속 직진. 액션 포즈를 고정하고 궤적에 잔상(DashAfterimage)을 남긴다. 벽·최대 거리·플레이어 접촉으로 끝난다.
     //         몸이 Kinematic이라 벽과 충돌이 나지 않으므로 매 스텝 진행 방향으로 벽 레이어를 캐스트해 닿는 지점까지만 나아간다.
     //         플레이어에 닿으면 끝내야 한다 — 끝내지 않으면 동적인 플레이어를 돌진 속도로 벽까지 밀고 간다.
@@ -13,6 +14,7 @@ namespace PickShoot
     //   회복: 정지 포즈로 잠시 멈춘 뒤 접근으로.
     // 거리·시간·속도는 ChargerData 자산이 정한다. 준비·돌진·회복 동안은 SpriteWalkCycle을 끄고 포즈를 직접 정한다.
     [RequireComponent(typeof(SpriteWalkCycle))]
+    [RequireComponent(typeof(EnemyAttackWarning))]
     public class EnemyCharger : EnemyMover
     {
         enum State { Approach, Windup, Charge, Recover }
@@ -29,6 +31,7 @@ namespace PickShoot
 
         ChargerData charger;
         SpriteWalkCycle walkCycle;
+        EnemyAttackWarning attackWarning;
         State state = State.Approach;
         float stateStartTime;
         Vector2 chargeDirection;
@@ -54,6 +57,7 @@ namespace PickShoot
             if (wallLayerMask.value == 0)
                 throw new System.Exception($"[PickShoot] EnemyCharger.wallLayerMask 미설정 ({name}). 돌진이 멈출 벽 레이어(Wall) 필요.");
             walkCycle = GetComponent<SpriteWalkCycle>();
+            attackWarning = GetComponent<EnemyAttackWarning>();
             wallFilter = new ContactFilter2D();
             wallFilter.SetLayerMask(wallLayerMask);
             wallFilter.useTriggers = false;
@@ -135,6 +139,7 @@ namespace PickShoot
             Face(chargeDirection.x);
             walkCycle.enabled = false;
             Sprite.sprite = chargePose;
+            attackWarning.Show();
         }
 
         void BeginCharge()
@@ -144,6 +149,7 @@ namespace PickShoot
             chargeTraveled = 0f;
             hitPlayer = false;
             Sprite.sprite = chargePose;
+            attackWarning.Hide();
             // 첫 잔상은 떠나는 자리에.
             lastAfterimagePosition = transform.position;
             DashAfterimage.Spawn(Sprite, lastAfterimagePosition, afterimageColor, afterimageDuration);
