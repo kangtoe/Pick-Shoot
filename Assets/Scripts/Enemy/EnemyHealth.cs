@@ -12,6 +12,9 @@ namespace PickShoot
         [SerializeField] AudioClip hitClip;
         [SerializeField] AudioClip deathClip;
 
+        // 죽는 순간 (사망 이펙트 뒤, 파괴 직전). 웨이브 종료 정리(Kill)로 죽을 때도 난다. 마디가 죽으면 사슬을 다시 잇는 서펜트가 받는다.
+        public event System.Action Died;
+
         int current;
         float flashUntil;
         SpriteRenderer sr;
@@ -71,6 +74,7 @@ namespace PickShoot
             if (deathEffectPrefab != null)
                 Instantiate(deathEffectPrefab, transform.position, Quaternion.identity);
             if (playSound && deathClip != null) SoundPlayer.Play(deathClip);
+            Died?.Invoke();
             Destroy(gameObject);
         }
     }

@@ -1020,6 +1020,8 @@ MonoBehaviour:
   - prefab: {fileID: 957819507615294952, guid: b9727817971640af8e6a530c79a39a75, type: 3}
     unlockWave: 4
     weight: 1
+  bossPrefab: {fileID: 957819507615294952, guid: ae24ff14d8d94618b1643f332531d1bf, type: 3}
+  bossWaveInterval: 5
   spawnWarningPrefab: {fileID: 6795885622785629402, guid: 8be7c360e5e6e704d8d7ef8a64e077f4, type: 3}
   upgradeManager: {fileID: 1698421208}
   arenaHalfExtents: {x: 13, y: 13}

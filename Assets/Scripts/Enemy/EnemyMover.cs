@@ -9,6 +9,7 @@ namespace PickShoot
     // 몸은 Kinematic이라 정적 콜라이더(벽)와는 접촉 이벤트도 밀어내기도 없다 — 그래서 옮기기 전에 이동량을 가로·세로로 나눠 벽 레이어에
     // 캐스트하고, 막힌 축은 벽 앞까지만 나아간다 (Enemies §1). 막히지 않은 축은 그대로 가므로 벽을 따라 미끄러지고, 구석에서는 멈춘다.
     // 막힌 스텝에는 OnWallBlocked를 부른다 — 벽에 닿는 것이 곧 행동의 끝인 적(돌진)이 받아 쓴다.
+    // 옮겨 갈 자리가 정해지면 OnMoved를 부른다 — 몸에 딸린 것(서펜트의 몸통)을 함께 옮기는 적이 받아 쓴다.
     [RequireComponent(typeof(Rigidbody2D))]
     [RequireComponent(typeof(SpriteRenderer))]
     public abstract class EnemyMover : MonoBehaviour
@@ -51,13 +52,13 @@ namespace PickShoot
             wallFilter.useTriggers = false;
         }
 
-        void Start()
+        protected virtual void Start()
         {
             var player = GameObject.FindWithTag("Player");
             if (player != null) Target = player.transform;
         }
 
-        public void ApplyKnockback(Vector2 velocity)
+        public virtual void ApplyKnockback(Vector2 velocity)
         {
             knockback = velocity;
         }
@@ -77,8 +78,10 @@ namespace PickShoot
             Vector2 move = velocity * Time.fixedDeltaTime;
             bool blockedX = ClampToWall(ref move.x, Vector2.right);
             bool blockedY = ClampToWall(ref move.y, Vector2.up);
-            Body.MovePosition(Body.position + move);
+            Vector2 to = Body.position + move;
+            Body.MovePosition(to);
             if (blockedX || blockedY) OnWallBlocked();
+            OnMoved(to);
         }
 
         // 이 물리 스텝의 목표 속도. 방향 전환(Face)도 여기서 한다.
@@ -86,6 +89,9 @@ namespace PickShoot
 
         // 이 스텝의 이동이 벽에 막혔다. 넉백·분리 힘에 밀려 막힌 것도 포함한다.
         protected virtual void OnWallBlocked() { }
+
+        // 이 스텝에 옮겨 갈 자리가 정해졌다. MovePosition은 물리 스텝이 지나야 반영되므로 Body.position은 아직 이전 자리다.
+        protected virtual void OnMoved(Vector2 to) { }
 
         // 한 축의 이동량을 벽 앞(WallSkin만큼 못 미친 곳)까지로 줄인다. 줄였으면 true.
         bool ClampToWall(ref float amount, Vector2 axis)

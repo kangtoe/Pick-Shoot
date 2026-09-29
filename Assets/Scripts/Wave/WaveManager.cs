@@ -19,6 +19,9 @@ namespace PickShoot
         }
 
         [SerializeField] WaveSpawnEntry[] waveEntries;
+        // 보스 웨이브: 번호가 bossWaveInterval의 배수인 웨이브는 시작과 함께 보스 한 마리를 예고 후 스폰한다 (Enemies §6).
+        [SerializeField] GameObject bossPrefab;
+        [SerializeField, Min(1)] int bossWaveInterval = 5;
         [SerializeField] SpawnWarningMarker spawnWarningPrefab;
         [SerializeField] UpgradeManager upgradeManager;
         // 스폰 가능 영역(원점 기준 반폭). 아레나 안쪽 면(14)에서 한 칸 들여 적이 울타리에 걸쳐 나오지 않게 한다.
@@ -50,7 +53,6 @@ namespace PickShoot
         // EndWaveNow가 세운다. 진행 중인 웨이브가 남은 시간을 무시하고 다음 프레임에 끝난다.
         bool endWaveRequested;
         int pendingWarnings;
-        readonly List<EnemyHealth> spawnedEnemies = new List<EnemyHealth>();
         // 예고 중인 마커. 웨이브가 끝나거나 플레이어가 죽으면 남은 예고 시간과 무관하게 함께 치운다.
         readonly List<SpawnWarningMarker> pendingMarkers = new List<SpawnWarningMarker>();
         Transform player;
@@ -70,6 +72,8 @@ namespace PickShoot
             for (int i = 0; i < waveEntries.Length; i++)
                 if (waveEntries[i] == null || waveEntries[i].prefab == null)
                     throw new System.Exception($"[PickShoot] WaveManager.waveEntries[{i}].prefab 미설정.");
+            if (bossPrefab == null)
+                throw new System.Exception("[PickShoot] WaveManager.bossPrefab 미설정.");
             if (spawnWarningPrefab == null)
                 throw new System.Exception("[PickShoot] WaveManager.spawnWarningPrefab 미설정.");
             if (spawnWarningDuration <= 0f)
@@ -110,6 +114,9 @@ namespace PickShoot
 
                 if (!CanSpawn()) yield break;
                 phase = WavePhase.Active;
+                // 보스 웨이브는 시작과 함께 보스를 예고한다. 편성 풀·동시 수 상한과 무관하게 나온다.
+                if (currentWave % bossWaveInterval == 0)
+                    StartCoroutine(SpawnWithWarning(bossPrefab, mustSpawn: true));
                 float elapsed = 0f;
                 float nextSpawnAt = 0f;
                 while (elapsed < currentWaveDuration && !endWaveRequested)
@@ -124,7 +131,7 @@ namespace PickShoot
                         // 예고가 끝나기 전에 웨이브가 끝나면 스폰되지 않으므로 그런 예고는 아예 띄우지 않는다.
                         bool warningFits = elapsed + spawnWarningDuration <= currentWaveDuration;
                         if (warningFits && CountCommittedEnemies() < maxAlive)
-                            StartCoroutine(SpawnWithWarning());
+                            StartCoroutine(SpawnWithWarning(PickEnemyPrefab(), mustSpawn: false));
                         nextSpawnAt += spawnInterval;
                     }
                     waveTimeRemaining = currentWaveDuration - elapsed;
@@ -173,46 +180,49 @@ namespace PickShoot
             SpawnEnemy(prefab, PickSpawnPoint());
         }
 
-        IEnumerator SpawnWithWarning()
+        // 예고 마커를 띄운 뒤 그 자리에 스폰한다. 예고 중 플레이어가 마커까지 다가왔으면 그 스폰은 건너뛴다 (Enemies §1).
+        // 평소 스폰은 건너뛰고 끝이다 — 다음 주기가 새 지점을 고른다. 보스(mustSpawn)는 그 웨이브에 반드시 나와야 하므로 새 지점에 다시 예고한다.
+        IEnumerator SpawnWithWarning(GameObject prefab, bool mustSpawn)
         {
-            var prefab = PickEnemyPrefab();
-            if (prefab == null) yield break;
-
-            Vector2 pos = PickSpawnPoint();
-
-            pendingWarnings++;
-            var marker = Instantiate(spawnWarningPrefab, pos, Quaternion.identity);
-            marker.Begin(spawnWarningDuration);
-            pendingMarkers.Add(marker);
-
-            yield return new WaitForSeconds(spawnWarningDuration);
-            pendingWarnings--;
-            // 웨이브 종료·사망 정리로 이미 치워졌을 수 있다.
-            if (marker != null)
+            while (true)
             {
-                pendingMarkers.Remove(marker);
-                Destroy(marker.gameObject);
+                Vector2 pos = PickSpawnPoint();
+
+                pendingWarnings++;
+                var marker = Instantiate(spawnWarningPrefab, pos, Quaternion.identity);
+                marker.Begin(spawnWarningDuration);
+                pendingMarkers.Add(marker);
+
+                yield return new WaitForSeconds(spawnWarningDuration);
+                pendingWarnings--;
+                // 웨이브 종료·사망 정리로 이미 치워졌을 수 있다.
+                if (marker != null)
+                {
+                    pendingMarkers.Remove(marker);
+                    Destroy(marker.gameObject);
+                }
+
+                if (phase != WavePhase.Active) yield break;
+                if (!CanSpawn()) yield break;
+                bool playerTooClose = ((Vector2)player.position - pos).sqrMagnitude < spawnAbortDistance * spawnAbortDistance;
+                if (!playerTooClose)
+                {
+                    SpawnEnemy(prefab, pos);
+                    yield break;
+                }
+                if (!mustSpawn) yield break;
             }
-
-            if (phase != WavePhase.Active) yield break;
-            if (!CanSpawn()) yield break;
-            // 예고 중 플레이어가 마커까지 다가왔으면 이번 스폰은 건너뛴다. 다음 주기가 새 지점을 고르므로 재배치는 하지 않는다.
-            if (((Vector2)player.position - pos).sqrMagnitude < spawnAbortDistance * spawnAbortDistance) yield break;
-
-            SpawnEnemy(prefab, pos);
         }
 
         void SpawnEnemy(GameObject prefab, Vector2 pos)
         {
             var enemy = Instantiate(prefab, pos, Quaternion.identity);
-            var health = enemy.GetComponent<EnemyHealth>();
-            if (health == null)
+            if (enemy.GetComponent<EnemyHealth>() == null)
                 throw new System.Exception($"[PickShoot] Enemy 프리팹({prefab.name})에 EnemyHealth 없음.");
-            spawnedEnemies.Add(health);
         }
 
         // 현재 웨이브에서 등장 가능한 프리팹 중 가중치 기반 랜덤 선택.
-        // 등장 이후 웨이브에서도 이전 적은 계속 등장한다 (Enemies §5).
+        // 등장 이후 웨이브에서도 이전 적은 계속 등장한다 (Enemies §6).
         GameObject PickEnemyPrefab()
         {
             float totalWeight = 0f;
@@ -236,20 +246,15 @@ namespace PickShoot
             return waveEntries[waveEntries.Length - 1].prefab;
         }
 
-        // 활성 적 + 스폰 대기 중인 워닝 수. 대기 중인 워닝을 포함해야 cap을 순간적으로 초과하지 않음.
-        int CountCommittedEnemies()
-        {
-            for (int i = spawnedEnemies.Count - 1; i >= 0; i--)
-                if (spawnedEnemies[i] == null) spawnedEnemies.RemoveAt(i);
-            return spawnedEnemies.Count + pendingWarnings;
-        }
+        // 살아 있는 적 + 스폰 대기 중인 예고 수. 대기 중인 예고를 포함해야 상한을 순간적으로 넘지 않는다.
+        // 스폰 목록 대신 씬의 EnemyHealth를 센다 — 적이 적을 낳는 경우(서펜트의 몸통·분열)도 상한에 들어야 한다. 서펜트는 마디 수만큼 센다.
+        int CountCommittedEnemies() => FindObjectsByType<EnemyHealth>(FindObjectsSortMode.None).Length + pendingWarnings;
 
+        // Kill()을 통해 EnemyHealth.Die 경로를 재사용해야 사망 이펙트가 스폰된다.
         void DestroyAllEnemies()
         {
-            // Kill()을 통해 EnemyHealth.Die 경로를 재사용해야 사망 이펙트가 스폰된다.
-            for (int i = 0; i < spawnedEnemies.Count; i++)
-                if (spawnedEnemies[i] != null) spawnedEnemies[i].Kill();
-            spawnedEnemies.Clear();
+            foreach (var enemy in FindObjectsByType<EnemyHealth>(FindObjectsSortMode.None))
+                enemy.Kill();
         }
 
         void DestroyPendingMarkers()
