@@ -8,7 +8,7 @@ namespace PickShoot
     //         걷기 프레임 대신 액션 포즈와 정지 포즈를 번갈아 깜빡이며 끝이 가까우면 빨라진다 (SpawnWarningMarker와 같은 문법).
     //         색은 히트 플래시가 쓰므로 건드리지 않는다. 느낌표는 돌진이 시작되는 순간 내린다.
     //   돌진: 고정 방향으로 고속 직진. 액션 포즈를 고정하고 궤적에 잔상(DashAfterimage)을 남긴다. 벽·최대 거리·플레이어 접촉으로 끝난다.
-    //         몸이 Kinematic이라 벽과 충돌이 나지 않으므로 매 스텝 진행 방향으로 벽 레이어를 캐스트해 닿는 지점까지만 나아간다.
+    //         벽은 공통 골격(EnemyMover)이 막고 OnWallBlocked로 알려 준다.
     //         플레이어에 닿으면 끝내야 한다 — 끝내지 않으면 동적인 플레이어를 돌진 속도로 벽까지 밀고 간다.
     //         분리 힘은 받지 않는다 (무리에 밀려 궤도가 휘지 않게). 넉백은 모든 단계에서 그대로 받는다.
     //   회복: 정지 포즈로 잠시 멈춘 뒤 접근으로.
@@ -19,8 +19,7 @@ namespace PickShoot
     {
         enum State { Approach, Windup, Charge, Recover }
 
-        [SerializeField] LayerMask wallLayerMask; // 돌진이 멈추는 벽
-        [SerializeField] Sprite chargePose;       // 준비 깜빡임과 돌진 중 고정하는 포즈 (시트의 액션 프레임)
+        [SerializeField] Sprite chargePose;      // 준비 깜빡임과 돌진 중 고정하는 포즈 (시트의 액션 프레임)
         [SerializeField, Min(0.01f)] float windupBlinkFrequency = 2f;
         [SerializeField, Min(0f)] float windupFinalBlinkDuration = 0.3f;
         [SerializeField, Min(0.01f)] float windupFinalBlinkFrequency = 8f;
@@ -39,8 +38,6 @@ namespace PickShoot
         // 돌진 중 플레이어에 닿았다. 충돌 콜백이 세우고 다음 스텝의 Steer가 소비한다.
         bool hitPlayer;
         Vector2 lastAfterimagePosition;
-        ContactFilter2D wallFilter;
-        readonly RaycastHit2D[] wallHits = new RaycastHit2D[4];
 
         protected override bool UseSeparation => state != State.Charge;
 
@@ -54,13 +51,8 @@ namespace PickShoot
                 throw new System.Exception($"[PickShoot] ChargerData.chargeSpeed가 0 이하 ({Data.name}). 돌진이 끝나지 않는다.");
             if (chargePose == null)
                 throw new System.Exception($"[PickShoot] EnemyCharger.chargePose 미설정 ({name}).");
-            if (wallLayerMask.value == 0)
-                throw new System.Exception($"[PickShoot] EnemyCharger.wallLayerMask 미설정 ({name}). 돌진이 멈출 벽 레이어(Wall) 필요.");
             walkCycle = GetComponent<SpriteWalkCycle>();
             attackWarning = GetComponent<EnemyAttackWarning>();
-            wallFilter = new ContactFilter2D();
-            wallFilter.SetLayerMask(wallLayerMask);
-            wallFilter.useTriggers = false;
         }
 
         protected override Vector2 Steer()
@@ -95,7 +87,7 @@ namespace PickShoot
             return SteerCharge();
         }
 
-        // 이번 스텝에 나아갈 거리를 정한다. 최대 거리의 남은 몫과 벽까지의 거리 중 짧은 쪽이며, 둘 중 하나에 닿으면 이 스텝을 끝으로 회복에 든다.
+        // 이번 스텝에 나아갈 거리를 정한다. 최대 거리의 남은 몫까지만 나아가고, 다 달렸으면 이 스텝을 끝으로 회복에 든다.
         // 플레이어에 닿은 것은 이전 스텝의 충돌 콜백이 알려 주므로 더 나아가지 않고 그 자리에서 끝낸다.
         Vector2 SteerCharge()
         {
@@ -111,17 +103,15 @@ namespace PickShoot
             bool lastStep = remaining <= step;
             float travel = lastStep ? remaining : step;
 
-            bool wall = false;
-            int count = Body.Cast(chargeDirection, wallFilter, wallHits, travel);
-            for (int i = 0; i < count; i++)
-            {
-                wall = true;
-                if (wallHits[i].distance < travel) travel = wallHits[i].distance;
-            }
-
             chargeTraveled += travel;
-            if (wall || lastStep) BeginRecover();
+            if (lastStep) BeginRecover();
             return chargeDirection * (travel / dt);
+        }
+
+        // 돌진 중 벽에 막히면 그 자리에서 끝낸다. 다른 단계에서는 공통 골격이 멈춰 세우는 것으로 충분하다.
+        protected override void OnWallBlocked()
+        {
+            if (state == State.Charge) BeginRecover();
         }
 
         Vector2 SteerRecover()
