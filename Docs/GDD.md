@@ -248,4 +248,4 @@ Phase 3 도입. 상세(핵심 규칙·슬롯·획득과 강화·탄약·탄환 �
 
 ## 8. 적 시스템
 
-Phase 4 도입. 상세(공통 규칙·5종 타입·원거리·돌진 상세·웨이브 편성·구현 우선순위·백로그)는 **[Docs/Systems/Enemies.md](Systems/Enemies.md)** 참조.
+Phase 4 도입. 상세(공통 규칙·8종 타입·원거리·돌진 상세·웨이브 편성·구현 우선순위·백로그)는 **[Docs/Systems/Enemies.md](Systems/Enemies.md)** 참조.
