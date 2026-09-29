@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.Rendering;
 
 namespace PickShoot
 {
@@ -11,7 +12,8 @@ namespace PickShoot
     //   첫 마디를 새 머리로 하는 별개의 서펜트가 된다(분열). 꼬리가 죽으면 짧아질 뿐이다. 승격된 머리는 HP를 그대로 가져간다.
     //   갓 스폰된 서펜트는 궤적이 스폰 지점 하나뿐이라 몸통이 전부 그 자리에 겹쳐 있다가 머리가 나아가는 만큼 풀려 나온다 — 벽 너머로 몸이 걸치지 않는다.
     // 몸통은 머리가 자기 자신(프리팹 인스턴스)을 복제해 만든다. 복제본은 곧바로 몸통으로 바꿔 Start가 돌지 않으므로 다시 몸통을 낳지 않는다.
-    // 그리기 순서는 머리가 다른 적과 같고 몸통은 한 단계 아래라 머리가 늘 몸통 위에 온다. 몸통끼리는 다른 적끼리와 같은 규칙으로 겹친다.
+    // 그리기: 사슬 하나를 SortingGroup 루트 아래 묶어 한 덩어리로 그린다. 그룹은 프리팹의 정렬 순서(다른 적과 같음)를 갖고 루트는 머리 자리를 따라가므로
+    //   다른 적과는 머리 자리로 겨루고, 그룹 안에서는 머리 → 첫 몸통 → … → 꼬리 순으로 앞 마디가 뒤 마디 위에 온다. 분열하면 새 머리가 새 루트를 만든다.
     [RequireComponent(typeof(EnemyHealth))]
     [RequireComponent(typeof(SpriteWalkCycle))]
     public class EnemySerpent : EnemyMover
@@ -20,12 +22,13 @@ namespace PickShoot
 
         SerpentData serpent;
         SpriteWalkCycle walkCycle;
-        int baseSortingOrder;
+        int groupSortingOrder; // 프리팹이 준 정렬 순서. 사슬 그룹이 다른 적과 겨루는 순서로 쓴다
         // 속한 서펜트의 머리. 머리 자신이면 this.
         EnemySerpent head;
-        // 머리일 때만: 뒤따르는 몸통(가까운 순)과 궤적. 몸통일 때는 null.
+        // 머리일 때만: 뒤따르는 몸통(가까운 순), 궤적, 사슬을 한 덩어리로 그리는 루트(SortingGroup). 몸통일 때는 null.
         List<EnemySerpent> followers;
         SerpentTrail trail;
+        Transform chainRoot;
         Vector2 heading;
         // 승격된 머리는 몸통을 넘겨받았으므로 Start에서 새로 낳지 않는다.
         bool promoted;
@@ -41,7 +44,7 @@ namespace PickShoot
             if (bodySprite == null)
                 throw new System.Exception($"[PickShoot] EnemySerpent.bodySprite 미설정 ({name}).");
             walkCycle = GetComponent<SpriteWalkCycle>();
-            baseSortingOrder = Sprite.sortingOrder;
+            groupSortingOrder = Sprite.sortingOrder;
             GetComponent<EnemyHealth>().Died += OnDied;
             // 몸통이 없는 머리로 시작한다. 몸통이 되면 BecomeBody가, 승격되면 Promote가 바꾼다.
             head = this;
@@ -63,7 +66,7 @@ namespace PickShoot
                 segment.BecomeBody(this);
                 followers.Add(segment);
             }
-            RefreshSortingOrders();
+            BuildChain();
         }
 
         // 스폰 시의 진행 방향: 플레이어 쪽. 플레이어가 없거나 겹쳐 있으면 오른쪽.
@@ -98,28 +101,71 @@ namespace PickShoot
             return new Vector2(c * v.x - s * v.y, s * v.x + c * v.y);
         }
 
-        // 머리가 옮겨 갈 자리가 정해졌다. 궤적을 잇고 몸통을 그 위에 놓는다. 몸통 i(0부터)는 머리에서 (i+1)×간격 뒤.
+        // 머리가 옮겨 갈 자리가 정해졌다. 궤적을 잇고 몸통을 그 위에 놓은 뒤 사슬 루트를 머리 자리로 옮긴다. 몸통 i(0부터)는 머리에서 (i+1)×간격 뒤.
         protected override void OnMoved(Vector2 to)
         {
             trail.Record(to);
             trail.Trim(followers.Count * serpent.SegmentSpacing);
             for (int i = 0; i < followers.Count; i++)
                 followers[i].Body.MovePosition(trail.PointBehind((i + 1) * serpent.SegmentSpacing));
+            MoveChainRoot(to);
+        }
+
+        // 루트를 머리 자리에 둔다 — 그룹은 루트 자리로 다른 렌더러와 겨룬다. 마디의 자리는 몸(Rigidbody2D)이 갖고 있는데 루트가 움직이면 자식
+        // 트랜스폼이 딸려 가고 물리 동기화가 몸을 그만큼 옮겨 버리므로, 트랜스폼을 몸 자리에 도로 맞춘다. 물리 스텝 전이라 보간(Interpolate)도 깨지지 않는다.
+        void MoveChainRoot(Vector2 to)
+        {
+            chainRoot.position = to;
+            PinToBody(this);
+            for (int i = 0; i < followers.Count; i++) PinToBody(followers[i]);
+        }
+
+        static void PinToBody(EnemySerpent segment) => segment.transform.position = segment.Body.position;
+
+        // 이 머리와 몸통을 새 루트 아래 묶고 그룹 안 순서를 매긴다. 스폰 직후와 승격 직후에 부른다.
+        void BuildChain()
+        {
+            var root = new GameObject($"{name} Chain");
+            root.transform.position = Body.position;
+            var group = root.AddComponent<SortingGroup>();
+            group.sortingLayerID = Sprite.sortingLayerID;
+            group.sortingOrder = groupSortingOrder;
+            chainRoot = root.transform;
+            Attach(this);
+            for (int i = 0; i < followers.Count; i++) Attach(followers[i]);
+            RefreshSortingOrders();
+        }
+
+        // 마디를 이 사슬의 루트 아래로 옮긴다. 자리는 몸이 갖고 있으므로 트랜스폼을 몸 자리에 맞춘다 (보간 중이던 값이 몸에 되쓰이지 않게).
+        void Attach(EnemySerpent segment)
+        {
+            segment.transform.SetParent(chainRoot, true);
+            PinToBody(segment);
+        }
+
+        // 그룹 안의 순서: 머리 0, 몸통은 뒤로 갈수록 한 단계씩 아래. 앞 마디가 늘 뒤 마디 위에 온다.
+        void RefreshSortingOrders()
+        {
+            Sprite.sortingOrder = 0;
+            for (int i = 0; i < followers.Count; i++)
+                followers[i].Sprite.sortingOrder = -(i + 1);
         }
 
         // 머리 owner의 몸통이 된다. 조향을 멈추고 자리는 머리가 정한다.
         void BecomeBody(EnemySerpent owner)
         {
             head = owner;
+            groupSortingOrder = owner.groupSortingOrder;
             followers = null;
             trail = null;
+            chainRoot = null;
             enabled = false;
             walkCycle.enabled = false;
             Sprite.sprite = bodySprite;
             Sprite.flipX = false;
         }
 
-        // 몸통이 머리가 된다. 넘겨받은 몸통·궤적으로 이어서 나아간다. HP는 그대로.
+        // 몸통이 머리가 된다. 넘겨받은 몸통·궤적으로 이어서 나아가고, 자기 사슬 루트를 새로 만든다. HP는 그대로.
         void Promote(List<EnemySerpent> newFollowers, SerpentTrail newTrail, Vector2 newHeading)
         {
             head = this;
@@ -132,7 +178,7 @@ namespace PickShoot
             Sprite.sprite = walkCycle.IdleFrame;
             Face(heading.x);
             enabled = true;
-            RefreshSortingOrders();
+            BuildChain();
         }
 
         void OnDied() => head.OnSegmentDied(this);
@@ -161,11 +207,10 @@ namespace PickShoot
             if (dead != this) RefreshSortingOrders();
         }
 
-        void RefreshSortingOrders()
+        // 머리가 사라지면 사슬 루트도 치운다. Died를 거친 죽음이면 몸통은 이미 새 머리의 루트로 옮겨 가 있다.
+        void OnDestroy()
         {
-            Sprite.sortingOrder = baseSortingOrder;
-            for (int i = 0; i < followers.Count; i++)
-                followers[i].Sprite.sortingOrder = baseSortingOrder - 1;
+            if (head == this && chainRoot != null) Destroy(chainRoot.gameObject);
         }
     }
 }
