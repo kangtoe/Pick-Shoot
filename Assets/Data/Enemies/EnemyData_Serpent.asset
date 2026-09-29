@@ -18,3 +18,4 @@ MonoBehaviour:
   segmentCount: 8
   segmentSpacing: 1.25
   turnRate: 150
+  loneHeadSpeedMultiplier: 2

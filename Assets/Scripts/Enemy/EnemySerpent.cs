@@ -7,6 +7,7 @@ namespace PickShoot
     // 서펜트형 보스 (Enemies §5). 표정 있는 네모(머리) 하나가 플레이어를 쫓고, 표정 없는 네모(몸통) 마디들이 머리가 지나온 궤적(SerpentTrail)을
     // 따라 일정 간격으로 잇는다. 마디마다 이 컴포넌트가 붙고 머리일 때만 켜져 EnemyMover로 조향한다. 몸통 마디는 꺼진 채 머리가 매 스텝 자리를 옮긴다.
     //   조향: 플레이어 방향으로 초당 최대 turnRate만큼만 방향을 틀며 늘 이동 속도로 나아간다 — 멈춰 서지 않고 크게 돌아 몸이 넓게 쓸린다.
+    //   남은 마디가 적을수록 빠르다 — 몸통이 다 있으면 데이터의 속도, 머리만 남으면 그 배율(SerpentData)까지 몸통 수에 선형. 회전 속도는 그대로라 빠를수록 크게 돈다.
     //   넉백은 받지 않는다(보스). 분리 힘은 머리가 자기 사슬 밖의 것(다른 서펜트·다른 적)에게서만 받는다 — 자기 몸에 밀리면 원을 그릴 때 튕겨 나간다.
     //   머리가 어디로 밀리든 궤적은 실제 지난 길이므로 사슬은 어긋나지 않는다. 벽은 공통 골격이 막고, 몸은 머리가 지난 길 위에만 있다.
     //   마디는 각자 EnemyHealth로 따로 맞고 따로 죽는다. 머리가 죽으면 다음 마디가 머리가 되고(분열 없음), 몸통이 죽으면 그 뒤가 떨어져 나가
@@ -94,8 +95,12 @@ namespace PickShoot
                 heading = Rotate(heading, turn).normalized;
             }
             Face(heading.x);
-            return heading * Data.MoveSpeed;
+            return heading * Data.MoveSpeed * SpeedMultiplier();
         }
+
+        // 남은 마디가 적을수록 빠르다: 몸통이 스폰 수만큼 있으면 1배, 머리만 남으면 배율만큼, 사이는 몸통 수에 선형. 분열체는 짧은 만큼 처음부터 빠르다.
+        float SpeedMultiplier() =>
+            Mathf.Lerp(serpent.LoneHeadSpeedMultiplier, 1f, (float)followers.Count / serpent.SegmentCount);
 
         static Vector2 Rotate(Vector2 v, float degrees)
         {
