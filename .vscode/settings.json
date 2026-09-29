@@ -67,5 +67,5 @@
         "*.sln": "*.csproj",
         "*.slnx": "*.csproj"
     },
-    "dotnet.defaultSolution": "Pick_Shoot.slnx"
+    "dotnet.defaultSolution": "Pick-Shoot.slnx"
 }
