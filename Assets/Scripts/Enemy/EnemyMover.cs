@@ -10,6 +10,7 @@ namespace PickShoot
     // 캐스트하고, 막힌 축은 벽 앞까지만 나아간다 (Enemies §1). 막히지 않은 축은 그대로 가므로 벽을 따라 미끄러지고, 구석에서는 멈춘다.
     // 막힌 스텝에는 OnWallBlocked를 부른다 — 벽에 닿는 것이 곧 행동의 끝인 적(돌진)이 받아 쓴다.
     // 옮겨 갈 자리가 정해지면 OnMoved를 부른다 — 몸에 딸린 것(서펜트의 몸통)을 함께 옮기는 적이 받아 쓴다.
+    // 분리 힘의 이웃은 SeparatesFrom으로 거른다 — 한 몸처럼 움직이는 것(서펜트의 자기 사슬 마디)을 빼는 적이 받아 쓴다.
     [RequireComponent(typeof(Rigidbody2D))]
     [RequireComponent(typeof(SpriteRenderer))]
     public abstract class EnemyMover : MonoBehaviour
@@ -26,7 +27,7 @@ namespace PickShoot
         const float WallSkin = 0.05f;
 
         Vector2 knockback;
-        readonly Collider2D[] neighbors = new Collider2D[8];
+        readonly Collider2D[] neighbors = new Collider2D[16]; // 반경 안 이웃. 서펜트 사슬이 뭉쳐 지나도 넘치지 않을 만큼
         ContactFilter2D wallFilter;
         readonly RaycastHit2D[] wallHits = new RaycastHit2D[4];
 
@@ -38,6 +39,9 @@ namespace PickShoot
 
         // 이 스텝에 분리 힘을 받을지. 궤도가 휘면 안 되는 이동(돌진)은 끈다.
         protected virtual bool UseSeparation => true;
+
+        // 이 이웃과 분리 힘을 주고받을지. 한 몸처럼 움직이는 것(서펜트의 자기 사슬 마디)은 뺀다.
+        protected virtual bool SeparatesFrom(Collider2D other) => true;
 
         protected virtual void Awake()
         {
@@ -125,7 +129,7 @@ namespace PickShoot
             for (int i = 0; i < count; i++)
             {
                 var c = neighbors[i];
-                if (c == null || c.attachedRigidbody == Body) continue;
+                if (c == null || c.attachedRigidbody == Body || !SeparatesFrom(c)) continue;
                 Vector2 diff = Body.position - (Vector2)c.transform.position;
                 float d = diff.magnitude;
                 if (d < 0.0001f) continue;

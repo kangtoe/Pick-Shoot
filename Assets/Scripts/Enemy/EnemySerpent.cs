@@ -7,7 +7,8 @@ namespace PickShoot
     // 서펜트형 보스 (Enemies §5). 표정 있는 네모(머리) 하나가 플레이어를 쫓고, 표정 없는 네모(몸통) 마디들이 머리가 지나온 궤적(SerpentTrail)을
     // 따라 일정 간격으로 잇는다. 마디마다 이 컴포넌트가 붙고 머리일 때만 켜져 EnemyMover로 조향한다. 몸통 마디는 꺼진 채 머리가 매 스텝 자리를 옮긴다.
     //   조향: 플레이어 방향으로 초당 최대 turnRate만큼만 방향을 틀며 늘 이동 속도로 나아간다 — 멈춰 서지 않고 크게 돌아 몸이 넓게 쓸린다.
-    //   넉백·분리 힘은 받지 않는다 — 몸이 궤적에 묶여 있어 머리만 밀리면 사슬이 어긋난다. 벽은 공통 골격이 막고, 몸은 머리가 지난 길 위에만 있다.
+    //   넉백은 받지 않는다(보스). 분리 힘은 머리가 자기 사슬 밖의 것(다른 서펜트·다른 적)에게서만 받는다 — 자기 몸에 밀리면 원을 그릴 때 튕겨 나간다.
+    //   머리가 어디로 밀리든 궤적은 실제 지난 길이므로 사슬은 어긋나지 않는다. 벽은 공통 골격이 막고, 몸은 머리가 지난 길 위에만 있다.
     //   마디는 각자 EnemyHealth로 따로 맞고 따로 죽는다. 머리가 죽으면 다음 마디가 머리가 되고(분열 없음), 몸통이 죽으면 그 뒤가 떨어져 나가
     //   첫 마디를 새 머리로 하는 별개의 서펜트가 된다(분열). 꼬리가 죽으면 짧아질 뿐이다. 승격된 머리는 HP를 그대로 가져간다.
     //   갓 스폰된 서펜트는 궤적이 스폰 지점 하나뿐이라 몸통이 전부 그 자리에 겹쳐 있다가 머리가 나아가는 만큼 풀려 나온다 — 벽 너머로 몸이 걸치지 않는다.
@@ -32,8 +33,6 @@ namespace PickShoot
         Vector2 heading;
         // 승격된 머리는 몸통을 넘겨받았으므로 Start에서 새로 낳지 않는다.
         bool promoted;
-
-        protected override bool UseSeparation => false;
 
         protected override void Awake()
         {
@@ -77,8 +76,12 @@ namespace PickShoot
             return delta.sqrMagnitude > 0.0001f ? delta.normalized : Vector2.right;
         }
 
-        // 넉백은 받지 않는다 (몸이 궤적에 묶여 있다). 몸통 마디도 꺼진 이 컴포넌트로 같은 호출을 받으므로 여기서 함께 거른다.
+        // 넉백은 받지 않는다 (보스). 몸통 마디도 꺼진 이 컴포넌트로 같은 호출을 받으므로 여기서 함께 거른다.
         public override void ApplyKnockback(Vector2 velocity) { }
+
+        // 자기 사슬의 마디와는 분리 힘을 주고받지 않는다 (헤더 참조). 다른 서펜트·다른 적에게는 평소대로 밀린다.
+        protected override bool SeparatesFrom(Collider2D other) =>
+            !(other.TryGetComponent(out EnemySerpent segment) && segment.head == head);
 
         protected override Vector2 Steer()
         {
