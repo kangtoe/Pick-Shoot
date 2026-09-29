@@ -3,6 +3,7 @@
 사람이 조작하지 않아도 **플레이 모드 진입 → (선택) 자동 플레이 → mp4 저장 → 플레이 모드 종료**를 한 번에 끝내는 방법. 일회성 에디터 스크립트 하나(+ 게임별 봇 하나)로 구현하며, 이 문서는 그 스크립트를 다시 만들 수 있을 만큼의 구조와 함정만 적는다.
 
 > 원본: Pick&Shoot 저장소 `Docs/Guides/AutoPlayRecording.md`. 프로젝트 의존 내용이 없으므로 다른 Unity 프로젝트에는 이 파일을 그대로 복사해 쓴다. 개선점이 생기면 원본에 반영한다.
+> 구현 예: Pick&Shoot의 `Assets/Editor/PlayRecorder.cs`(트리거·세션·Game view 복원, 프로젝트 비의존)와 `PickShootPlayDriver.cs`(게임별 봇). 아트 교체 전후 비교를 위해 보존 중이며, 메뉴 `PickShoot/Record Play`가 기본 설정(1080p·30fps·90초·봇)으로 요청 파일을 쓴다 — 파일명은 `play_{날짜}_{HEAD 짧은 해시}.mp4`.
 
 - 검증: Unity 6000.3.10f1, Windows 10, DX12, Input System 1.18. Recorder 패키지 불필요.
 - 산출물: H.264 mp4(오디오 없음), 확인용 스냅샷 PNG, 진행 로그. 적용 예: Pick&Shoot에서 1080p 30fps 81초(자동 플레이 봇으로 웨이브 3까지).
@@ -40,11 +41,11 @@ Game view 크기 복원은 공개 API가 없어 reflection: `UnityEditor.GameVie
 
 ## 3. 사용 절차
 
-1. 스크립트를 `Assets/Editor/`에 넣고 **Unity 창을 한 번 클릭**한다. 에디터는 포커스를 받을 때만 재컴파일한다. `record.log`에 `loaded.` 줄이 찍히면 준비 완료. 컴파일 에러는 `%LOCALAPPDATA%\Unity\Editor\Editor.log`에서 `error CS`로 찾는다.
-2. `Recordings/record.request`를 쓴다 (key=value, 한 줄에 하나): `output`(mp4 절대 경로, 필수), `seconds`, `fps`, `flip`(DX12는 1), `width`/`height`(0이면 현재 크기), `restore_index`(되돌릴 Game view 크기 index, -1이면 시작 시점 값), `driver`(0이면 봇 없이 녹화).
+1. 스크립트를 `Assets/Editor/`에 넣고(Pick&Shoot에는 이미 있음) **Unity 창을 한 번 클릭**한다. 에디터는 포커스를 받을 때만 재컴파일한다. `record.log`에 `loaded.` 줄이 찍히면 준비 완료. 컴파일 에러는 `%LOCALAPPDATA%\Unity\Editor\Editor.log`에서 `error CS`로 찾는다.
+2. `Recordings/record.request`를 쓴다 (key=value, 한 줄에 하나. Pick&Shoot에서는 메뉴 `PickShoot/Record Play`가 대신 써 준다): `output`(mp4 절대 경로, 필수), `seconds`, `fps`, `flip`(DX12는 1), `width`/`height`(0이면 현재 크기), `restore_index`(되돌릴 Game view 크기 index, -1이면 시작 시점 값), `driver`(0이면 봇 없이 녹화).
 3. `record.done`이 생길 때까지 5초 간격으로 `record.log`를 꼬리 출력하며 기다린다. 정상 흐름: `request accepted → EnteredPlayMode → session started → 해상도 요청 → screen … -> video … → progress N/M(10초마다) → finishing → finish`. 1080p는 프레임당 약 35ms라 90초 영상에 100초 안팎 걸린다.
 4. 검증: `ffmpeg -i play.mp4`로 길이·해상도 확인(`moov atom not found`면 깨진 파일), `ffmpeg -ss 30 -i play.mp4 -frames:v 1 f.png`로 프레임을 뽑아 HUD가 위에 있는지 본다. ffmpeg 없이는 `snapshot_*.png`로 방향만 확인. PATH에 없어도 다른 프로그램에 딸린 ffmpeg가 있을 수 있다(예: 이 PC는 `C:\Program Files\File Converter\ffmpeg.exe`).
-5. 정리: 일회성이면 스크립트 삭제(프로젝트 규칙에 따름), `record.active`·`record.done`·`snapshot_*.png` 삭제, Game view 크기 확인, `git status` 확인.
+5. 정리: 일회성이면 스크립트 삭제(프로젝트 규칙에 따름. Pick&Shoot은 아트 비교가 끝날 때까지 보존), `record.active`·`record.done`·`snapshot_*.png` 삭제, Game view 크기 확인, `git status` 확인.
 
 ## 4. 함정
 
