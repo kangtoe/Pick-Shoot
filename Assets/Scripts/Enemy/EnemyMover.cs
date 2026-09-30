@@ -8,7 +8,7 @@ namespace PickShoot
     // Face(dx)는 x 차이가 데드존보다 작으면 마지막 방향을 유지해 반전이 매 프레임 뒤집히지 않게 한다.
     // 몸은 Kinematic이라 정적 콜라이더(벽)와는 접촉 이벤트도 밀어내기도 없다 — 그래서 옮기기 전에 이동량을 가로·세로로 나눠 벽 레이어에
     // 캐스트하고, 막힌 축은 벽 앞까지만 나아간다 (Enemies §1). 막히지 않은 축은 그대로 가므로 벽을 따라 미끄러지고, 구석에서는 멈춘다.
-    // 막힌 스텝에는 OnWallBlocked를 부른다 — 벽에 닿는 것이 곧 행동의 끝인 적(돌진)이 받아 쓴다.
+    // 막힌 스텝에는 OnWallBlocked를 부른다 — 벽에 닿는 것이 곧 행동의 끝인 적(돌진)과 벽에서 방향을 꺾는 적(방랑)이 받아 쓴다.
     // 옮겨 갈 자리가 정해지면 OnMoved를 부른다 — 몸에 딸린 것(서펜트의 몸통)을 함께 옮기는 적이 받아 쓴다.
     // 분리 힘의 이웃은 SeparatesFrom으로 거른다 — 한 몸처럼 움직이는 것(서펜트의 자기 사슬 마디)을 빼는 적이 받아 쓴다.
     // 뚫을 수 없는 몸(IsSolid, 서펜트 마디)과 겹치면 분리 힘과 별개로 겹친 만큼 그 스텝에 바로 밀려난다 — 부드러운 분리 힘만으로는
@@ -91,11 +91,13 @@ namespace PickShoot
             if (separate) velocity += ComputeSeparation(out pushOut);
 
             Vector2 move = velocity * Time.fixedDeltaTime + pushOut;
+            Vector2 attempted = move;
             bool blockedX = ClampToWall(ref move.x, Vector2.right);
             bool blockedY = ClampToWall(ref move.y, Vector2.up);
             Vector2 to = Body.position + move;
             Body.MovePosition(to);
-            if (blockedX || blockedY) OnWallBlocked();
+            if (blockedX || blockedY)
+                OnWallBlocked(new Vector2(blockedX ? Mathf.Sign(attempted.x) : 0f, blockedY ? Mathf.Sign(attempted.y) : 0f));
             OnMoved(to);
         }
 
@@ -103,7 +105,8 @@ namespace PickShoot
         protected abstract Vector2 Steer();
 
         // 이 스텝의 이동이 벽에 막혔다. 넉백·분리 힘에 밀려 막힌 것도 포함한다.
-        protected virtual void OnWallBlocked() { }
+        // blockedSide는 막힌 축마다 벽이 있는 쪽의 부호(오른쪽 벽이면 x = 1), 막히지 않은 축은 0.
+        protected virtual void OnWallBlocked(Vector2 blockedSide) { }
 
         // 이 스텝에 옮겨 갈 자리가 정해졌다. MovePosition은 물리 스텝이 지나야 반영되므로 Body.position은 아직 이전 자리다.
         protected virtual void OnMoved(Vector2 to) { }

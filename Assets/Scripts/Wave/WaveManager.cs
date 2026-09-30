@@ -19,7 +19,7 @@ namespace PickShoot
         }
 
         [SerializeField] WaveSpawnEntry[] waveEntries;
-        // 보스 웨이브: 번호가 bossWaveInterval의 배수인 웨이브는 시작과 함께 보스 한 마리를 예고 후 스폰한다 (Enemies §6).
+        // 보스 웨이브: 번호가 bossWaveInterval의 배수인 웨이브는 시작과 함께 보스 한 마리를 예고 후 스폰한다 (Enemies §7).
         [SerializeField] GameObject bossPrefab;
         [SerializeField, Min(1)] int bossWaveInterval = 5;
         [SerializeField] SpawnWarningMarker spawnWarningPrefab;
@@ -222,7 +222,7 @@ namespace PickShoot
         }
 
         // 현재 웨이브에서 등장 가능한 프리팹 중 가중치 기반 랜덤 선택.
-        // 등장 이후 웨이브에서도 이전 적은 계속 등장한다 (Enemies §6).
+        // 등장 이후 웨이브에서도 이전 적은 계속 등장한다 (Enemies §7).
         GameObject PickEnemyPrefab()
         {
             float totalWeight = 0f;

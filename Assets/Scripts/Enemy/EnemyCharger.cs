@@ -109,7 +109,7 @@ namespace PickShoot
         }
 
         // 돌진 중 벽에 막히면 그 자리에서 끝낸다. 다른 단계에서는 공통 골격이 멈춰 세우는 것으로 충분하다.
-        protected override void OnWallBlocked()
+        protected override void OnWallBlocked(Vector2 blockedSide)
         {
             if (state == State.Charge) BeginRecover();
         }
