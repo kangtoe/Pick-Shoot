@@ -15,8 +15,9 @@ MonoBehaviour:
   displayName: Collector
   maxHp: 24
   moveSpeed: 2
-  turnIntervalMin: 1.5
-  turnIntervalMax: 3.5
+  crossingSpread: 1.5
+  seekRadius: 12
   pullRadius: 3.5
   holdRadius: 0.9
   pullSpeed: 8
+  bulletSpacing: 0.5

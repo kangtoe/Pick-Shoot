@@ -1,0 +1,138 @@
+using System.Collections.Generic;
+using UnityEngine;
+
+namespace PickShoot
+{
+    // 수집형 적 (Enemies §6). 흩어진 플레이어 탄환을 찾아가 곁으로 끌어모은다.
+    //   이동: 탐색 거리 안에서 가장 가까운 흩어진 탄환(정착했고 자석에 걸리지 않았으며 끄는 반경 밖)을 향해 걷는다. 끄는 반경에 들어온 탄환은
+    //         끌려오므로 목표에서 빠지고 다음 탄환으로 간다. 흩어진 탄환이 없으면 방랑형(EnemyWanderer)처럼 플레이어 근처를 가로지르는 경로로 움직이고,
+    //         탄환을 좇다 놓칠 때마다 그 자리에서 새 경로를 잡는다. 바라보는 방향은 가는 방향이다.
+    //   끌기: 매 물리 스텝 끄는 반경 안의 정착 탄환에 자기 쪽으로 향하는 속도를 주어 몸 둘레의 고리(유지 반경) 위에 둔다. 고리 안의 탄환은 세워 두고,
+    //         몸이 움직여 고리 밖으로 밀려나면 다시 끌려와 따라다닌다. 중심은 이 스텝에 옮겨 갈 자리(OnMoved)라 몸에 딸린 것처럼 따른다.
+    //   밀어내기: 끌어온 탄환끼리는 간격보다 가까우면 서로 밀어내 겹치지 않는다. 고리 둘레가 간격대로 늘어서기에 모자라면 고리를 키운다.
+    //         Bullet 자신의 분리 힘은 정착 감속에 눌려 약하고 여기서 속도를 덮어쓰므로 따로 계산한다.
+    //   튕김 중인 탄환은 건드리지 않는다 — 그 페이즈는 속도·충돌을 그대로 유지하는 것이 GDD의 약속이고, 정착하면 그때 끈다.
+    //   플레이어 자석에 걸린 탄환은 끌지 않는다 — 자석은 한 번 걸리면 풀리지 않는다(GDD §3.2). 끌어온 탄환은 정착 상태 그대로라 플레이어가 자석 반경까지
+    //   다가가면 평소대로 걸리고 그 순간 손을 뗀다. 목록을 들지 않고 매 스텝 반경으로 다시 찾으므로 죽거나 탄환이 멀어져도 따로 놓아줄 것이 없다.
+    //   정착 탄환은 BulletInactive 레이어라 적과 부딪히지 않는다 — 몸 안쪽까지 끌어와도 걸리지 않고, 곁의 탄환이 사격을 막지도 않는다.
+    //   플레이어 자석과 달리 콜라이더는 끄지 않는다(벽은 통과하지 못한다) — 끄고 켜는 상태를 두지 않기 위해서다.
+    // 거리·속도·간격은 CollectorData 자산이 정한다. 넉백·분리 힘·벽 판정·걷기는 공통 골격 그대로.
+    public class EnemyCollector : EnemyWanderer
+    {
+        [SerializeField] LayerMask bulletLayerMask; // 정착 탄환의 레이어(BulletInactive)
+
+        CollectorData collector;
+        ContactFilter2D bulletFilter;
+        static readonly List<Collider2D> hits = new List<Collider2D>();
+        static readonly List<Rigidbody2D> held = new List<Rigidbody2D>();
+        // 지난 스텝에 탄환을 좇고 있었는지. 놓치는 순간 새 경로를 잡기 위해 기억한다.
+        bool seeking;
+
+        protected override void Awake()
+        {
+            base.Awake();
+            collector = Data as CollectorData;
+            if (collector == null)
+                throw new System.Exception($"[PickShoot] EnemyCollector.data가 CollectorData 자산이 아님 ({name}: {Data.name}).");
+            if (bulletLayerMask.value == 0)
+                throw new System.Exception($"[PickShoot] EnemyCollector.bulletLayerMask 미설정 ({name}). 정착 탄환 레이어(BulletInactive) 필요.");
+            if (collector.PullRadius <= collector.HoldRadius)
+                throw new System.Exception($"[PickShoot] CollectorData의 끄는 반경({collector.PullRadius})이 유지 반경({collector.HoldRadius}) 이하 ({Data.name}). 끌 구간이 없다.");
+            if (collector.SeekRadius <= collector.PullRadius)
+                throw new System.Exception($"[PickShoot] CollectorData의 탐색 거리({collector.SeekRadius})가 끄는 반경({collector.PullRadius}) 이하 ({Data.name}). 찾아갈 구간이 없다.");
+            bulletFilter = new ContactFilter2D();
+            bulletFilter.SetLayerMask(bulletLayerMask);
+            bulletFilter.useTriggers = false;
+        }
+
+        protected override Vector2 Steer()
+        {
+            if (TryFindLooseBullet(out Vector2 bulletPosition))
+            {
+                seeking = true;
+                Vector2 delta = bulletPosition - Body.position;
+                Face(delta.x);
+                if (delta.sqrMagnitude <= 0.0001f) return Vector2.zero;
+                return delta.normalized * Data.MoveSpeed;
+            }
+            if (seeking)
+            {
+                seeking = false;
+                TakeNewPath();
+            }
+            return SteerAlongPath();
+        }
+
+        // 탐색 거리 안에서 가장 가까운 흩어진 탄환 — 정착했고 자석에 걸리지 않았으며 끄는 반경 밖에 있는 것.
+        bool TryFindLooseBullet(out Vector2 position)
+        {
+            position = default;
+            Physics2D.OverlapCircle(Body.position, collector.SeekRadius, bulletFilter, hits);
+            float pullSqr = collector.PullRadius * collector.PullRadius;
+            float bestSqr = float.MaxValue;
+            foreach (var hit in hits)
+            {
+                if (!IsCollectible(hit)) continue;
+                Vector2 p = hit.attachedRigidbody.position;
+                float sqr = (p - Body.position).sqrMagnitude;
+                if (sqr <= pullSqr || sqr >= bestSqr) continue;
+                bestSqr = sqr;
+                position = p;
+            }
+            return bestSqr < float.MaxValue;
+        }
+
+        // 탄환 레이어의 콜라이더가 끌 수 있는 탄환인지. 튕김 중이거나 플레이어 자석에 걸린 것은 아니다.
+        bool IsCollectible(Collider2D hit)
+        {
+            var bullet = hit.GetComponent<Bullet>();
+            if (bullet == null)
+                throw new System.Exception($"[PickShoot] EnemyCollector: 탄환 레이어의 콜라이더 '{hit.name}'에 Bullet 없음.");
+            return bullet.IsSettled && !bullet.IsMagnetized;
+        }
+
+        protected override void OnMoved(Vector2 to) => PullBullets(to);
+
+        void PullBullets(Vector2 center)
+        {
+            Physics2D.OverlapCircle(center, collector.PullRadius, bulletFilter, hits);
+            held.Clear();
+            foreach (var hit in hits)
+                if (IsCollectible(hit)) held.Add(hit.attachedRigidbody);
+
+            // 고리 반지름: 탄환이 간격대로 늘어서기에 둘레가 모자라면 키운다.
+            float ring = Mathf.Max(collector.HoldRadius, held.Count * collector.BulletSpacing / (2f * Mathf.PI));
+            float spacing = collector.BulletSpacing;
+            float maxSpeed = collector.PullSpeed;
+            float dt = Time.fixedDeltaTime;
+            for (int i = 0; i < held.Count; i++)
+            {
+                var rb = held[i];
+                Vector2 pos = rb.position;
+                Vector2 velocity = Vector2.zero;
+
+                // 고리 밖이면 고리까지만 끌어당긴다 — 지나치지 않게 이번 스텝의 남은 거리로 제한.
+                Vector2 toCenter = center - pos;
+                float d = toCenter.magnitude;
+                if (d > ring) velocity = toCenter / d * Mathf.Min(maxSpeed, (d - ring) / dt);
+
+                // 간격보다 가까운 이웃에게서 겹친 만큼의 절반씩 물러난다 (양쪽이 각자 절반).
+                for (int j = 0; j < held.Count; j++)
+                {
+                    if (j == i) continue;
+                    Vector2 away = pos - held[j].position;
+                    float od = away.magnitude;
+                    if (od >= spacing) continue;
+                    // 정확히 겹친 둘은 방향이 없으므로 순서로 좌우를 가른다.
+                    Vector2 dir = od > 0.0001f ? away / od : (i < j ? Vector2.right : Vector2.left);
+                    velocity += dir * ((spacing - od) * 0.5f / dt);
+                }
+
+                // 밀어내기가 여럿 겹쳐 튀지 않게 끄는 속도까지로 묶는다.
+                if (velocity.sqrMagnitude > maxSpeed * maxSpeed)
+                    velocity = velocity.normalized * maxSpeed;
+                rb.linearVelocity = velocity;
+            }
+        }
+    }
+}
