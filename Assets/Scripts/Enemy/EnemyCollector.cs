@@ -19,6 +19,8 @@ namespace PickShoot
     //   다가가면 평소대로 걸리고 그 순간 손을 뗀다. 목록을 들지 않고 매 스텝 범위로 다시 찾으므로 죽거나 탄환이 멀어져도 따로 놓아줄 것이 없다.
     //   정착 탄환은 BulletInactive 레이어라 적과 부딪히지 않는다 — 몸 안쪽까지 끌어와도 걸리지 않고, 곁의 탄환이 사격을 막지도 않는다.
     //   플레이어 자석과 달리 콜라이더는 끄지 않는다(벽은 통과하지 못한다) — 끄고 켜는 상태를 두지 않기 위해서다.
+    //   여럿일 때: 탄환은 끄는 범위에 둔 수집형 중 가장 가까운 것의 소유다. 다른 수집형의 탄환은 흩어진 것으로 치지 않아 찾아가지 않고, 범위가 겹쳐도 끌지
+    //   않는다 — 서로의 고리를 좇아 뭉치거나 한 탄환을 양쪽에서 당기지 않게. 살아 있는 수집형을 전부 등록해 두고 매 스텝 가린다.
     // 반경·속도·간격·감속은 CollectorData 자산이 정한다. 넉백·분리 힘·벽 판정·걷기는 공통 골격 그대로.
     public class EnemyCollector : EnemyWanderer
     {
@@ -31,6 +33,8 @@ namespace PickShoot
         ContactFilter2D bulletFilter;
         static readonly List<Collider2D> hits = new List<Collider2D>();
         static readonly List<Rigidbody2D> held = new List<Rigidbody2D>();
+        // 살아 있는 수집형 전부. 탄환이 누구 것인지 가리는 데 쓴다.
+        static readonly List<EnemyCollector> all = new List<EnemyCollector>();
         // 지난 스텝에 탄환을 좇고 있었는지. 놓치는 순간 새 경로를 잡기 위해 기억한다.
         bool seeking;
         // 지난 스텝의 고리 반지름과 든 탄환 수. 끄는 범위와 이동 속도가 이를 따른다.
@@ -52,6 +56,9 @@ namespace PickShoot
             bulletFilter.useTriggers = false;
             ring = collector.HoldRadius;
         }
+
+        void OnEnable() => all.Add(this);
+        void OnDisable() => all.Remove(this);
 
         // 끄는 범위. 고리가 커져 끄는 반경을 넘으면 고리 바깥 한 간격까지 — 든 탄환이 고리 위에서 빠져나가지 않게.
         float CaptureRadius => Mathf.Max(collector.PullRadius, ring + collector.BulletSpacing);
@@ -78,20 +85,35 @@ namespace PickShoot
             return SteerAlongPath() * factor;
         }
 
-        // 가장 가까운 흩어진 탄환 — 정착했고 자석에 걸리지 않았으며 끄는 범위 밖에 있는 것. 거리 제한은 없다.
+        // 이 자리의 탄환을 끄는 범위에 둔 수집형 중 가장 가까운 것. 없으면 null — 아무도 들지 않은 흩어진 탄환.
+        static EnemyCollector ClaimantOf(Vector2 position)
+        {
+            EnemyCollector best = null;
+            float bestSqr = float.MaxValue;
+            foreach (var c in all)
+            {
+                float sqr = (position - c.Body.position).sqrMagnitude;
+                float capture = c.CaptureRadius;
+                if (sqr > capture * capture || sqr >= bestSqr) continue;
+                bestSqr = sqr;
+                best = c;
+            }
+            return best;
+        }
+
+        // 가장 가까운 흩어진 탄환 — 정착했고 자석에 걸리지 않았으며 어느 수집형의 끄는 범위에도 들지 않은 것. 거리 제한은 없다.
         bool TryFindLooseBullet(out Vector2 position)
         {
             position = default;
             Physics2D.OverlapCircle(Body.position, SeekRadius, bulletFilter, hits);
-            float capture = CaptureRadius;
-            float captureSqr = capture * capture;
             float bestSqr = float.MaxValue;
             foreach (var hit in hits)
             {
                 if (!IsCollectible(hit)) continue;
                 Vector2 p = hit.attachedRigidbody.position;
+                if (ClaimantOf(p) != null) continue;
                 float sqr = (p - Body.position).sqrMagnitude;
-                if (sqr <= captureSqr || sqr >= bestSqr) continue;
+                if (sqr >= bestSqr) continue;
                 bestSqr = sqr;
                 position = p;
             }
@@ -114,7 +136,13 @@ namespace PickShoot
             Physics2D.OverlapCircle(center, CaptureRadius, bulletFilter, hits);
             held.Clear();
             foreach (var hit in hits)
-                if (IsCollectible(hit)) held.Add(hit.attachedRigidbody);
+            {
+                if (!IsCollectible(hit)) continue;
+                var rb = hit.attachedRigidbody;
+                // 다른 수집형에 더 가까운 탄환은 그쪽 것이다.
+                if (ClaimantOf(rb.position) != this) continue;
+                held.Add(rb);
+            }
             heldCount = held.Count;
 
             // 고리 반지름: 탄환이 간격대로 늘어서기에 둘레가 모자라면 키운다.
