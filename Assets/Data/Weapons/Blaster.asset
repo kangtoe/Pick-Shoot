@@ -1,0 +1,37 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 1f99ca3878f33fc439fa3a274bf33a48, type: 3}
+  m_Name: Blaster
+  m_EditorClassIdentifier: Assembly-CSharp::PickShoot.WeaponData
+  displayName: Blaster
+  bulletPrefab: {fileID: 7760557527274733243, guid: 57519a25e825ef34ba52cad75d73bf68, type: 3}
+  bulletSpeed: 16
+  cooldown: 0.15
+  maxAmmo: 18
+  lockMaxAmmo: 0
+  projectilesPerShot: 1
+  spreadAngleDegrees: 0
+  burstCount: 1
+  burstInterval: 0.07
+  damage: 5
+  knockbackForce: 3
+  maxBounces: 0
+  penetration: 0
+  explosionRadius: 1
+  explosionPullsInward: 0
+  autoRetrieve: 0
+  visualColor: {r: 0.72, g: 0.67, b: 0.78, a: 1}
+  weaponSprite: {fileID: 2887967350570432116, guid: 4f2ba46ac711e1e4698a9d155c120788, type: 3}
+  shootClip: {fileID: 8300000, guid: 603ea3135504c1d4cb9b9b25c6109b31, type: 3}
+  explosionClip: {fileID: 8300000, guid: d6bfb34eb0f68c44589a089867f6d496, type: 3}
+  muzzleOffset: 0.6
+  recoilStrength: 0.6
