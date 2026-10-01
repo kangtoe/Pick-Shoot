@@ -15,4 +15,4 @@ MonoBehaviour:
   displayName: Wanderer
   maxHp: 12
   moveSpeed: 3.2
-  crossingSpread: 1.5
+  crossingSpread: 3
