@@ -16,8 +16,9 @@ MonoBehaviour:
   maxHp: 24
   moveSpeed: 2
   crossingSpread: 3
-  seekRadius: 12
-  pullRadius: 3.5
+  pullRadius: 1.5
   holdRadius: 0.9
   pullSpeed: 8
   bulletSpacing: 0.5
+  slowdownBullets: 20
+  loadedSpeedMultiplier: 0.3
