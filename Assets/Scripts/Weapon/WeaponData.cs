@@ -9,6 +9,7 @@ namespace PickShoot
         [SerializeField] string displayName = "Weapon";
         [SerializeField] Bullet bulletPrefab;
         [SerializeField] float bulletSpeed = 14f;
+        // 사격 차례 사이의 쿨다운(초). 레벨로 줄지 않는 무기 특성이며 PlayerWeapons의 글로벌 최소 발사 간격 이상이어야 한다 (Weapons §1·§3).
         [SerializeField] float cooldown = 0.2f;
         [SerializeField] int maxAmmo = 6;
         // 참이면 레벨업의 최대 탄약 +2를 받지 않아 탄창이 maxAmmo로 고정된다 (Weapons §9 — 단발 탄창이 정체성인 무기).
@@ -18,7 +19,7 @@ namespace PickShoot
         [SerializeField, Range(0f, 180f)] float spreadAngleDegrees = 0f;
         // 한 번의 사격 차례에 이어 쏘는 사격 수. 2 이상이면 점사 — burstInterval 간격으로 이어 쏘고, 사격마다 projectilesPerShot만큼 탄약을 쓴다 (Weapons §8). 탄창을 넘는 값(블래스터 99)은 탄창이 빌 때까지 이어 쏘는 뜻이다.
         [SerializeField, Min(1)] int burstCount = 1;
-        // 점사 안의 사격 간격(초). burstCount가 1이면 쓰지 않는다. 레벨업의 쿨다운 단축은 여기에 걸리지 않는다.
+        // 점사 안의 사격 간격(초). burstCount가 1이면 쓰지 않는다.
         [SerializeField, Min(0f)] float burstInterval = 0.07f;
         [SerializeField] int damage = 10;
         [SerializeField] float knockbackForce = 6f;

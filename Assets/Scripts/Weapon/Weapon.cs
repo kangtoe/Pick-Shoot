@@ -3,15 +3,15 @@ using UnityEngine;
 namespace PickShoot
 {
     // 무기 인스턴스 런타임 상태. WeaponData(정의) + 현재 탄창 + 다음 준비 시각 + 레벨 + 점사 잔량.
-    // 강화는 자루 단위 레벨업 단일 축 (GDD §7.3). 레벨업 시 3항목이 함께 상승한다:
-    //   damage ×1.5, cooldown ×0.75, maxAmmo +2 (각 레벨업당 누적). 고정 탄창(WeaponData.LockMaxAmmo)이면 maxAmmo는 오르지 않는다.
+    // 강화는 자루 단위 레벨업 단일 축 (GDD §7.3). 레벨업 시 2항목이 함께 상승한다:
+    //   damage ×1.5, maxAmmo +2 (각 레벨업당 누적). 고정 탄창(WeaponData.LockMaxAmmo)이면 maxAmmo는 오르지 않는다.
+    // 쿨다운은 레벨과 무관한 무기 특성이라 오르지 않는다 (Weapons §3).
     // 새로 획득한 자루는 항상 Lv.1로 시작하고 MaxLevel까지 오른다 (Weapons §3).
     public class Weapon
     {
         // 레벨 상한. 한 자리 수로 묶어 HUD·카드의 레벨 표기가 늘 "LV n" 한 자리이고, 최대 탄약(HUD 탄창 줄 길이)도 이 안에 머문다.
         public const int MaxLevel = 9;
         public const float LevelDamageMultiplier = 1.5f;
-        public const float LevelCooldownMultiplier = 0.75f;
         public const int LevelMaxAmmoAdd = 2;
 
         readonly WeaponData data;
@@ -30,17 +30,13 @@ namespace PickShoot
         // 점사 중 — burstInterval 뒤 CanFire가 다시 참이 되면 호출자가 이 자루를 우선해 다시 Fire한다 (Weapons §8).
         public bool IsBursting => burstShotsLeft > 0;
         public int EffectiveDamage => DamageAtLevel(data, level);
-        public float EffectiveCooldown => CooldownAtLevel(data, level);
+        // 쿨다운은 레벨로 줄지 않는다 — 사격 리듬은 무기의 특성 (Weapons §3).
+        public float EffectiveCooldown => data.Cooldown;
 
         // 레벨별 수치 공식. 업그레이드 카드가 "다음 레벨" 값을 미리 보여줄 때도 같은 식을 쓴다.
         public static int DamageAtLevel(WeaponData data, int level)
         {
             return Mathf.Max(1, Mathf.RoundToInt(data.Damage * Mathf.Pow(LevelDamageMultiplier, level - 1)));
-        }
-
-        public static float CooldownAtLevel(WeaponData data, int level)
-        {
-            return Mathf.Max(0.01f, data.Cooldown * Mathf.Pow(LevelCooldownMultiplier, level - 1));
         }
 
         public static int MaxAmmoAtLevel(WeaponData data, int level)
@@ -57,9 +53,10 @@ namespace PickShoot
         }
 
         // 사격 차례 사이의 간격 — 쿨다운에 점사 소요 시간(점사 간격 × (사격 수 − 1))을 더한 값. 카드의 RPM이 이 값으로 분당 사격 차례 수를 센다.
+        // 레벨은 점사 사격 수(탄창이 빌 때까지 쏘는 무기)에만 영향을 준다 — 쿨다운 자체는 레벨과 무관하다.
         public static float TriggerIntervalAtLevel(WeaponData data, int level)
         {
-            return CooldownAtLevel(data, level) + (ShotsPerTriggerAtLevel(data, level) - 1) * data.BurstInterval;
+            return data.Cooldown + (ShotsPerTriggerAtLevel(data, level) - 1) * data.BurstInterval;
         }
 
         // 한 사격 차례에 나가는 탄환 수 = 동시 발사 수 × 점사 수, 그 레벨의 탄창이 상한. 카드의 DMG가 'X발수'로 보여준다.

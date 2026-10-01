@@ -126,6 +126,9 @@ namespace PickShoot
 
         void AddSlot(WeaponData data)
         {
+            // 쿨다운은 레벨로 줄지 않는 무기 특성이므로(Weapons §3) 자산 값 자체가 글로벌 최소 발사 간격(§1) 이상이어야 한다.
+            if (data.Cooldown < globalShotInterval)
+                throw new System.Exception($"[PickShoot] PlayerWeapons.AddSlot: '{data.DisplayName}'의 cooldown {data.Cooldown}이 globalShotInterval {globalShotInterval}보다 짧음. 쿨다운은 글로벌 간격 이상이어야 함 (Weapons §1).");
             slots.Add(new Weapon(data));
             slotVisuals.Add(CreateVisual(data, slots.Count - 1));
             slotRecoil.Add(0f);
