@@ -30,7 +30,7 @@ MonoBehaviour:
   explosionPullsInward: 0
   autoRetrieve: 1
   visualColor: {r: 0.74, g: 0.80, b: 0.48, a: 1}
-  weaponSprite: {fileID: 2100895645735257587, guid: 4f2ba46ac711e1e4698a9d155c120788, type: 3}
+  weaponSprite: {fileID: -4858957943617100156, guid: 4f2ba46ac711e1e4698a9d155c120788, type: 3}
   shootClip: {fileID: 8300000, guid: 8736abace7719da4c9caddcb2fcb93b0, type: 3}
   explosionClip: {fileID: 0}
   muzzleOffset: 0.5
