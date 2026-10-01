@@ -14,6 +14,9 @@ namespace PickShoot
 
         // 죽는 순간 (사망 이펙트 뒤, 파괴 직전). 웨이브 종료 정리(Kill)로 죽을 때도 난다. 마디가 죽으면 사슬을 다시 잇는 서펜트가 받는다.
         public event System.Action Died;
+        // 플레이어에게 죽는 순간 — 피해로 HP가 다한 때만. 웨이브 종료 정리(Kill)로 죽을 때는 나지 않는다 — 그때 낳은 적은 정리에서 빠진다.
+        // 죽을 때 졸개를 놓는 소환사가 받는다. Died보다 먼저 난다.
+        public event System.Action Slain;
 
         int current;
         float flashUntil;
@@ -48,7 +51,7 @@ namespace PickShoot
             current -= amount;
             flashUntil = Time.time + flashDuration;
             DamageNumbers.Show(DamageNumberOrigin(), amount, damageNumberColor);
-            if (current <= 0) Die(playSound: true);
+            if (current <= 0) Die(slain: true);
             else if (hitClip != null) SoundPlayer.Play(hitClip);
         }
 
@@ -66,14 +69,16 @@ namespace PickShoot
         {
             if (current <= 0) return;
             current = 0;
-            Die(playSound: false);
+            Die(slain: false);
         }
 
-        void Die(bool playSound)
+        // slain: 플레이어가 죽인 것(사망음·Slain). 정리(Kill)는 아니다.
+        void Die(bool slain)
         {
             if (deathEffectPrefab != null)
                 Instantiate(deathEffectPrefab, transform.position, Quaternion.identity);
-            if (playSound && deathClip != null) SoundPlayer.Play(deathClip);
+            if (slain && deathClip != null) SoundPlayer.Play(deathClip);
+            if (slain) Slain?.Invoke();
             Died?.Invoke();
             Destroy(gameObject);
         }

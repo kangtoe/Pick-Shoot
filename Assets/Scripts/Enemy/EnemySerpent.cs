@@ -81,9 +81,9 @@ namespace PickShoot
         // 넉백은 받지 않는다 (보스). 몸통 마디도 꺼진 이 컴포넌트로 같은 호출을 받으므로 여기서 함께 거른다.
         public override void ApplyKnockback(Vector2 velocity) { }
 
-        // 자기 사슬의 마디와는 분리 힘을 주고받지 않는다 (헤더 참조). 다른 서펜트·다른 적에게는 평소대로 밀린다.
+        // 자기 사슬의 마디와는 분리 힘을 주고받지 않는다 (헤더 참조). 다른 서펜트·다른 적에게는 평소대로 밀린다 (쏘는 졸개는 기본 규칙대로 뺀다).
         protected override bool SeparatesFrom(Collider2D other) =>
-            !(other.TryGetComponent(out EnemySerpent segment) && segment.head == head);
+            base.SeparatesFrom(other) && !(other.TryGetComponent(out EnemySerpent segment) && segment.head == head);
 
         // 마디는 뚫을 수 없는 몸이다 (헤더 참조). 몸통 마디도 꺼진 이 컴포넌트로 읽히므로 함께 해당한다.
         protected override bool IsSolid => true;

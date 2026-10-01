@@ -8,9 +8,11 @@ namespace PickShoot
     // Face(dx)는 x 차이가 데드존보다 작으면 마지막 방향을 유지해 반전이 매 프레임 뒤집히지 않게 한다.
     // 몸은 Kinematic이라 정적 콜라이더(벽)와는 접촉 이벤트도 밀어내기도 없다 — 그래서 옮기기 전에 이동량을 가로·세로로 나눠 벽 레이어에
     // 캐스트하고, 막힌 축은 벽 앞까지만 나아간다 (Enemies §1). 막히지 않은 축은 그대로 가므로 벽을 따라 미끄러지고, 구석에서는 멈춘다.
-    // 막힌 스텝에는 OnWallBlocked를 부른다 — 벽에 닿는 것이 곧 행동의 끝인 적(돌진)과 벽에서 방향을 꺾는 적(방랑)이 받아 쓴다.
+    // 막힌 스텝에는 OnWallBlocked를 부른다 — 벽에 닿는 것이 곧 행동의 끝인 적(돌진)과 벽에서 방향을 꺾는 적(방랑 이동)이 받아 쓴다.
     // 옮겨 갈 자리가 정해지면 OnMoved를 부른다 — 몸에 딸린 것(서펜트의 몸통)을 함께 옮기는 적이 받아 쓴다.
-    // 분리 힘의 이웃은 SeparatesFrom으로 거른다 — 한 몸처럼 움직이는 것(서펜트의 자기 사슬 마디)을 빼는 적이 받아 쓴다.
+    // 분리 힘의 이웃은 SeparatesFrom으로 거른다 — 기본으로 쏘는 졸개(EnemyDart)는 발사체처럼 누구와도 주고받지 않고, 한 몸처럼 움직이는 것(서펜트의 자기 사슬 마디)을
+    // 더 빼는 적이 받아 쓴다.
+    // 화면 가장자리 판정(ScreenEdgeSide)도 여기 둔다 — 방랑 이동은 거기서 경로를 바꾸고 쏘는 졸개는 죽는다. 카메라가 플레이어를 따라가므로 가만두면 화면 밖으로 사라진다.
     // 뚫을 수 없는 몸(IsSolid, 서펜트 마디)과 겹치면 분리 힘과 별개로 겹친 만큼 그 스텝에 바로 밀려난다 — 부드러운 분리 힘만으로는
     // 걸어오는 적이 쓸고 가는 몸통을 파고든다. 여럿과 겹치면 밀어내는 양을 평균 낸다 — 양쪽에서 낀 적이 번갈아 밀려 떨지 않게.
     [RequireComponent(typeof(Rigidbody2D))]
@@ -29,6 +31,7 @@ namespace PickShoot
         const float WallSkin = 0.05f;
 
         Vector2 knockback;
+        Camera mainCamera;
         readonly Collider2D[] neighbors = new Collider2D[16]; // 반경 안 이웃. 서펜트 사슬이 뭉쳐 지나도 넘치지 않을 만큼
         ContactFilter2D wallFilter;
         readonly RaycastHit2D[] wallHits = new RaycastHit2D[4];
@@ -44,8 +47,9 @@ namespace PickShoot
         // 이 스텝에 분리 힘을 받을지. 궤도가 휘면 안 되는 이동(돌진)은 끈다.
         protected virtual bool UseSeparation => true;
 
-        // 이 이웃과 분리 힘을 주고받을지. 한 몸처럼 움직이는 것(서펜트의 자기 사슬 마디)은 뺀다.
-        protected virtual bool SeparatesFrom(Collider2D other) => true;
+        // 이 이웃과 분리 힘을 주고받을지. 쏘는 졸개(EnemyDart)는 발사체처럼 지나가야 하므로 누구도 밀지 않고 밀리지도 않는다 — 자신은 UseSeparation이 꺼져 있고,
+        // 다른 적은 여기서 그것을 이웃으로 치지 않는다. 한 몸처럼 움직이는 것(서펜트의 자기 사슬 마디)을 더 빼는 적은 이 규칙 위에 덧붙인다.
+        protected virtual bool SeparatesFrom(Collider2D other) => !other.TryGetComponent(out EnemyDart _);
 
         // 다른 적이 뚫고 들어올 수 없는 몸인지. 겹친 적은 분리 힘과 별개로 겹친 만큼 그 스텝에 바로 밀려난다 — 지나가는 서펜트가 적을 밀어젖힌다.
         protected virtual bool IsSolid => false;
@@ -64,6 +68,9 @@ namespace PickShoot
             wallFilter = new ContactFilter2D();
             wallFilter.SetLayerMask(wallLayerMask);
             wallFilter.useTriggers = false;
+            mainCamera = Camera.main;
+            if (mainCamera == null)
+                throw new System.Exception($"[PickShoot] {GetType().Name}: MainCamera 없음 ({name}). 화면 가장자리 판정에 필요.");
         }
 
         protected virtual void Start()
@@ -127,6 +134,16 @@ namespace PickShoot
             amount = Mathf.Sign(amount) * allowed;
             return true;
         }
+
+        // 몸의 중심이 화면 밖에 있는 축의 부호 (오른쪽 가장자리를 넘었으면 x = 1). 화면 안이면 0. 탄환이 화면 가장자리에서 튕기는 것과 같은 기준이다.
+        protected Vector2 ScreenEdgeSide()
+        {
+            Vector3 vp = mainCamera.WorldToViewportPoint(Body.position);
+            return new Vector2(vp.x < 0f ? -1f : vp.x > 1f ? 1f : 0f, vp.y < 0f ? -1f : vp.y > 1f ? 1f : 0f);
+        }
+
+        // 진행 방향이 어느 축에서든 side(축별 부호, 막힌 벽이나 넘은 화면 가장자리)를 향하는지. 밀려서 닿은 것과 스스로 향한 것을 가른다.
+        protected static bool HeadsInto(Vector2 heading, Vector2 side) => heading.x * side.x > 0f || heading.y * side.y > 0f;
 
         protected void Face(float dx)
         {

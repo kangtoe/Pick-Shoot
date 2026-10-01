@@ -16,7 +16,7 @@ GameObject:
   - component: {fileID: 4328427985779134852}
   - component: {fileID: 3633091571525180294}
   m_Layer: 9
-  m_Name: Enemy_Wanderer
+  m_Name: Enemy_Minion
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -86,7 +86,7 @@ SpriteRenderer:
   m_SortingLayer: 0
   m_SortingOrder: 3
   m_MaskInteraction: 0
-  m_Sprite: {fileID: 2718713970963715577, guid: 8c4fc863c2ecf7c42830eb859ffede55, type: 3}
+  m_Sprite: {fileID: -4763971004647214559, guid: 13f2c52b0f0d4c2b9bf9ba0be02b4e44, type: 3}
   m_Color: {r: 1, g: 1, b: 1, a: 1}
   m_FlipX: 0
   m_FlipY: 0
@@ -157,8 +157,8 @@ CircleCollider2D:
   m_UsedByEffector: 0
   m_CompositeOperation: 0
   m_CompositeOrder: 0
-  m_Offset: {x: 0, y: 0}
-  m_Radius: 0.6
+  m_Offset: {x: 0, y: -0.3}
+  m_Radius: 0.5
 --- !u!114 &8195759361348815576
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -168,10 +168,10 @@ MonoBehaviour:
   m_GameObject: {fileID: 957819507615294952}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: fc5e44f0e6954d4b9e8692cdba7a9406, type: 3}
+  m_Script: {fileID: 11500000, guid: 7c57d7d561da43749a7968c6d2abf7da, type: 3}
   m_Name:
-  m_EditorClassIdentifier: Assembly-CSharp::PickShoot.EnemyWanderer
-  data: {fileID: 11400000, guid: aeaf8c710d3a44a0929e0e9a305e38f2, type: 2}
+  m_EditorClassIdentifier: Assembly-CSharp::PickShoot.EnemyChaser
+  data: {fileID: 11400000, guid: 16930db2f77c480a806674e35e9b1fef, type: 2}
   knockbackDamping: 20
   separationRadius: 0.9
   separationStrength: 4
@@ -193,7 +193,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: a5812aadff8add94692ece58759ccc3e, type: 3}
   m_Name:
   m_EditorClassIdentifier: Assembly-CSharp::PickShoot.EnemyHealth
-  data: {fileID: 11400000, guid: aeaf8c710d3a44a0929e0e9a305e38f2, type: 2}
+  data: {fileID: 11400000, guid: 16930db2f77c480a806674e35e9b1fef, type: 2}
   flashDuration: 0.08
   flashColor: {r: 1, g: 1, b: 1, a: 1}
   deathEffectPrefab: {fileID: 5670591326354318199, guid: 621b869db3a9bdc42b153ed8e123f1ab, type: 3}
@@ -212,7 +212,7 @@ MonoBehaviour:
   m_Name:
   m_EditorClassIdentifier: Assembly-CSharp::PickShoot.SpriteWalkCycle
   frames:
-  - {fileID: 2718713970963715577, guid: 8c4fc863c2ecf7c42830eb859ffede55, type: 3}
-  - {fileID: 8824881864580162310, guid: 8c4fc863c2ecf7c42830eb859ffede55, type: 3}
-  strideLength: 0.5
+  - {fileID: -4763971004647214559, guid: 13f2c52b0f0d4c2b9bf9ba0be02b4e44, type: 3}
+  - {fileID: -2743417954098293389, guid: 13f2c52b0f0d4c2b9bf9ba0be02b4e44, type: 3}
+  strideLength: 0.4
   idleSpeed: 0.3

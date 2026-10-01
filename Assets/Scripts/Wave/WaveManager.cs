@@ -187,25 +187,9 @@ namespace PickShoot
             while (true)
             {
                 Vector2 pos = PickSpawnPoint();
-
-                pendingWarnings++;
-                var marker = Instantiate(spawnWarningPrefab, pos, Quaternion.identity);
-                marker.Begin(spawnWarningDuration);
-                pendingMarkers.Add(marker);
-
-                yield return new WaitForSeconds(spawnWarningDuration);
-                pendingWarnings--;
-                // 웨이브 종료·사망 정리로 이미 치워졌을 수 있다.
-                if (marker != null)
-                {
-                    pendingMarkers.Remove(marker);
-                    Destroy(marker.gameObject);
-                }
-
-                if (phase != WavePhase.Active) yield break;
-                if (!CanSpawn()) yield break;
-                bool playerTooClose = ((Vector2)player.position - pos).sqrMagnitude < spawnAbortDistance * spawnAbortDistance;
-                if (!playerTooClose)
+                yield return Warn(pos);
+                if (!WaveStillActive()) yield break;
+                if (!PlayerTooClose(pos))
                 {
                     SpawnEnemy(prefab, pos);
                     yield break;
@@ -214,11 +198,59 @@ namespace PickShoot
             }
         }
 
-        void SpawnEnemy(GameObject prefab, Vector2 pos)
+        // 적이 자기 자리에 다른 적을 낳을 때 쓴다 (소환사, Enemies §6). 예고 마커·예고 시간·플레이어가 가까우면 건너뛰는 규칙·웨이브 종료 시 마커 정리가
+        // 웨이브 스폰과 같도록 여기서 맡는다 — 마커의 스폰·취소 시점을 아는 쪽은 WaveManager 하나다. 편성·동시 수 상한은 보지 않는다 (서펜트의 몸통과 같음).
+        // 예고 중에 owner가 죽으면(파괴) 낳지 않고 알리지도 않는다. 그 밖에는 예고가 끝나면 낳은 적(건너뛰었으면 null)을 onFinished로 돌려준다 —
+        // 부른 쪽이 예고 중인 것까지 상한에 세는 데 쓴다.
+        public void SummonWithWarning(GameObject prefab, Vector2 pos, Component owner, System.Action<GameObject> onFinished)
+        {
+            if (prefab == null)
+                throw new System.Exception("[PickShoot] WaveManager.SummonWithWarning: prefab이 null.");
+            if (owner == null)
+                throw new System.Exception("[PickShoot] WaveManager.SummonWithWarning: owner가 null.");
+            if (onFinished == null)
+                throw new System.Exception("[PickShoot] WaveManager.SummonWithWarning: onFinished가 null.");
+            StartCoroutine(SummonWithWarningRoutine(prefab, pos, owner, onFinished));
+        }
+
+        IEnumerator SummonWithWarningRoutine(GameObject prefab, Vector2 pos, Component owner, System.Action<GameObject> onFinished)
+        {
+            yield return Warn(pos);
+            if (owner == null) yield break;
+            GameObject spawned = WaveStillActive() && !PlayerTooClose(pos) ? SpawnEnemy(prefab, pos) : null;
+            onFinished(spawned);
+        }
+
+        // pos에 예고 마커를 띄우고 예고 시간을 기다린 뒤 치운다. 기다리는 동안은 스폰 대기 수에 든다.
+        IEnumerator Warn(Vector2 pos)
+        {
+            pendingWarnings++;
+            var marker = Instantiate(spawnWarningPrefab, pos, Quaternion.identity);
+            marker.Begin(spawnWarningDuration);
+            pendingMarkers.Add(marker);
+
+            yield return new WaitForSeconds(spawnWarningDuration);
+            pendingWarnings--;
+            // 웨이브 종료·사망 정리로 이미 치워졌을 수 있다.
+            if (marker != null)
+            {
+                pendingMarkers.Remove(marker);
+                Destroy(marker.gameObject);
+            }
+        }
+
+        // 예고가 끝난 지금도 스폰할 웨이브인지: 진행 중이고 플레이어가 살아 있다.
+        bool WaveStillActive() => phase == WavePhase.Active && CanSpawn();
+
+        // 예고가 끝난 시점에 플레이어가 마커 가까이 있다 — 등장과 동시에 접촉 피해를 주지 않도록 그 스폰은 건너뛴다.
+        bool PlayerTooClose(Vector2 pos) => ((Vector2)player.position - pos).sqrMagnitude < spawnAbortDistance * spawnAbortDistance;
+
+        GameObject SpawnEnemy(GameObject prefab, Vector2 pos)
         {
             var enemy = Instantiate(prefab, pos, Quaternion.identity);
             if (enemy.GetComponent<EnemyHealth>() == null)
                 throw new System.Exception($"[PickShoot] Enemy 프리팹({prefab.name})에 EnemyHealth 없음.");
+            return enemy;
         }
 
         // 현재 웨이브에서 등장 가능한 프리팹 중 가중치 기반 랜덤 선택.
@@ -246,7 +278,7 @@ namespace PickShoot
             return waveEntries[waveEntries.Length - 1].prefab;
         }
 
-        // 살아 있는 적 + 스폰 대기 중인 예고 수. 대기 중인 예고를 포함해야 상한을 순간적으로 넘지 않는다.
+        // 살아 있는 적 + 스폰 대기 중인 예고 수(소환사의 졸개 예고 포함). 대기 중인 예고를 포함해야 상한을 순간적으로 넘지 않는다.
         // 스폰 목록 대신 씬의 EnemyHealth를 센다 — 적이 적을 낳는 경우(서펜트의 몸통·분열)도 상한에 들어야 한다. 서펜트는 마디 수만큼 센다.
         int CountCommittedEnemies() => FindObjectsByType<EnemyHealth>(FindObjectsSortMode.None).Length + pendingWarnings;
 

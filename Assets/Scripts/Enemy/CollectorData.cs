@@ -2,7 +2,7 @@ using UnityEngine;
 
 namespace PickShoot
 {
-    // 수집형 적의 데이터 (Enemies §6). 방랑형의 이동 데이터(찾아갈 탄환이 없을 때의 경로)에 끄는 반경·속도, 곁에 둘 때의 간격, 든 만큼 느려지는 정도를 더한다.
+    // 수집형 적의 데이터 (Enemies §6). 방랑 이동 데이터(찾아갈 탄환이 없을 때의 경로)에 끄는 반경·속도, 곁에 둘 때의 간격, 든 만큼 느려지는 정도를 더한다.
     [CreateAssetMenu(menuName = "PickShoot/Collector Data", fileName = "CollectorData")]
     public class CollectorData : WandererData
     {
