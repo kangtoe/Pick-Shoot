@@ -11,6 +11,8 @@ namespace PickShoot
         [SerializeField] float bulletSpeed = 14f;
         [SerializeField] float cooldown = 0.2f;
         [SerializeField] int maxAmmo = 6;
+        // 참이면 레벨업의 최대 탄약 +2를 받지 않아 탄창이 maxAmmo로 고정된다 (Weapons §9 — 단발 탄창이 정체성인 무기).
+        [SerializeField] bool lockMaxAmmo = false;
         // 1회 사격의 탄환 수 = 소비 탄약 수 (Weapons §4). 탄약이 모자라면 남은 만큼만 나간다.
         [SerializeField, Min(1)] int projectilesPerShot = 1;
         [SerializeField, Range(0f, 180f)] float spreadAngleDegrees = 0f;
@@ -24,6 +26,10 @@ namespace PickShoot
         [SerializeField, Min(0)] int penetration = 0;
         // 0이면 보통 탄환. 양수면 폭발 탄환 — 튕김 페이즈의 접촉 지점을 중심으로 이 반경(월드 단위) 안의 모든 적에게 damage·knockbackForce를 준다 (Weapons §7).
         [SerializeField, Min(0f)] float explosionRadius = 0f;
+        // 참이면 폭발 넉백이 바깥으로 미는 대신 반경 안의 적을 중심으로 당긴다 (Weapons §7). explosionRadius > 0일 때만 뜻이 있다.
+        [SerializeField] bool explosionPullsInward = false;
+        // 참이면 탄환이 정착하는 순간 거리와 무관하게 플레이어 자석에 걸려 돌아온다 (Weapons §5·§9).
+        [SerializeField] bool autoRetrieve = false;
         [SerializeField] Color visualColor = Color.white;
 
         [Header("Presentation")]
@@ -41,6 +47,7 @@ namespace PickShoot
         public float BulletSpeed => bulletSpeed;
         public float Cooldown => cooldown;
         public int MaxAmmo => maxAmmo;
+        public bool LockMaxAmmo => lockMaxAmmo;
         public int ProjectilesPerShot => projectilesPerShot;
         public float SpreadAngleDegrees => spreadAngleDegrees;
         public int BurstCount => burstCount;
@@ -50,6 +57,8 @@ namespace PickShoot
         public int MaxBounces => maxBounces;
         public int Penetration => penetration;
         public float ExplosionRadius => explosionRadius;
+        public bool ExplosionPullsInward => explosionPullsInward;
+        public bool AutoRetrieve => autoRetrieve;
         public Color VisualColor => visualColor;
         public Sprite WeaponSprite => weaponSprite;
         public AudioClip ShootClip => shootClip;

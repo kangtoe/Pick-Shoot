@@ -86,6 +86,19 @@ namespace PickShoot
             knockback = velocity;
         }
 
+        // 지점을 향한 넉백 — 당기는 폭발(Weapons §7)이 쓴다. 넉백은 knockbackDamping으로 선형 감쇠하므로 같은 세기면 가까운 적이 중심을
+        // 지나쳐 버린다. 그래서 감쇠가 끝날 때 꼭 center에 닿는 속도(√(2·감쇠·거리))로 당기되 상한을 maxSpeed로 둔다 — 먼 적은 상한만큼만
+        // 끌려온다. 넉백을 무시하는 적(ApplyKnockback 재정의)은 당김도 무시한다. 이미 중심이면 아무것도 하지 않는다.
+        public void ApplyPullToward(Vector2 center, float maxSpeed)
+        {
+            // 위치는 transform에서 읽는다 — 꺼진 컴포넌트(서펜트 몸통 마디)에서도 호출되므로 Awake에서 채우는 Body에 기대지 않는다.
+            Vector2 toCenter = center - (Vector2)transform.position;
+            float distance = toCenter.magnitude;
+            if (distance < 0.0001f) return;
+            float speed = Mathf.Min(maxSpeed, Mathf.Sqrt(2f * knockbackDamping * distance));
+            ApplyKnockback(toCenter / distance * speed);
+        }
+
         void FixedUpdate()
         {
             if (knockback.sqrMagnitude > 0.0001f)

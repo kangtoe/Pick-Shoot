@@ -55,6 +55,10 @@ namespace PickShoot
         public Weapon OwnerWeapon => ownerWeapon;
         bool IsExplosive => explosionRadius > 0f;
 
+        // 정착 시 자동 회수하는 무기(WeaponData.AutoRetrieve, Weapons §9)의 탄환이 정착하는 순간 알린다. PlayerPickup이 받아 거리와
+        // 무관하게 바로 자석에 건다. 플레이어가 죽어 받을 곳이 없으면 그냥 정착한다 — 발사 시점(Launch)에는 받을 곳이 있어야 한다.
+        public static event System.Action<Bullet> AutoRetrieveSettled;
+
         // 플레이어 자석에 한 번 걸리면 회수될 때까지 풀리지 않는다. 걸기·끌림 세기(0~1) 갱신은 PlayerPickup이 한다.
         public bool IsMagnetized { get; private set; }
         public float MagnetPull { get; set; }
@@ -70,8 +74,15 @@ namespace PickShoot
         }
 
         // 웨이브 클리어 sweep 등에서 튕김 페이즈를 강제 종료해 회수 대상으로 만든다.
-        // FixedUpdate가 다음 프레임에 damping·layer를 정착 상태로 반영한다.
+        // FixedUpdate가 다음 프레임에 damping·layer를 정착 상태로 반영한다. sweep은 스스로 자석에 걸므로 자동 회수 알림은 내지 않는다.
         public void ForceSettle() => active = false;
+
+        // 튕김·관통이 끝나 정착한다. 자동 회수 무기의 탄환이면 PlayerPickup에 알려 바로 자석에 걸리게 한다 (헤더의 AutoRetrieveSettled 참조).
+        void Settle()
+        {
+            active = false;
+            if (ownerWeapon.Data.AutoRetrieve) AutoRetrieveSettled?.Invoke(this);
+        }
 
         void Awake()
         {
@@ -110,6 +121,8 @@ namespace PickShoot
                 throw new System.Exception($"[PickShoot] Bullet.Launch: explosionRadius는 0 이상이어야 합니다. 전달값={explosionRadius}");
             if (explosionRadius > 0f && explosionEffectPrefab == null)
                 throw new System.Exception($"[PickShoot] Bullet.Launch: '{owner.Data.DisplayName}'는 폭발 탄환인데 Bullet 프리팹에 explosionEffectPrefab 미할당.");
+            if (owner.Data.AutoRetrieve && AutoRetrieveSettled == null)
+                throw new System.Exception($"[PickShoot] Bullet.Launch: '{owner.Data.DisplayName}'는 자동 회수 무기인데 AutoRetrieveSettled를 받는 PlayerPickup이 없음.");
             ownerWeapon = owner;
             this.damage = damage;
             this.knockbackForce = knockbackForce;
@@ -202,7 +215,7 @@ namespace PickShoot
                 // 튕김 카운트 소진 → 벽과 같은 모습으로 정착. 벽에서는 물리엔진(반발 1·마찰 0)이
                 // 거울 반사를 해 주지만 화면 가장자리엔 콜라이더가 없으므로 직접 반사한 뒤 감속에 맡긴다.
                 rb.linearVelocity = Vector2.Reflect(vel, normal);
-                active = false;
+                Settle();
             }
         }
 
@@ -247,7 +260,7 @@ namespace PickShoot
             else
             {
                 // 튕김 카운트 소진 → 접촉 지점에서 정착. 물리엔진 반사에 관성 맡기고 감속.
-                active = false;
+                Settle();
             }
         }
 
@@ -286,12 +299,13 @@ namespace PickShoot
             }
             else
             {
-                active = false;
+                Settle();
             }
         }
 
         // 폭발 탄환의 접촉 처리. center를 중심으로 반경 안의 모든 적에게 공격력만큼 피해(거리 감쇠 없음)와 중심에서 바깥으로 미는
-        // 넉백을 준다. 플레이어와 다른 탄환은 영향받지 않는다. 폭발은 튕김·관통 카운트를 건드리지 않고, 그 뒤의 튕김·정착은
+        // 넉백을 준다. 당기는 폭발(WeaponData.ExplosionPullsInward)은 반대로 적을 중심으로 당긴다 — 세기는 EnemyMover가 중심에서 멎도록
+        // 정한다. 플레이어와 다른 탄환은 영향받지 않는다. 폭발은 튕김·관통 카운트를 건드리지 않고, 그 뒤의 튕김·정착은
         // 호출자가 공통 규칙대로 잇는다 (Weapons §7).
         void Explode(Vector2 center)
         {
@@ -309,6 +323,11 @@ namespace PickShoot
 
                 var movement = hit.GetComponent<EnemyMover>();
                 if (movement == null) continue;
+                if (ownerWeapon.Data.ExplosionPullsInward)
+                {
+                    movement.ApplyPullToward(center, knockbackForce);
+                    continue;
+                }
                 Vector2 away = (Vector2)hit.transform.position - center;
                 // 접촉 지점이 적 중심과 겹쳐 방향이 정의되지 않으면 탄환 진행 방향으로 민다.
                 if (away.sqrMagnitude < 0.0001f) away = lastVelocity;
@@ -348,7 +367,7 @@ namespace PickShoot
         {
             remainingBounces--;
             if (remainingBounces <= 0)
-                active = false;
+                Settle();
         }
 
         Vector2 AverageContactNormal(Collision2D col)

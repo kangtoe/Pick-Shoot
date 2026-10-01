@@ -23,6 +23,19 @@ namespace PickShoot
         // 웨이브 클리어 sweep 중. 필드의 모든 탄환을 자석에 걸고 확정 속도로 끌어온다.
         bool sweeping;
 
+        void OnEnable() => Bullet.AutoRetrieveSettled += OnAutoRetrieveSettled;
+        void OnDisable() => Bullet.AutoRetrieveSettled -= OnAutoRetrieveSettled;
+
+        // 정착 시 자동 회수하는 무기(Weapons §9)의 탄환. 거리와 무관하게 바로 자석에 건다 — 끌어오기·회수는 FixedUpdate의 자석 경로가 맡는다.
+        // 끌림은 반경 밖에서도 시간에 따라 최대까지 차오르므로 아레나 반대편에서도 돌아온다.
+        void OnAutoRetrieveSettled(Bullet bullet)
+        {
+            if (bullet.IsMagnetized)
+                throw new System.Exception($"[PickShoot] PlayerPickup: 자동 회수 알림을 받은 탄환 '{bullet.name}'이 이미 자석에 걸려 있음. Bullet이 정착을 두 번 알림.");
+            bullet.Magnetize();
+            magnetized.Add(bullet);
+        }
+
         void FixedUpdate()
         {
             if (sweeping) MagnetizeAllBullets();

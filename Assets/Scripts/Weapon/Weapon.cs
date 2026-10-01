@@ -4,7 +4,7 @@ namespace PickShoot
 {
     // 무기 인스턴스 런타임 상태. WeaponData(정의) + 현재 탄창 + 다음 준비 시각 + 레벨 + 점사 잔량.
     // 강화는 자루 단위 레벨업 단일 축 (GDD §7.3). 레벨업 시 3항목이 함께 상승한다:
-    //   damage ×1.5, cooldown ×0.75, maxAmmo +2 (각 레벨업당 누적).
+    //   damage ×1.5, cooldown ×0.75, maxAmmo +2 (각 레벨업당 누적). 고정 탄창(WeaponData.LockMaxAmmo)이면 maxAmmo는 오르지 않는다.
     // 새로 획득한 자루는 항상 Lv.1로 시작하고 MaxLevel까지 오른다 (Weapons §3).
     public class Weapon
     {
@@ -45,6 +45,7 @@ namespace PickShoot
 
         public static int MaxAmmoAtLevel(WeaponData data, int level)
         {
+            if (data.LockMaxAmmo) return data.MaxAmmo;
             return data.MaxAmmo + (level - 1) * LevelMaxAmmoAdd;
         }
 
@@ -68,6 +69,8 @@ namespace PickShoot
                 throw new System.Exception($"[PickShoot] WeaponData '{data.DisplayName}'에 BulletPrefab 미할당.");
             if (data.WeaponSprite == null)
                 throw new System.Exception($"[PickShoot] WeaponData '{data.DisplayName}'에 WeaponSprite 미할당. 링 위 무기 시각화용 sprite 필요.");
+            if (data.ExplosionPullsInward && data.ExplosionRadius <= 0f)
+                throw new System.Exception($"[PickShoot] WeaponData '{data.DisplayName}'는 당기는 폭발(explosionPullsInward)인데 explosionRadius가 0. 폭발 탄환이어야 함.");
             if (data.BurstCount > 1 && data.BurstInterval <= 0f)
                 throw new System.Exception($"[PickShoot] WeaponData '{data.DisplayName}'는 점사({data.BurstCount})인데 burstInterval이 0 이하 ({data.BurstInterval}). 점사 간격은 양수여야 함.");
             this.data = data;
@@ -141,14 +144,15 @@ namespace PickShoot
             return true;
         }
 
-        // 자루 단위 레벨업 (GDD §7.3). 최대 탄약 상승분만큼 현재 탄약도 함께 충전한다.
+        // 자루 단위 레벨업 (GDD §7.3). 최대 탄약 상승분만큼 현재 탄약도 함께 충전한다 — 고정 탄창은 오르지 않으므로 충전도 없다.
         // 호출자가 IsMaxLevel을 먼저 검증해야 한다 (레벨업 카드 후보·디버그 버튼).
         public void LevelUp()
         {
             if (IsMaxLevel)
                 throw new System.Exception($"[PickShoot] Weapon.LevelUp: '{data.DisplayName}'는 이미 최대 레벨({MaxLevel}). 호출자가 IsMaxLevel을 먼저 검증해야 함.");
             level++;
-            currentAmmo = Mathf.Min(currentAmmo + LevelMaxAmmoAdd, MaxAmmo);
+            if (!data.LockMaxAmmo)
+                currentAmmo = Mathf.Min(currentAmmo + LevelMaxAmmoAdd, MaxAmmo);
         }
     }
 }
