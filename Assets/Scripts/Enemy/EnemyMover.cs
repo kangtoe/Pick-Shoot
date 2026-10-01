@@ -71,6 +71,8 @@ namespace PickShoot
             mainCamera = Camera.main;
             if (mainCamera == null)
                 throw new System.Exception($"[PickShoot] {GetType().Name}: MainCamera 없음 ({name}). 화면 가장자리 판정에 필요.");
+            if (!mainCamera.orthographic)
+                throw new System.Exception($"[PickShoot] {GetType().Name}: MainCamera가 직교가 아님 ({name}). 보이는 영역을 orthographicSize로 계산한다.");
         }
 
         protected virtual void Start()
@@ -140,6 +142,17 @@ namespace PickShoot
         {
             Vector3 vp = mainCamera.WorldToViewportPoint(Body.position);
             return new Vector2(vp.x < 0f ? -1f : vp.x > 1f ? 1f : 0f, vp.y < 0f ? -1f : vp.y > 1f ? 1f : 0f);
+        }
+
+        // 카메라에 보이는 월드 영역을 가장자리에서 inset만큼 안쪽으로 줄인 사각형. 방랑 이동이 경로가 향할 지점을 뽑는 범위.
+        protected Rect VisibleWorldRect(float inset)
+        {
+            float halfH = mainCamera.orthographicSize;
+            float halfW = halfH * mainCamera.aspect;
+            if (inset >= Mathf.Min(halfW, halfH))
+                throw new System.Exception($"[PickShoot] {GetType().Name}: 화면 여백({inset})이 보이는 영역의 반폭({halfW:0.##}×{halfH:0.##})을 넘음 ({name}). 뽑을 자리가 없다.");
+            Vector2 c = mainCamera.transform.position;
+            return new Rect(c.x - halfW + inset, c.y - halfH + inset, 2f * (halfW - inset), 2f * (halfH - inset));
         }
 
         // 진행 방향이 어느 축에서든 side(축별 부호, 막힌 벽이나 넘은 화면 가장자리)를 향하는지. 밀려서 닿은 것과 스스로 향한 것을 가른다.

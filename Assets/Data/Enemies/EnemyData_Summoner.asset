@@ -15,7 +15,7 @@ MonoBehaviour:
   displayName: Summoner
   maxHp: 20
   moveSpeed: 3.2
-  crossingSpread: 3
+  edgeMargin: 2
   summonInterval: 2
   maxDarts: 4
   deathMinions: 3

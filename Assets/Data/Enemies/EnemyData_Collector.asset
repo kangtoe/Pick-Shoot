@@ -15,7 +15,7 @@ MonoBehaviour:
   displayName: Collector
   maxHp: 24
   moveSpeed: 2
-  crossingSpread: 3
+  edgeMargin: 2
   pullRadius: 1.5
   holdRadius: 0.9
   pullSpeed: 8

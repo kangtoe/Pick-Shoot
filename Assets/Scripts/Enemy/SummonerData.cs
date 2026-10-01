@@ -2,7 +2,7 @@ using UnityEngine;
 
 namespace PickShoot
 {
-    // 소환사형 적의 데이터 (Enemies §6). 방랑 이동 데이터(HP·이동 속도·경로 반경)에 쏘는 졸개의 주기와 상한, 죽을 때 놓는 일반 졸개의 수를 더한다.
+    // 소환사형 적의 데이터 (Enemies §6). 방랑 이동 데이터(HP·이동 속도·화면 여백)에 쏘는 졸개의 주기와 상한, 죽을 때 놓는 일반 졸개의 수를 더한다.
     [CreateAssetMenu(menuName = "PickShoot/Summoner Data", fileName = "SummonerData")]
     public class SummonerData : WandererData
     {
