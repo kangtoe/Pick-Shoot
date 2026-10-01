@@ -207,12 +207,13 @@ namespace PickShoot
             }
         }
 
-        // 카드에 싣는 3개 스탯: 공격력(다발이면 X발수), 분당 발사 수(RPM), 최대 탄약. 모두 정수 표기.
+        // 카드에 싣는 3개 스탯: 공격력(한 차례에 여러 발이면 X발수 — 동시 발사 × 점사), 분당 사격 차례 수(RPM, 점사 소요 시간 포함), 최대 탄약. 모두 정수 표기.
         static string[] StatValues(WeaponData d, int level)
         {
             int dmg = Weapon.DamageAtLevel(d, level);
-            string dmgText = d.ProjectilesPerShot > 1 ? $"{dmg}X{d.ProjectilesPerShot}" : dmg.ToString();
-            int rpm = Mathf.RoundToInt(60f / Weapon.CooldownAtLevel(d, level));
+            int bullets = Weapon.BulletsPerTrigger(d);
+            string dmgText = bullets > 1 ? $"{dmg}X{bullets}" : dmg.ToString();
+            int rpm = Mathf.RoundToInt(60f / Weapon.TriggerIntervalAtLevel(d, level));
             return new[] { dmgText, rpm.ToString(), Weapon.MaxAmmoAtLevel(d, level).ToString() };
         }
 

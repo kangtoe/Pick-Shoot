@@ -2,7 +2,7 @@ using UnityEngine;
 
 namespace PickShoot
 {
-    // 무기 인스턴스 런타임 상태. WeaponData(정의) + 현재 탄창 + 다음 준비 시각 + 레벨.
+    // 무기 인스턴스 런타임 상태. WeaponData(정의) + 현재 탄창 + 다음 준비 시각 + 레벨 + 점사 잔량.
     // 강화는 자루 단위 레벨업 단일 축 (GDD §7.3). 레벨업 시 3항목이 함께 상승한다:
     //   damage ×1.5, cooldown ×0.75, maxAmmo +2 (각 레벨업당 누적).
     // 새로 획득한 자루는 항상 Lv.1로 시작하고 MaxLevel까지 오른다 (Weapons §3).
@@ -18,6 +18,8 @@ namespace PickShoot
         int level = 1;
         int currentAmmo;
         float nextReadyTime;
+        // 시작한 점사에서 아직 쏘지 않은 사격 수. 0이면 점사 중이 아니다 (Weapons §8).
+        int burstShotsLeft;
 
         public WeaponData Data => data;
         public int Level => level;
@@ -25,6 +27,8 @@ namespace PickShoot
         public int CurrentAmmo => currentAmmo;
         public int MaxAmmo => MaxAmmoAtLevel(data, level);
         public float NextReadyTime => nextReadyTime;
+        // 점사 중 — burstInterval 뒤 CanFire가 다시 참이 되면 호출자가 이 자루를 우선해 다시 Fire한다 (Weapons §8).
+        public bool IsBursting => burstShotsLeft > 0;
         public int EffectiveDamage => DamageAtLevel(data, level);
         public float EffectiveCooldown => CooldownAtLevel(data, level);
 
@@ -44,6 +48,18 @@ namespace PickShoot
             return data.MaxAmmo + (level - 1) * LevelMaxAmmoAdd;
         }
 
+        // 사격 차례 사이의 간격 — 쿨다운에 점사 소요 시간(점사 간격 × (점사 수 − 1))을 더한 값. 카드의 RPM이 이 값으로 분당 사격 차례 수를 센다.
+        public static float TriggerIntervalAtLevel(WeaponData data, int level)
+        {
+            return CooldownAtLevel(data, level) + (data.BurstCount - 1) * data.BurstInterval;
+        }
+
+        // 한 사격 차례에 나가는 탄환 수 = 동시 발사 수 × 점사 수. 카드의 DMG가 'X발수'로 보여준다.
+        public static int BulletsPerTrigger(WeaponData data)
+        {
+            return data.ProjectilesPerShot * data.BurstCount;
+        }
+
         public Weapon(WeaponData data)
         {
             if (data == null)
@@ -52,6 +68,8 @@ namespace PickShoot
                 throw new System.Exception($"[PickShoot] WeaponData '{data.DisplayName}'에 BulletPrefab 미할당.");
             if (data.WeaponSprite == null)
                 throw new System.Exception($"[PickShoot] WeaponData '{data.DisplayName}'에 WeaponSprite 미할당. 링 위 무기 시각화용 sprite 필요.");
+            if (data.BurstCount > 1 && data.BurstInterval <= 0f)
+                throw new System.Exception($"[PickShoot] WeaponData '{data.DisplayName}'는 점사({data.BurstCount})인데 burstInterval이 0 이하 ({data.BurstInterval}). 점사 간격은 양수여야 함.");
             this.data = data;
             currentAmmo = MaxAmmo;
             nextReadyTime = 0f;
@@ -63,18 +81,30 @@ namespace PickShoot
             return now >= nextReadyTime && currentAmmo > 0;
         }
 
-        // 발사 실행. 호출자가 CanFire를 먼저 검증하고, 방향/위치/탄환 콜리전 무시 처리를 수행한다.
+        // 발사 실행 — 한 번의 사격(projectilesPerShot발). 호출자가 CanFire를 먼저 검증하고, 방향/위치/탄환 콜리전 무시 처리를 수행한다.
         // fireDirection은 정규화되어 있어야 한다.
+        // 점사 무기(BurstCount > 1)는 첫 호출이 점사를 시작하고 burstInterval 뒤에 다시 준비되므로, 호출자가 IsBursting인 자루를
+        // 우선해 다시 Fire하면 점사가 이어진다. 쿨다운은 점사의 마지막 사격 뒤에 시작하고, 탄약이 떨어지면 점사도 거기서 끝난다 (Weapons §8).
         public void Fire(Vector3 muzzlePos, Vector2 fireDirection, Collider2D shooterCollider, float now)
         {
             if (!CanFire(now))
                 throw new System.Exception($"[PickShoot] Weapon.Fire 호출됐지만 CanFire가 false. weapon={data.DisplayName} Lv{level}, now={now}, nextReadyTime={nextReadyTime}, ammo={currentAmmo}/{MaxAmmo}");
 
+            // 점사 이어 쏘기면 잔량을 하나 줄이고, 아니면 새 점사를 연다 (점사 무기가 아니면 잔량 0).
+            if (burstShotsLeft > 0) burstShotsLeft--;
+            else burstShotsLeft = data.BurstCount - 1;
+
             // 소비 탄약 = 발사 탄환 수. 탄약이 모자라면 남은 만큼만 쏜다 (Weapons §4).
             int fullShots = data.ProjectilesPerShot;
             int shots = Mathf.Min(fullShots, currentAmmo);
             currentAmmo -= shots;
-            nextReadyTime = now + EffectiveCooldown;
+            if (burstShotsLeft > 0 && currentAmmo > 0)
+                nextReadyTime = now + data.BurstInterval;
+            else
+            {
+                burstShotsLeft = 0;
+                nextReadyTime = now + EffectiveCooldown;
+            }
             if (data.ShootClip != null) SoundPlayer.Play(data.ShootClip);
 
             // 모자란 사격은 온전한 사격의 부채꼴 자리 중 중앙에 가까운 연속 구간만 채운다.

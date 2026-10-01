@@ -6,6 +6,8 @@ using UnityEngine.Rendering;
 namespace PickShoot
 {
     // 플레이어의 다중 무기 슬롯 관리자. 사격 입력 처리·발사 우선순위 결정. 슬롯·탄약 표시는 GameHud가 Slots를 읽어 그린다.
+    // 점사 중인 자루가 있으면 그 자루만 쏜다 — 버튼을 놓아도, 글로벌 간격과 무관하게 점사는 끝까지 나가고, 다른 자루는 점사의
+    // 마지막 사격 뒤 글로벌 간격이 지나야 쏜다 (Weapons §8).
     // 각 무기는 플레이어를 중심으로 하는 원형 링 위에 균등 분포로 배치되며,
     // 링은 조준 방향(PlayerAiming.AimAngleDeg)을 따라 자연스럽게 회전한다 (GDD §7.2).
     // 링 회전은 무기의 위치만 정하고, 총구 방향은 무기마다 제 위치에서 커서(PlayerAiming.AimWorldPosition)를 향한다 (Weapons §2).
@@ -218,6 +220,15 @@ namespace PickShoot
             ringPivot.rotation = Quaternion.Euler(0f, 0f, currentRingAngleDeg);
 
             if (Time.timeScale <= 0f) return;
+
+            // 점사 중인 자루는 입력·글로벌 간격보다 먼저 처리한다 (헤더 참조). 준비될 때까지는 다른 자루도 기다린다.
+            int burstingIdx = FindBurstingSlot();
+            if (burstingIdx >= 0)
+            {
+                if (slots[burstingIdx].CanFire(Time.time)) FireSlot(burstingIdx, Time.time);
+                return;
+            }
+
             var mouse = Mouse.current;
             if (mouse == null) return;
             if (!mouse.leftButton.isPressed)
@@ -247,15 +258,28 @@ namespace PickShoot
                 return;
             }
             emptySounded = false;
+            FireSlot(bestIdx, now);
+        }
 
-            Vector3 pos = slotVisuals[bestIdx].position;
+        // 슬롯의 무기를 제 위치에서 커서를 향해 한 번 쏘고 발사 연출·알림을 낸다. 글로벌 간격도 여기서 다시 잰다.
+        void FireSlot(int slotIndex, float now)
+        {
+            Vector3 pos = slotVisuals[slotIndex].position;
             // 탄환은 그 무기의 위치에서 커서를 향해 날아간다 (Weapons §2) → 여러 자루의 발사선이 조준점으로 수렴.
             float fireRad = AimAngleFrom(pos) * Mathf.Deg2Rad;
             Vector2 dir = new Vector2(Mathf.Cos(fireRad), Mathf.Sin(fireRad));
-            slots[bestIdx].Fire(pos, dir, myCollider, now);
-            PlayFireFeedback(bestIdx);
-            Fired?.Invoke(slots[bestIdx]);
+            slots[slotIndex].Fire(pos, dir, myCollider, now);
+            PlayFireFeedback(slotIndex);
+            Fired?.Invoke(slots[slotIndex]);
             nextGlobalShotTime = now + globalShotInterval;
+        }
+
+        // 점사 중인 슬롯. 점사 중에는 다른 자루를 쏘지 않으므로 한 번에 한 자루뿐이다. 없으면 -1.
+        int FindBurstingSlot()
+        {
+            for (int i = 0; i < slots.Count; i++)
+                if (slots[i].IsBursting) return i;
+            return -1;
         }
 
         // 쏠 수 있는 무기가 없는 이유가 쿨다운이 아니라 "전 자루 탄약 0"일 때만 헛방 소리를 낸다.
