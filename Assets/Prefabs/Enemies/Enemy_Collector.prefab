@@ -86,7 +86,7 @@ SpriteRenderer:
   m_SortingLayer: 0
   m_SortingOrder: 3
   m_MaskInteraction: 0
-  m_Sprite: {fileID: 1958973428290463890, guid: 13f2c52b0f0d4c2b9bf9ba0be02b4e44, type: 3}
+  m_Sprite: {fileID: -5007444568046462567, guid: 8c4fc863c2ecf7c42830eb859ffede55, type: 3}
   m_Color: {r: 1, g: 1, b: 1, a: 1}
   m_FlipX: 0
   m_FlipY: 0
@@ -215,7 +215,7 @@ MonoBehaviour:
   m_Name:
   m_EditorClassIdentifier: Assembly-CSharp::PickShoot.SpriteWalkCycle
   frames:
-  - {fileID: 1958973428290463890, guid: 13f2c52b0f0d4c2b9bf9ba0be02b4e44, type: 3}
-  - {fileID: 8941349185113495215, guid: 13f2c52b0f0d4c2b9bf9ba0be02b4e44, type: 3}
+  - {fileID: -5007444568046462567, guid: 8c4fc863c2ecf7c42830eb859ffede55, type: 3}
+  - {fileID: 5761674982490868903, guid: 8c4fc863c2ecf7c42830eb859ffede55, type: 3}
   strideLength: 0.5
   idleSpeed: 0.3
