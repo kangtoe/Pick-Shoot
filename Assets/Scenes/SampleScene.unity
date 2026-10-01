@@ -336,6 +336,7 @@ MonoBehaviour:
   magnetRadius: 1.8
   magnetTargetSpeed: 18
   magnetBlendRate: 12
+  magnetRampTime: 0.5
   sweepSpeed: 30
   pickupEffectPrefab: {fileID: 3409978152904165771, guid: 30fe44d2a97fd13469dcaa92e650a055, type: 3}
   pickupClip: {fileID: 8300000, guid: 15041e66b37db8e47a3937356e8fbb2a, type: 3}
@@ -1038,8 +1039,8 @@ MonoBehaviour:
   spawnInterval: 0.8
   spawnWarningDuration: 1
   minSpawnDistanceFromPlayer: 5
-  spawnAbortDistance: 2.5
   maxSpawnDistanceFromPlayer: 8
+  spawnAbortDistance: 2.5
   baseMaxEnemies: 5
   maxEnemiesPerWaveIncrement: 2
 --- !u!114 &1698421208
@@ -1074,6 +1075,10 @@ MonoBehaviour:
   rerollClip: {fileID: 8300000, guid: be6acc78056b18742bf774689a87c295, type: 3}
   skin: {fileID: 11400000, guid: 75b98a2d2daa9a04797ea6f248de2474, type: 2}
   dimAlpha: 0.7
+  enterTravelSeconds: 0.15
+  enterWobbleSeconds: 0.35
+  enterOvershootTexels: 12
+  enterStaggerSeconds: 0.07
 --- !u!114 &1698421209
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1314,12 +1319,19 @@ MonoBehaviour:
   upgradeManager: {fileID: 1698421208}
   pauseScreen: {fileID: 1698421209}
   spentPipColor: {r: 0, g: 0, b: 0, a: 0.35}
+  weaponPlateFillColor: {r: 0.6, g: 0.6039216, b: 0.76862746, a: 1}
+  weaponPlateOutlineColor: {r: 0.2784314, g: 0.19607843, b: 0.29411766, a: 1}
   emptyBlinkInterval: 0.3
   cursorRingRadiusTexels: 6
   cursorRingThicknessTexels: 2
   cursorRingFillColor: {r: 1, g: 1, b: 1, a: 1}
   cursorRingEmptyColor: {r: 0.25, g: 0.22, b: 0.2, a: 0.6}
   cursorDotRadiusTexels: 0
+  cursorRingKickTexels: 2
+  cursorRingReturnSpeed: 6
+  playerGaugeBackColor: {r: 0, g: 0, b: 0, a: 1}
+  playerGaugeFillColor: {r: 0.8666667, g: 0.40392157, b: 0.29803923, a: 1}
+  dashDialFillColor: {r: 1, g: 1, b: 1, a: 1}
 --- !u!114 &2100000201
 MonoBehaviour:
   m_ObjectHideFlags: 0
