@@ -198,7 +198,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::PickShoot.EnemyHealth
   data: {fileID: 11400000, guid: 2fc711f71f6c4c99ba1cac2bcbfc8ec1, type: 2}
   flashDuration: 0.08
-  flashColor: {r: 1, g: 1, b: 1, a: 1}
+  flashMaterial: {fileID: 2100000, guid: d0efb76df47e47da91e1c5f2aef5f3bf, type: 2}
   deathEffectPrefab: {fileID: 5670591326354318199, guid: 621b869db3a9bdc42b153ed8e123f1ab, type: 3}
   hitClip: {fileID: 8300000, guid: 0b892b20090e74f4e9bdbd2239bd8d59, type: 3}
   deathClip: {fileID: 8300000, guid: ea87281d6691b8340a8a02116df30d6f, type: 3}

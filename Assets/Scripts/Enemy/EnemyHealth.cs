@@ -2,11 +2,16 @@ using UnityEngine;
 
 namespace PickShoot
 {
+    // 적의 HP·피격·사망 (Enemies §1). 피격 순간 스프라이트를 흰 실루엣으로 한 번 점멸한다 — 렌더러의 색 틴트(SpriteRenderer.color)는 곱셈이라
+    // 흰색을 넣어도 원본 그대로이므로, 텍스처 알파만 읽고 단색으로 채우는 SpriteFlash 머티리얼로 바꿔 끼웠다가 flashDuration 뒤 원래 것으로 되돌린다.
+    // 켜고 끄기뿐이고 페이드는 없다(픽셀아트). 색 틴트는 건드리지 않으므로 다른 연출이 색을 써도 겹치지 않는다.
+    // 죽는 타격에는 플래시가 없다 — 그 자리에서 파괴되고 사망 이펙트가 대신한다.
+    [RequireComponent(typeof(SpriteRenderer))]
     public class EnemyHealth : MonoBehaviour
     {
         [SerializeField] EnemyData data;
-        [SerializeField] float flashDuration = 0.08f;
-        [SerializeField] Color flashColor = Color.white;
+        [SerializeField, Min(0f)] float flashDuration = 0.08f;
+        [SerializeField] Material flashMaterial;
         [SerializeField] Color damageNumberColor = Color.white;
         [SerializeField] GameObject deathEffectPrefab;
         [SerializeField] AudioClip hitClip;
@@ -20,46 +25,59 @@ namespace PickShoot
 
         int current;
         float flashUntil;
+        bool flashing;
         SpriteRenderer sr;
-        Color originalColor;
+        Material originalMaterial;
 
         void Awake()
         {
             if (data == null)
                 throw new System.Exception($"[PickShoot] EnemyHealth.data 미설정 ({name}).");
+            if (flashMaterial == null)
+                throw new System.Exception($"[PickShoot] EnemyHealth.flashMaterial 미설정 ({name}). 피격 점멸용 SpriteFlash 머티리얼(Assets/Art/Materials) 필요.");
             current = data.MaxHp;
             sr = GetComponent<SpriteRenderer>();
-            if (sr != null) originalColor = sr.color;
+            originalMaterial = sr.sharedMaterial;
         }
 
         void Update()
         {
-            if (sr == null) return;
-            if (Time.time < flashUntil)
-            {
-                sr.color = flashColor;
-            }
-            else if (sr.color != originalColor)
-            {
-                sr.color = originalColor;
-            }
+            if (flashing && Time.time >= flashUntil) EndFlash();
         }
 
         public void TakeDamage(int amount)
         {
             if (current <= 0) return;
             current -= amount;
-            flashUntil = Time.time + flashDuration;
             DamageNumbers.Show(DamageNumberOrigin(), amount, damageNumberColor);
-            if (current <= 0) Die(slain: true);
-            else if (hitClip != null) SoundPlayer.Play(hitClip);
+            if (current <= 0)
+            {
+                Die(slain: true);
+                return;
+            }
+            BeginFlash();
+            if (hitClip != null) SoundPlayer.Play(hitClip);
+        }
+
+        // 피격 순간부터 flashDuration 동안 흰 실루엣. 점멸 중에 또 맞으면 끝나는 시각만 늘어난다.
+        void BeginFlash()
+        {
+            sr.sharedMaterial = flashMaterial;
+            flashUntil = Time.time + flashDuration;
+            flashing = true;
+        }
+
+        void EndFlash()
+        {
+            sr.sharedMaterial = originalMaterial;
+            flashing = false;
         }
 
         // 데미지 숫자는 피격당한 스프라이트의 위쪽 가장자리에서 떠오른다.
         Vector3 DamageNumberOrigin()
         {
             var p = transform.position;
-            if (sr != null) p.y = sr.bounds.max.y;
+            p.y = sr.bounds.max.y;
             return p;
         }
 
