@@ -19,12 +19,26 @@ namespace PickShoot
         readonly Collider2D[] hits = new Collider2D[16];
         // 자석 반경에 한 번 들어온 탄환. 반경을 벗어나도 회수될 때까지 계속 끌려온다.
         readonly List<Bullet> magnetized = new List<Bullet>();
+        // 발사 직후 아직 자석 반경을 벗어나지 않은 튕김 페이즈 탄환 (GDD §3.2). 총구가 반경 안이라 그대로 두면 쏘는 즉시 되돌아오므로,
+        // 반경을 한 번 벗어나거나 그 안에서 정착하기 전에는 걸지 않는다.
+        readonly List<Bullet> departing = new List<Bullet>();
 
         // 웨이브 클리어 sweep 중. 필드의 모든 탄환을 자석에 걸고 확정 속도로 끌어온다.
         bool sweeping;
 
-        void OnEnable() => Bullet.AutoRetrieveSettled += OnAutoRetrieveSettled;
-        void OnDisable() => Bullet.AutoRetrieveSettled -= OnAutoRetrieveSettled;
+        void OnEnable()
+        {
+            Bullet.AutoRetrieveSettled += OnAutoRetrieveSettled;
+            Bullet.Launched += OnLaunched;
+        }
+
+        void OnDisable()
+        {
+            Bullet.AutoRetrieveSettled -= OnAutoRetrieveSettled;
+            Bullet.Launched -= OnLaunched;
+        }
+
+        void OnLaunched(Bullet bullet) => departing.Add(bullet);
 
         // 정착 시 자동 회수하는 무기(Weapons §9)의 탄환. 거리와 무관하게 바로 자석에 건다 — 끌어오기·회수는 FixedUpdate의 자석 경로가 맡는다.
         // 끌림은 반경 밖에서도 시간에 따라 최대까지 차오르므로 아레나 반대편에서도 돌아온다.
@@ -40,6 +54,8 @@ namespace PickShoot
         {
             if (sweeping) MagnetizeAllBullets();
             else MagnetizeBulletsInRange();
+            // 거는 쪽(OverlapCircle)을 먼저 — 벗어남 판정과 겹침 판정이 경계에서 어긋나도 같은 스텝에 풀리자마자 다시 걸리지 않게.
+            ReleaseDeparted();
 
             float span = Mathf.Max(0.0001f, magnetRadius - pickupRadius);
             float alpha = 1f - Mathf.Exp(-magnetBlendRate * Time.fixedDeltaTime);
@@ -91,10 +107,30 @@ namespace PickShoot
             for (int i = 0; i < count; i++)
             {
                 var bullet = hits[i].GetComponent<Bullet>();
-                if (bullet == null || !bullet.IsSettled || bullet.IsMagnetized) continue;
+                if (bullet == null || bullet.IsMagnetized) continue;
+                // 튕김 페이즈라도 반경에 들어오면 건다 (GDD §3.2) — 발사 직후 아직 반경을 벗어나지 않은 탄환만 빼고.
+                if (!bullet.IsSettled && departing.Contains(bullet)) continue;
 
                 bullet.Magnetize();
                 magnetized.Add(bullet);
+            }
+        }
+
+        // 발사 직후 명단에서 자석 반경을 벗어났거나 그 안에서 정착한 탄환을 뺀다. 벗어남은 거는 쪽(OverlapCircle)과 같은 기준인
+        // 콜라이더 가장자리로 잰다 — 중심 거리로 재면 가장자리가 아직 걸쳐 있는 스텝에 풀려 바로 다시 걸린다.
+        void ReleaseDeparted()
+        {
+            Vector2 center = transform.position;
+            for (int i = departing.Count - 1; i >= 0; i--)
+            {
+                var bullet = departing[i];
+                if (bullet == null || bullet.IsSettled)
+                {
+                    departing.RemoveAt(i);
+                    continue;
+                }
+                Vector2 closest = Physics2D.ClosestPoint(center, bullet.GetComponent<Collider2D>());
+                if ((closest - center).magnitude > magnetRadius) departing.RemoveAt(i);
             }
         }
 
@@ -105,20 +141,19 @@ namespace PickShoot
             if (pickupClip != null) SoundPlayer.Play(pickupClip);
         }
 
-        // sweep 중에는 거리·페이즈와 무관하게 전부 건다. 그사이 새로 발사된 탄환도 다음 스텝에 걸린다.
+        // sweep 중에는 거리·페이즈·발사 직후 여부와 무관하게 전부 건다. 그사이 새로 발사된 탄환도 다음 스텝에 걸린다.
         void MagnetizeAllBullets()
         {
             foreach (var bullet in FindObjectsByType<Bullet>(FindObjectsSortMode.None))
             {
                 if (bullet.IsMagnetized) continue;
 
-                bullet.ForceSettle();
                 bullet.Magnetize();
                 magnetized.Add(bullet);
             }
         }
 
-        // 웨이브 클리어 연출: 필드의 모든 탄환을 강제 정착 → 강한 자석으로 플레이어에게 끌어와 회수.
+        // 웨이브 클리어 연출: 필드의 모든 탄환을 자석에 걸어(튕김 중이면 거기서 끝내고) 강한 자석으로 플레이어에게 끌어와 회수.
         // 끌어오기·회수는 FixedUpdate의 자석 경로가 맡는다 (회수 경로가 둘이면 같은 탄환을 두 번 셀 수 있다).
         // 회수가 일찍 끝나도 duration을 끝까지 채운다 — 호출부가 이 시간을 클리어 후 대기로 쓴다.
         // 회수 미완료 탄환은 자석에 걸린 채 남아 이후에도 계속 끌려온다.

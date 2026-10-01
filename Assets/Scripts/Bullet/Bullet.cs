@@ -50,7 +50,8 @@ namespace PickShoot
         readonly Collider2D[] neighbors = new Collider2D[8];
         static readonly List<Collider2D> explosionHits = new List<Collider2D>();
 
-        // active=true: 튕김 페이즈 (속도·충돌판정 유지). active=false: 정착 (감속·픽업·Inactive 레이어).
+        // active=true: 튕김 페이즈 (속도·충돌판정 유지). active=false: 정착 (감속·Inactive 레이어).
+        // 회수(플레이어 자석)는 두 페이즈 모두 가능하다 — 걸리면 튕김 페이즈도 그 자리에서 끝난다 (Magnetize, GDD §3.2).
         public bool IsSettled => !active;
         public Weapon OwnerWeapon => ownerWeapon;
         bool IsExplosive => explosionRadius > 0f;
@@ -59,23 +60,26 @@ namespace PickShoot
         // 무관하게 바로 자석에 건다. 플레이어가 죽어 받을 곳이 없으면 그냥 정착한다 — 발사 시점(Launch)에는 받을 곳이 있어야 한다.
         public static event System.Action<Bullet> AutoRetrieveSettled;
 
+        // 발사 순간 알린다. PlayerPickup이 받아, 발사 직후의 탄환은 자석 반경을 한 번 벗어나기 전까지 걸지 않는다 (GDD §3.2).
+        // 총구가 자석 반경 안이라 이 유예가 없으면 쏘는 즉시 되돌아온다.
+        public static event System.Action<Bullet> Launched;
+
         // 플레이어 자석에 한 번 걸리면 회수될 때까지 풀리지 않는다. 걸기·끌림 세기(0~1) 갱신은 PlayerPickup이 한다.
         public bool IsMagnetized { get; private set; }
         public float MagnetPull { get; set; }
 
+        // 플레이어 자석에 건다. 튕김 페이즈라면 그 자리에서 끝낸다 — 남은 튕김·관통은 버리고, 정착 알림(AutoRetrieveSettled)은
+        // 내지 않는다(이미 걸렸다). FixedUpdate가 다음 스텝에 damping·layer를 정착 상태로 반영한다.
         // 끌려오는 탄환은 아무것에도 막히지 않는다. 콜라이더를 꺼 벽에 걸리지 않게 하고, 다른 탄환의
         // 분리 탐색(OverlapCircle)에도 잡히지 않게 한다. 자신이 받는 분리 힘은 FixedUpdate에서 건너뛴다.
         public void Magnetize()
         {
-            if (active)
-                throw new System.Exception("[PickShoot] Bullet.Magnetize: 튕김 페이즈의 탄환은 자석에 걸 수 없습니다. 정착(ForceSettle) 후 호출해야 합니다.");
+            if (IsMagnetized)
+                throw new System.Exception("[PickShoot] Bullet.Magnetize: 이미 자석에 걸린 탄환을 다시 걸었습니다. 호출자가 IsMagnetized를 확인해야 합니다.");
+            active = false;
             IsMagnetized = true;
             bodyCollider.enabled = false;
         }
-
-        // 웨이브 클리어 sweep 등에서 튕김 페이즈를 강제 종료해 회수 대상으로 만든다.
-        // FixedUpdate가 다음 프레임에 damping·layer를 정착 상태로 반영한다. sweep은 스스로 자석에 걸므로 자동 회수 알림은 내지 않는다.
-        public void ForceSettle() => active = false;
 
         // 튕김·관통이 끝나 정착한다. 자동 회수 무기의 탄환이면 PlayerPickup에 알려 바로 자석에 걸리게 한다 (헤더의 AutoRetrieveSettled 참조).
         void Settle()
@@ -123,6 +127,8 @@ namespace PickShoot
                 throw new System.Exception($"[PickShoot] Bullet.Launch: '{owner.Data.DisplayName}'는 폭발 탄환인데 Bullet 프리팹에 explosionEffectPrefab 미할당.");
             if (owner.Data.AutoRetrieve && AutoRetrieveSettled == null)
                 throw new System.Exception($"[PickShoot] Bullet.Launch: '{owner.Data.DisplayName}'는 자동 회수 무기인데 AutoRetrieveSettled를 받는 PlayerPickup이 없음.");
+            if (Launched == null)
+                throw new System.Exception("[PickShoot] Bullet.Launch: Launched를 받는 PlayerPickup이 없음. 발사 직후 탄환이 자석 반경을 벗어나기 전에 되돌아온다.");
             ownerWeapon = owner;
             this.damage = damage;
             this.knockbackForce = knockbackForce;
@@ -145,6 +151,7 @@ namespace PickShoot
             lastVelocity = velocity;
             gameObject.layer = activeLayerIdx;
             wasActive = true;
+            Launched(this);
         }
 
         void Update()
