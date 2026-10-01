@@ -80,7 +80,8 @@ namespace PickShoot
         const int AmmoPipWidthTexels = 8;
         // 이웃 핍 사이의 간격. 몸통 4 + 외곽선 2 = 6이면 이웃끼리 외곽선이 정확히 포개져, 낱발이 빈틈없이 꽂힌 탄창 한 덩이로 보인다.
         // 탄창 크기와 무관하게 늘 이 간격이다 — 탄창이 큰 만큼 줄이 길어질 뿐 핍이 촘촘해지거나 간격이 들쭉날쭉해지지 않는다.
-        // 레벨 상한(Weapon.MaxLevel)이 탄창 크기를 묶으므로 줄 길이도 그 안에 머문다 (산탄총 Lv9 = 25발 = 152텍셀).
+        // 레벨 상한(Weapon.MaxLevel)과 무기별 탄창 가산(WeaponData.LevelMaxAmmoAdd)이 탄창 크기를 묶으므로 줄 길이도 그 안에 머문다
+        // (표준 +2 기준 가장 긴 줄은 SMG Lv9 = 34발 = 214텍셀).
         const int AmmoPipStrideTexels = 6;
         // 게이지 채움 조각의 둥근 양 끝이 프레임 안쪽에서 시작하는 위치. 채움 폭은 이 안쪽 구간에 비례한다.
         const int BarFillInsetTexels = 3;

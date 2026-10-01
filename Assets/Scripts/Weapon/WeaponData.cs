@@ -12,8 +12,8 @@ namespace PickShoot
         // 사격 차례 사이의 쿨다운(초). 레벨로 줄지 않는 무기 특성이며 PlayerWeapons의 글로벌 최소 발사 간격 이상이어야 한다 (Weapons §1·§3).
         [SerializeField] float cooldown = 0.2f;
         [SerializeField] int maxAmmo = 6;
-        // 참이면 레벨업의 최대 탄약 +2를 받지 않아 탄창이 maxAmmo로 고정된다 (Weapons §9 — 단발 탄창이 정체성인 무기).
-        [SerializeField] bool lockMaxAmmo = false;
+        // 레벨업 한 번마다 최대 탄약에 더하는 수 (누적). 표준 2. 0이면 고정 탄창 — 탄창 크기가 정체성인 무기 (Weapons §3·§9).
+        [SerializeField, Min(0)] int levelMaxAmmoAdd = 2;
         // 1회 사격의 탄환 수 = 소비 탄약 수 (Weapons §4). 탄약이 모자라면 남은 만큼만 나간다.
         [SerializeField, Min(1)] int projectilesPerShot = 1;
         [SerializeField, Range(0f, 180f)] float spreadAngleDegrees = 0f;
@@ -22,6 +22,8 @@ namespace PickShoot
         // 점사 안의 사격 간격(초). burstCount가 1이면 쓰지 않는다.
         [SerializeField, Min(0f)] float burstInterval = 0.07f;
         [SerializeField] int damage = 10;
+        // 레벨업 한 번마다 공격력에 곱하는 배율 (누적). 표준 1.5. 1이면 공격력이 레벨로 오르지 않는다 (Weapons §3).
+        [SerializeField, Min(1f)] float levelDamageMultiplier = 1.5f;
         [SerializeField] float knockbackForce = 6f;
         [SerializeField, Min(0), FormerlySerializedAs("maxEnemyHits")] int maxBounces = 0;
         [SerializeField, Min(0)] int penetration = 0;
@@ -48,12 +50,13 @@ namespace PickShoot
         public float BulletSpeed => bulletSpeed;
         public float Cooldown => cooldown;
         public int MaxAmmo => maxAmmo;
-        public bool LockMaxAmmo => lockMaxAmmo;
+        public int LevelMaxAmmoAdd => levelMaxAmmoAdd;
         public int ProjectilesPerShot => projectilesPerShot;
         public float SpreadAngleDegrees => spreadAngleDegrees;
         public int BurstCount => burstCount;
         public float BurstInterval => burstInterval;
         public int Damage => damage;
+        public float LevelDamageMultiplier => levelDamageMultiplier;
         public float KnockbackForce => knockbackForce;
         public int MaxBounces => maxBounces;
         public int Penetration => penetration;

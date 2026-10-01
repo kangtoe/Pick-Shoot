@@ -17,9 +17,11 @@ MonoBehaviour:
   bulletSpeed: 9
   cooldown: 1.2
   maxAmmo: 2
+  levelMaxAmmoAdd: 2
   projectilesPerShot: 1
   spreadAngleDegrees: 0
   damage: 30
+  levelDamageMultiplier: 1.5
   knockbackForce: 8
   maxBounces: 0
   penetration: 0

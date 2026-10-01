@@ -3,16 +3,14 @@ using UnityEngine;
 namespace PickShoot
 {
     // 무기 인스턴스 런타임 상태. WeaponData(정의) + 현재 탄창 + 다음 준비 시각 + 레벨 + 점사 잔량.
-    // 강화는 자루 단위 레벨업 단일 축 (GDD §7.3). 레벨업 시 2항목이 함께 상승한다:
-    //   damage ×1.5, maxAmmo +2 (각 레벨업당 누적). 고정 탄창(WeaponData.LockMaxAmmo)이면 maxAmmo는 오르지 않는다.
+    // 강화는 자루 단위 레벨업 단일 축 (GDD §7.3). 레벨업 시 공격력과 최대 탄약이 함께 오르고, 레벨당 증가값(공격력 배율·탄창 가산)은
+    //   무기별로 WeaponData가 정한다 — 표준 ×1.5·+2, 탄창 가산 0이면 고정 탄창 (Weapons §3).
     // 쿨다운은 레벨과 무관한 무기 특성이라 오르지 않는다 (Weapons §3).
     // 새로 획득한 자루는 항상 Lv.1로 시작하고 MaxLevel까지 오른다 (Weapons §3).
     public class Weapon
     {
         // 레벨 상한. 한 자리 수로 묶어 HUD·카드의 레벨 표기가 늘 "LV n" 한 자리이고, 최대 탄약(HUD 탄창 줄 길이)도 이 안에 머문다.
         public const int MaxLevel = 9;
-        public const float LevelDamageMultiplier = 1.5f;
-        public const int LevelMaxAmmoAdd = 2;
 
         readonly WeaponData data;
         int level = 1;
@@ -36,13 +34,12 @@ namespace PickShoot
         // 레벨별 수치 공식. 업그레이드 카드가 "다음 레벨" 값을 미리 보여줄 때도 같은 식을 쓴다.
         public static int DamageAtLevel(WeaponData data, int level)
         {
-            return Mathf.Max(1, Mathf.RoundToInt(data.Damage * Mathf.Pow(LevelDamageMultiplier, level - 1)));
+            return Mathf.Max(1, Mathf.RoundToInt(data.Damage * Mathf.Pow(data.LevelDamageMultiplier, level - 1)));
         }
 
         public static int MaxAmmoAtLevel(WeaponData data, int level)
         {
-            if (data.LockMaxAmmo) return data.MaxAmmo;
-            return data.MaxAmmo + (level - 1) * LevelMaxAmmoAdd;
+            return data.MaxAmmo + (level - 1) * data.LevelMaxAmmoAdd;
         }
 
         // 한 사격 차례의 사격 수 — 점사 수가 그 레벨의 탄창으로 쏠 수 있는 사격 수를 넘으면 탄창이 빌 때까지가 한 차례다 (Weapons §8, 블래스터).
@@ -77,6 +74,10 @@ namespace PickShoot
                 throw new System.Exception($"[PickShoot] WeaponData '{data.DisplayName}'는 당기는 폭발(explosionPullsInward)인데 explosionRadius가 0. 폭발 탄환이어야 함.");
             if (data.BurstCount > 1 && data.BurstInterval <= 0f)
                 throw new System.Exception($"[PickShoot] WeaponData '{data.DisplayName}'는 점사({data.BurstCount})인데 burstInterval이 0 이하 ({data.BurstInterval}). 점사 간격은 양수여야 함.");
+            if (data.LevelDamageMultiplier < 1f)
+                throw new System.Exception($"[PickShoot] WeaponData '{data.DisplayName}'의 levelDamageMultiplier가 1 미만 ({data.LevelDamageMultiplier}). 레벨업으로 공격력이 줄 수는 없음 (Weapons §3).");
+            if (data.LevelMaxAmmoAdd < 0)
+                throw new System.Exception($"[PickShoot] WeaponData '{data.DisplayName}'의 levelMaxAmmoAdd가 음수 ({data.LevelMaxAmmoAdd}). 0(고정 탄창) 이상이어야 함 (Weapons §3).");
             this.data = data;
             currentAmmo = MaxAmmo;
             nextReadyTime = 0f;
@@ -148,15 +149,15 @@ namespace PickShoot
             return true;
         }
 
-        // 자루 단위 레벨업 (GDD §7.3). 최대 탄약 상승분만큼 현재 탄약도 함께 충전한다 — 고정 탄창은 오르지 않으므로 충전도 없다.
+        // 자루 단위 레벨업 (GDD §7.3). 최대 탄약 상승분만큼 현재 탄약도 함께 충전한다 — 탄창 가산이 0인 고정 탄창은 오르지 않으므로 충전도 없다.
         // 호출자가 IsMaxLevel을 먼저 검증해야 한다 (레벨업 카드 후보·디버그 버튼).
         public void LevelUp()
         {
             if (IsMaxLevel)
                 throw new System.Exception($"[PickShoot] Weapon.LevelUp: '{data.DisplayName}'는 이미 최대 레벨({MaxLevel}). 호출자가 IsMaxLevel을 먼저 검증해야 함.");
+            int maxAmmoBefore = MaxAmmo;
             level++;
-            if (!data.LockMaxAmmo)
-                currentAmmo = Mathf.Min(currentAmmo + LevelMaxAmmoAdd, MaxAmmo);
+            currentAmmo += MaxAmmo - maxAmmoBefore;
         }
     }
 }
