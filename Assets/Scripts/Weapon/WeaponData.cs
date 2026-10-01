@@ -16,7 +16,7 @@ namespace PickShoot
         // 1회 사격의 탄환 수 = 소비 탄약 수 (Weapons §4). 탄약이 모자라면 남은 만큼만 나간다.
         [SerializeField, Min(1)] int projectilesPerShot = 1;
         [SerializeField, Range(0f, 180f)] float spreadAngleDegrees = 0f;
-        // 한 번의 사격 차례에 이어 쏘는 사격 수. 2 이상이면 점사 — burstInterval 간격으로 이어 쏘고, 사격마다 projectilesPerShot만큼 탄약을 쓴다 (Weapons §8).
+        // 한 번의 사격 차례에 이어 쏘는 사격 수. 2 이상이면 점사 — burstInterval 간격으로 이어 쏘고, 사격마다 projectilesPerShot만큼 탄약을 쓴다 (Weapons §8). 탄창을 넘는 값(블래스터 99)은 탄창이 빌 때까지 이어 쏘는 뜻이다.
         [SerializeField, Min(1)] int burstCount = 1;
         // 점사 안의 사격 간격(초). burstCount가 1이면 쓰지 않는다. 레벨업의 쿨다운 단축은 여기에 걸리지 않는다.
         [SerializeField, Min(0f)] float burstInterval = 0.07f;

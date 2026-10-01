@@ -49,16 +49,23 @@ namespace PickShoot
             return data.MaxAmmo + (level - 1) * LevelMaxAmmoAdd;
         }
 
-        // 사격 차례 사이의 간격 — 쿨다운에 점사 소요 시간(점사 간격 × (점사 수 − 1))을 더한 값. 카드의 RPM이 이 값으로 분당 사격 차례 수를 센다.
-        public static float TriggerIntervalAtLevel(WeaponData data, int level)
+        // 한 사격 차례의 사격 수 — 점사 수가 그 레벨의 탄창으로 쏠 수 있는 사격 수를 넘으면 탄창이 빌 때까지가 한 차례다 (Weapons §8, 블래스터).
+        public static int ShotsPerTriggerAtLevel(WeaponData data, int level)
         {
-            return CooldownAtLevel(data, level) + (data.BurstCount - 1) * data.BurstInterval;
+            int shotsInMagazine = Mathf.CeilToInt((float)MaxAmmoAtLevel(data, level) / data.ProjectilesPerShot);
+            return Mathf.Min(data.BurstCount, shotsInMagazine);
         }
 
-        // 한 사격 차례에 나가는 탄환 수 = 동시 발사 수 × 점사 수. 카드의 DMG가 'X발수'로 보여준다.
-        public static int BulletsPerTrigger(WeaponData data)
+        // 사격 차례 사이의 간격 — 쿨다운에 점사 소요 시간(점사 간격 × (사격 수 − 1))을 더한 값. 카드의 RPM이 이 값으로 분당 사격 차례 수를 센다.
+        public static float TriggerIntervalAtLevel(WeaponData data, int level)
         {
-            return data.ProjectilesPerShot * data.BurstCount;
+            return CooldownAtLevel(data, level) + (ShotsPerTriggerAtLevel(data, level) - 1) * data.BurstInterval;
+        }
+
+        // 한 사격 차례에 나가는 탄환 수 = 동시 발사 수 × 점사 수, 그 레벨의 탄창이 상한. 카드의 DMG가 'X발수'로 보여준다.
+        public static int BulletsPerTriggerAtLevel(WeaponData data, int level)
+        {
+            return Mathf.Min(data.ProjectilesPerShot * data.BurstCount, MaxAmmoAtLevel(data, level));
         }
 
         public Weapon(WeaponData data)

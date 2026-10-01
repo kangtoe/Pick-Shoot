@@ -211,7 +211,7 @@ namespace PickShoot
         static string[] StatValues(WeaponData d, int level)
         {
             int dmg = Weapon.DamageAtLevel(d, level);
-            int bullets = Weapon.BulletsPerTrigger(d);
+            int bullets = Weapon.BulletsPerTriggerAtLevel(d, level);
             string dmgText = bullets > 1 ? $"{dmg}X{bullets}" : dmg.ToString();
             int rpm = Mathf.RoundToInt(60f / Weapon.TriggerIntervalAtLevel(d, level));
             return new[] { dmgText, rpm.ToString(), Weapon.MaxAmmoAtLevel(d, level).ToString() };
