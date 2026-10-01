@@ -6,15 +6,17 @@ namespace PickShoot
     //   접근: 플레이어를 향해 느리게 추적. 트리거 거리에 들어오면 준비로.
     //   준비: 정지. 돌진 방향은 이 순간의 플레이어 방향으로 고정하고 그쪽을 본다. 머리 위에 느낌표(EnemyAttackWarning)를 띄우고,
     //         걷기 프레임 대신 액션 포즈와 정지 포즈를 번갈아 깜빡이며 끝이 가까우면 빨라진다 (SpawnWarningMarker와 같은 문법).
-    //         색은 히트 플래시가 쓰므로 건드리지 않는다. 느낌표는 돌진이 시작되는 순간 내린다.
+    //         색은 쓰지 않는다 — 히트 플래시가 실루엣을 통째로 덮어 맞는 동안 가려진다. 느낌표는 돌진이 시작되는 순간 내린다.
     //   돌진: 고정 방향으로 고속 직진. 액션 포즈를 고정하고 궤적에 잔상(DashAfterimage)을 남긴다. 벽·최대 거리·플레이어 접촉으로 끝난다.
     //         벽은 공통 골격(EnemyMover)이 막고 OnWallBlocked로 알려 준다.
+    //         잔상의 머티리얼은 몸에서 베끼지 않고 EnemyHealth.BodyMaterial을 넘긴다 — 점멸 중에 맞으면 몸의 머티리얼이 잠시 흰 실루엣이라 잔상이 하얗게 굳는다.
     //         플레이어에 닿으면 끝내야 한다 — 끝내지 않으면 동적인 플레이어를 돌진 속도로 벽까지 밀고 간다.
     //         분리 힘은 받지 않는다 (무리에 밀려 궤도가 휘지 않게). 넉백은 모든 단계에서 그대로 받는다.
     //   회복: 정지 포즈로 잠시 멈춘 뒤 접근으로.
     // 거리·시간·속도는 ChargerData 자산이 정한다. 준비·돌진·회복 동안은 SpriteWalkCycle을 끄고 포즈를 직접 정한다.
     [RequireComponent(typeof(SpriteWalkCycle))]
     [RequireComponent(typeof(EnemyAttackWarning))]
+    [RequireComponent(typeof(EnemyHealth))]
     public class EnemyCharger : EnemyMover
     {
         enum State { Approach, Windup, Charge, Recover }
@@ -31,6 +33,7 @@ namespace PickShoot
         ChargerData charger;
         SpriteWalkCycle walkCycle;
         EnemyAttackWarning attackWarning;
+        EnemyHealth health;
         State state = State.Approach;
         float stateStartTime;
         Vector2 chargeDirection;
@@ -53,6 +56,7 @@ namespace PickShoot
                 throw new System.Exception($"[PickShoot] EnemyCharger.chargePose 미설정 ({name}).");
             walkCycle = GetComponent<SpriteWalkCycle>();
             attackWarning = GetComponent<EnemyAttackWarning>();
+            health = GetComponent<EnemyHealth>();
         }
 
         protected override Vector2 Steer()
@@ -142,7 +146,7 @@ namespace PickShoot
             attackWarning.Hide();
             // 첫 잔상은 떠나는 자리에.
             lastAfterimagePosition = transform.position;
-            DashAfterimage.Spawn(Sprite, lastAfterimagePosition, afterimageColor, afterimageDuration);
+            DashAfterimage.Spawn(Sprite, health.BodyMaterial, lastAfterimagePosition, afterimageColor, afterimageDuration);
             if (chargeClip != null) SoundPlayer.Play(chargeClip);
         }
 
@@ -183,7 +187,7 @@ namespace PickShoot
             while (Vector2.Distance(lastAfterimagePosition, pos) >= afterimageSpacing)
             {
                 lastAfterimagePosition = Vector2.MoveTowards(lastAfterimagePosition, pos, afterimageSpacing);
-                DashAfterimage.Spawn(Sprite, lastAfterimagePosition, afterimageColor, afterimageDuration);
+                DashAfterimage.Spawn(Sprite, health.BodyMaterial, lastAfterimagePosition, afterimageColor, afterimageDuration);
             }
         }
 

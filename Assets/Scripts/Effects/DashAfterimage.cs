@@ -3,7 +3,8 @@ using UnityEngine;
 namespace PickShoot
 {
     // 대시 궤적에 남는 잔상 한 장. 원본 스프라이트의 그 순간 모습(프레임·좌우 반전·크기)을 복사해 제자리에 두고 서서히 사라진다.
-    // 복사할 그림이 런타임에 정해지므로 프리팹 없이 Spawn이 오브젝트를 직접 만든다. 색·수명은 호출자(PlayerMovement)가 정한다.
+    // 복사할 그림이 런타임에 정해지므로 프리팹 없이 Spawn이 오브젝트를 직접 만든다. 색·수명·머티리얼은 호출자(PlayerMovement·EnemyCharger)가 정한다 —
+    // 머티리얼을 원본 렌더러에서 베끼지 않는 것은 적의 몸이 피격 점멸(EnemyHealth) 중에 잠시 흰 실루엣 머티리얼로 바뀌어 있을 수 있어서다.
     // 원본과 같은 소팅 오더에 두고 z만 뒤로 물린다 — 같은 오더 안에서는 z가 작은 쪽이 앞이라(Renderer2D 정렬 축) 잔상이
     // 늘 원본 뒤에 깔리면서도 탄환·적보다는 위에 보인다.
     [RequireComponent(typeof(SpriteRenderer))]
@@ -16,10 +17,12 @@ namespace PickShoot
         float duration;
         float startTime;
 
-        public static void Spawn(SpriteRenderer source, Vector2 position, Color color, float duration)
+        public static void Spawn(SpriteRenderer source, Material material, Vector2 position, Color color, float duration)
         {
             if (duration <= 0f)
                 throw new System.Exception($"[PickShoot] DashAfterimage.Spawn: 수명({duration})은 0보다 커야 함.");
+            if (material == null)
+                throw new System.Exception("[PickShoot] DashAfterimage.Spawn: 머티리얼 미지정.");
 
             var go = new GameObject("DashAfterimage");
             var src = source.transform;
@@ -31,7 +34,7 @@ namespace PickShoot
             ghost.sr.sprite = source.sprite;
             ghost.sr.flipX = source.flipX;
             ghost.sr.flipY = source.flipY;
-            ghost.sr.sharedMaterial = source.sharedMaterial;
+            ghost.sr.sharedMaterial = material;
             ghost.sr.sortingLayerID = source.sortingLayerID;
             ghost.sr.sortingOrder = source.sortingOrder;
             ghost.sr.color = color;

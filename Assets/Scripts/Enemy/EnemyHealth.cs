@@ -23,6 +23,9 @@ namespace PickShoot
         // 죽을 때 졸개를 놓는 소환사가 받는다. Died보다 먼저 난다.
         public event System.Action Slain;
 
+        // 원래 그림의 머티리얼 — 피격 점멸 중에는 렌더러의 것이 잠시 SpriteFlash라, 몸의 모습을 베끼는 쪽(돌진 잔상)이 대신 쓴다.
+        public Material BodyMaterial => originalMaterial;
+
         int current;
         float flashUntil;
         bool flashing;

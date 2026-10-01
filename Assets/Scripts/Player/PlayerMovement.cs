@@ -94,7 +94,7 @@ namespace PickShoot
             while (Vector2.Distance(lastAfterimagePosition, pos) >= afterimageSpacing)
             {
                 lastAfterimagePosition = Vector2.MoveTowards(lastAfterimagePosition, pos, afterimageSpacing);
-                DashAfterimage.Spawn(sr, lastAfterimagePosition, afterimageColor, afterimageDuration);
+                DashAfterimage.Spawn(sr, sr.sharedMaterial, lastAfterimagePosition, afterimageColor, afterimageDuration);
             }
         }
 
@@ -159,7 +159,7 @@ namespace PickShoot
 
             // 첫 잔상은 떠난 자리에.
             lastAfterimagePosition = transform.position;
-            DashAfterimage.Spawn(sr, lastAfterimagePosition, afterimageColor, afterimageDuration);
+            DashAfterimage.Spawn(sr, sr.sharedMaterial, lastAfterimagePosition, afterimageColor, afterimageDuration);
             if (dashClip != null) SoundPlayer.Play(dashClip);
         }
 
