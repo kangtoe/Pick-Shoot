@@ -14,5 +14,6 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::PickShoot.EnemyData
   displayName: Minion
   maxHp: 4
+  contactDamage: 1
   scoreValue: 10
   moveSpeed: 4

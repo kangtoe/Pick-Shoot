@@ -6,7 +6,7 @@ namespace PickShoot
     [RequireComponent(typeof(PlayerMovement))]
     public class PlayerHealth : MonoBehaviour
     {
-        [SerializeField] int maxHp = 3;
+        [SerializeField] int maxHp = 10;
         [SerializeField] float invincibilityTime = 0.8f;
         [SerializeField] float damageFlashDuration = 0.35f;
         [SerializeField] Color damageFlashColor = new Color(1f, 0.15f, 0.15f, 0.4f);
@@ -63,10 +63,12 @@ namespace PickShoot
         void OnCollisionEnter2D(Collision2D col) => TryDamageFrom(col);
         void OnCollisionStay2D(Collision2D col) => TryDamageFrom(col);
 
+        // 접촉 피해량은 닿은 적의 EnemyData가 정한다 (Enemies §1).
         void TryDamageFrom(Collision2D col)
         {
-            if (col.collider.GetComponent<EnemyHealth>() == null) return;
-            TryTakeDamage(1);
+            var enemy = col.collider.GetComponent<EnemyHealth>();
+            if (enemy == null) return;
+            TryTakeDamage(enemy.ContactDamage);
         }
 
         // 회피 중(대시 + 끝난 뒤 짧은 유예)에는 어떤 피해도 받지 않는다 (GDD §3.5). 적의 몸은 PlayerMovement가 충돌을 꺼서 통과시키므로 접촉 피해는 애초에

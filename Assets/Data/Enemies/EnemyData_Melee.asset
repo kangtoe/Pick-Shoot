@@ -14,5 +14,6 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::PickShoot.EnemyData
   displayName: Melee
   maxHp: 10
+  contactDamage: 1
   scoreValue: 10
   moveSpeed: 2.5

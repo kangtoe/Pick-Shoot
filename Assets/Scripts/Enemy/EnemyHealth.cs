@@ -25,6 +25,8 @@ namespace PickShoot
 
         // 원래 그림의 머티리얼 — 피격 점멸 중에는 렌더러의 것이 잠시 SpriteFlash라, 몸의 모습을 베끼는 쪽(돌진 잔상)이 대신 쓴다.
         public Material BodyMaterial => originalMaterial;
+        // 몸이 닿은 플레이어가 입는 피해. PlayerHealth가 접촉 충돌에서 읽는다 (Enemies §1).
+        public int ContactDamage => data.ContactDamage;
 
         int current;
         float flashUntil;
