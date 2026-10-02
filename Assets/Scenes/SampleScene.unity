@@ -1283,6 +1283,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PickShoot.DamageNumbers
   skin: {fileID: 11400000, guid: 75b98a2d2daa9a04797ea6f248de2474, type: 2}
+  upgradeManager: {fileID: 1698421208}
+  pauseScreen: {fileID: 1698421209}
   pop:
     duration: 0.5
     upSpeed: 4

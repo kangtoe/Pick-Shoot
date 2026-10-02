@@ -10,9 +10,12 @@ namespace PickShoot
     //   Pop — 맞은 자리에서 위로 튀어올랐다가 가라앉는 낱개 숫자 (Terraria 전투 텍스트 모델). 플레이어 피격이 쓴다.
     //   Rise — 등속으로 곧장 떠오르는 문구. 처치 경험치 "XP N"과 플레이어 레벨 업 "LV UP!"이 쓴다.
     // 색은 호출자가 정한다 — 적 피해는 흰색(EnemyHealth), 플레이어 피격은 붉은색(PlayerHealth), 처치 경험치는 노란색(PlayerExperience), 레벨 업은 게이지의 파란색(PlayerHealth).
+    // 카드 선택·일시정지 화면이 떠 있는 동안은 그리지 않는다 (HUD와 같은 조건) — 멈춘 문구가 덮개 위에 남아 화면을 가리지 않게. 시간이 멈춰 있으므로 재개하면 그 자리에서 이어진다.
     public class DamageNumbers : MonoBehaviour
     {
         [SerializeField] PixelUiSkin skin;
+        [SerializeField] UpgradeManager upgradeManager;
+        [SerializeField] PauseScreen pauseScreen;
 
         // 낱개 피격 숫자(Pop, 지금은 플레이어 피격)의 움직임 — 위로 미는 충격에 직사각형 안의 무작위 충격(가로·세로 범위 따로)을 더한 처음 속도로 출발해 중력과 지수 감쇠를 받는다.
         // Terraria 전투 텍스트의 지속 피해 숫자(매 프레임 중력을 더하고 ×0.92로 감쇠)에 치명타의 무작위 속도를 더한 것과 같은 꼴이다. 감쇠가 중력에도
@@ -92,6 +95,10 @@ namespace PickShoot
             if (skin == null)
                 throw new System.Exception("[PickShoot] DamageNumbers.skin 미할당. PixelUiSkin 자산(Assets/Data/UI) 필요.");
             skin.Validate();
+            if (upgradeManager == null)
+                throw new System.Exception("[PickShoot] DamageNumbers.upgradeManager 미할당 (카드 선택 중 숨김 판정에 필요).");
+            if (pauseScreen == null)
+                throw new System.Exception("[PickShoot] DamageNumbers.pauseScreen 미할당 (일시정지 중 숨김 판정에 필요).");
             cam = Camera.main;
             if (cam == null)
                 throw new System.Exception("[PickShoot] MainCamera가 필요합니다 (데미지 숫자 월드→화면 변환용).");
@@ -207,6 +214,7 @@ namespace PickShoot
         void OnGUI()
         {
             if ((popups.Count == 0 && tallies.Count == 0) || Event.current.type != EventType.Repaint) return;
+            if (upgradeManager.IsActive || pauseScreen.IsPaused) return;
 
             using var canvas = PixelGui.BeginCanvas();
             var prevColor = GUI.color;
