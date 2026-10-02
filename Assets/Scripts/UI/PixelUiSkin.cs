@@ -52,9 +52,6 @@ namespace PickShoot
         // 진행 바: 흰 테두리 프레임과, 같은 자리에 겹쳐 그리면 안쪽에 맞는 붉은 채움.
         [SerializeField] BarStrip barFrame;
         [SerializeField] BarStrip barFillRed;
-        // 한 칸짜리 바(핍): 붉게 찬 칸·빈 칸. HUD 체력 표시용.
-        [SerializeField] Sprite barCellRed;
-        [SerializeField] Sprite barCellEmpty;
         // 테두리 없는 작은 탄환(탄약 핍)과 붉은 X(탄약 부족 표시).
         [SerializeField] Sprite iconBulletPlain;
         [SerializeField] Sprite iconCross;
@@ -74,8 +71,6 @@ namespace PickShoot
         public Sprite IconArrowUp => iconArrowUp;
         public BarStrip BarFrame => barFrame;
         public BarStrip BarFillRed => barFillRed;
-        public Sprite BarCellRed => barCellRed;
-        public Sprite BarCellEmpty => barCellEmpty;
         public Sprite IconBulletPlain => iconBulletPlain;
         public Sprite IconCross => iconCross;
         public Sprite IconSkull => iconSkull;
@@ -95,8 +90,6 @@ namespace PickShoot
             if (iconArrowUp == null) throw Missing(nameof(iconArrowUp));
             ValidateBarStrip(barFrame, nameof(barFrame));
             ValidateBarStrip(barFillRed, nameof(barFillRed));
-            if (barCellRed == null) throw Missing(nameof(barCellRed));
-            if (barCellEmpty == null) throw Missing(nameof(barCellEmpty));
             if (iconBulletPlain == null) throw Missing(nameof(iconBulletPlain));
             if (iconCross == null) throw Missing(nameof(iconCross));
             if (iconSkull == null) throw Missing(nameof(iconSkull));

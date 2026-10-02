@@ -4,7 +4,7 @@ using UnityEngine;
 namespace PickShoot
 {
     // 인게임 HUD 단일 창구. PixelUiSkin(Kenney Interface 시트)으로 OnGUI에 그린다.
-    //   체력: 좌상단 패널에 칸 단위 핍으로 자세히, 플레이어 머리 위에는 비율만 보이는 작은 게이지.
+    //   체력: 좌상단에 시트 게이지와 현재/최대 숫자, 플레이어 머리 위에는 비율만 보이는 작은 게이지.
     //   스코어: 우상단에 러닝 누적 총점 (GDD §3.3). 카드 화면도 같은 자리에 같은 모양으로 그린다 (DrawScoreLine).
     //   대시: 쿨다운 중에만 머리 위 체력 게이지 위쪽에 시계 방향으로 차오르는 작은 원판 (GDD §3.5).
     //   무기: 링에서 조준 기준 왼쪽에 있는 슬롯은 화면 하단 왼쪽 구석, 오른쪽 슬롯은 하단 오른쪽 구석에 거울상으로.
@@ -61,11 +61,11 @@ namespace PickShoot
         // IMGUI는 depth가 작을수록 위에 그린다. 다른 스크립트는 기본값 0이므로 HUD는 그 뒤에 깔린다.
         const int HudGuiDepth = 10;
         const int MarginTexels = 8;      // 화면 가장자리 → 패널·무기 줄
-        const int PaddingTexels = 8;     // 패널 테두리 → 내용
         const int GapTexels = 4;         // 행 사이·이웃 요소 사이
         const int ColumnGapTexels = 8;   // 열 사이
-        // 체력 핍은 16텍셀 타일이지만 보이는 칸이 10텍셀이라 타일 간격보다 촘촘히 겹쳐 놓는다. 여백 2텍셀.
-        const int HpPipStrideTexels = 12;
+        // 좌상단 체력 게이지의 폭. 최대 체력과 무관하게 고정 — 최대치는 옆의 숫자가 알리고, 비례 폭은 최대 체력이 자라면 웨이브 배너 쪽으로
+        // 늘어난다. 타일(16텍셀)의 배수.
+        const int HpGaugeWidthTexels = 64;
         // 무기 줄 사이의 세로 간격(줄 위 가장자리 → 다음 줄 위 가장자리). 글자·핍 타일(16텍셀)보다 조금 넓다.
         // 무기 스프라이트 타일(24텍셀)은 이보다 크지만 위아래가 투명 여백이라 이웃 줄과 겹쳐도 그림끼리는 닿지 않는다.
         // 그림은 그 밑의 판(WeaponPlate*) 안에 들어간다.
@@ -193,7 +193,7 @@ namespace PickShoot
 
             int hudScale = PixelGui.TextScale;
             using var canvas = PixelGui.BeginCanvas();
-            DrawHealthPanel(hudScale);
+            DrawHealthBar(hudScale);
             DrawScoreLine(skin, canvas, runScore.Total);
             DrawWeaponRows(canvas, hudScale, leftSide: true);
             DrawWeaponRows(canvas, hudScale, leftSide: false);
@@ -202,35 +202,23 @@ namespace PickShoot
             DrawCrosshair(PixelGui.PanelScale);
         }
 
-        // 좌상단 회색 패널: "HP" + 체력 핍 (왼쪽부터 남은 체력만큼 붉은 칸, 나머지 빈 칸).
-        void DrawHealthPanel(int s)
+        // 좌상단 한 줄: "HP" · 시트 게이지(웨이브 남은 시간 바와 같은 조각) · 현재/최대 숫자. 패널 배경은 두지 않는다 — 무기 줄·웨이브 바처럼
+        // 바닥 위에 바로 놓는다. 글꼴 줄과 게이지 타일이 모두 16텍셀이라 같은 y에 나란히 선다.
+        void DrawHealthBar(int s)
         {
             var font = skin.FontPlain;
             int tile = skin.TileSize * s;
-            int lineH = font.lineHeight * s;
-            int pad = PaddingTexels * s;
             int colGap = ColumnGapTexels * s;
             int margin = MarginTexels * s;
-            int stride = HpPipStrideTexels * s;
 
-            int labelW = PixelGui.MeasureText(font, "HP", s);
-            int contentW = labelW + colGap + PipsWidth(playerHealth.Max, HpPipStrideTexels, s);
-            int contentH = lineH;
-            int panelW = CeilToMultiple(contentW + 2 * pad, tile);
-            int panelH = CeilToMultiple(contentH + 2 * pad, tile);
-            var panel = new Rect(margin, margin, panelW, panelH);
-            PixelGui.DrawNineSlice(skin.PanelGrey, panel, skin.TileSize, s);
-
-            // 타일 배수 올림으로 생긴 여분은 상하좌우 균등 분배.
-            int x0 = (int)panel.x + (panelW - contentW) / 2;
-            int y = (int)panel.y + (panelH - contentH) / 2;
-            PixelGui.DrawText(font, "HP", x0, y, s);
-            int x = x0 + labelW + colGap;
-            for (int i = 0; i < playerHealth.Max; i++)
-            {
-                var cell = i < playerHealth.Current ? skin.BarCellRed : skin.BarCellEmpty;
-                PixelGui.DrawSprite(cell, new Rect(x + i * stride, y, tile, tile));
-            }
+            int x = margin;
+            int y = margin;
+            PixelGui.DrawText(font, "HP", x, y, s);
+            x += PixelGui.MeasureText(font, "HP", s) + colGap;
+            var bar = new Rect(x, y, HpGaugeWidthTexels * s, tile);
+            DrawGauge(bar, (float)playerHealth.Current / playerHealth.Max, s);
+            x += (int)bar.width + colGap;
+            PixelGui.DrawText(font, $"{playerHealth.Current}/{playerHealth.Max}", x, y, s);
         }
 
         // 우상단 한 줄: "SCORE" · 러닝 누적 총점, 오른쪽 끝 정렬. 좌상단 HP 줄과 같은 y·같은 결(패널 없음, 글자 배율). 정적인 이유 — 카드 화면은
@@ -446,13 +434,6 @@ namespace PickShoot
 
         // 글꼴에 있는 문자(A-Z 0-9 % + - 공백)만 써야 한다. 없는 문자는 PixelGui가 예외로 알린다.
         static string LevelLabel(int level) => $"LV {level}";
-
-        // 핍 n개가 차지하는 폭. 마지막 핍은 타일 전체 폭으로 센다.
-        int PipsWidth(int count, int strideTexels, int s)
-        {
-            if (count <= 0) return 0;
-            return (count - 1) * strideTexels * s + skin.TileSize * s;
-        }
 
         static int CeilToMultiple(int value, int multiple)
         {
