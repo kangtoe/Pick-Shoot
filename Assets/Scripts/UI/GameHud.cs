@@ -5,7 +5,7 @@ namespace PickShoot
 {
     // 인게임 HUD 단일 창구. PixelUiSkin(Kenney Interface 시트)으로 OnGUI에 그린다.
     //   체력: 좌상단에 시트 게이지와 현재/최대 숫자, 플레이어 머리 위에는 비율만 보이는 작은 게이지.
-    //   스코어: 우상단에 러닝 누적 총점 (GDD §3.3). 카드 화면도 같은 자리에 같은 모양으로 그린다 (DrawScoreLine).
+    //   경험치: 하단 중앙에 레벨("LV N")과 지금 레벨 구간의 게이지 (GDD §3.3). 숫자는 없다 — 누적 총량은 일시정지 화면이 보인다.
     //   대시: 쿨다운 중에만 머리 위 체력 게이지 위쪽에 시계 방향으로 차오르는 작은 원판 (GDD §3.5).
     //   무기: 링에서 조준 기준 왼쪽에 있는 슬롯은 화면 하단 왼쪽 구석, 오른쪽 슬롯은 하단 오른쪽 구석에 거울상으로.
     //         패널 배경 없이 슬롯마다 한 줄(스프라이트 · 레벨 · 탄창)만 바닥 위에 바로 그린다. 스프라이트 밑에만 작은 판을 깐다.
@@ -25,7 +25,7 @@ namespace PickShoot
         [SerializeField] WaveManager waveManager;
         [SerializeField] UpgradeManager upgradeManager;
         [SerializeField] PauseScreen pauseScreen;
-        [SerializeField] RunScore runScore;
+        [SerializeField] PlayerExperience experience;
         // 소진한 탄약 핍에 곱하는 색. 남은 탄약은 원래 색 그대로. 기본값은 반투명 검정 — 핍이 탄창에 난 빈 자리(어두운 실루엣)로 보인다.
         // 패널 없이 바닥 위에 바로 그리므로, 원래 색을 흐리게만 하면 밝은 바닥에 묻혀 최대치가 읽히지 않는다.
         [SerializeField] Color spentPipColor = new Color(0f, 0f, 0f, 0.35f);
@@ -66,6 +66,9 @@ namespace PickShoot
         // 좌상단 체력 게이지의 폭. 최대 체력과 무관하게 고정 — 최대치는 옆의 숫자가 알리고, 비례 폭은 최대 체력이 자라면 웨이브 배너 쪽으로
         // 늘어난다. 타일(16텍셀)의 배수.
         const int HpGaugeWidthTexels = 64;
+        // 하단 중앙 경험치 게이지의 폭. 체력 게이지와 같다. 하단 중앙은 양 구석 무기 줄의 탄약 핍이 자라 들어오는 방향이라 넓히면 긴 탄창과
+        // 겹친다 — 이 폭이면 16:9에서 맨 아래 두 줄의 탄창이 20발 이하일 때 겹치지 않는다.
+        const int ExpGaugeWidthTexels = 64;
         // 무기 줄 사이의 세로 간격(줄 위 가장자리 → 다음 줄 위 가장자리). 글자·핍 타일(16텍셀)보다 조금 넓다.
         // 무기 스프라이트 타일(24텍셀)은 이보다 크지만 위아래가 투명 여백이라 이웃 줄과 겹쳐도 그림끼리는 닿지 않는다.
         // 그림은 그 밑의 판(WeaponPlate*) 안에 들어간다.
@@ -137,8 +140,8 @@ namespace PickShoot
                 throw new System.Exception("[PickShoot] GameHud.upgradeManager 미할당 (카드 선택 중 HUD 숨김 판정에 필요).");
             if (pauseScreen == null)
                 throw new System.Exception("[PickShoot] GameHud.pauseScreen 미할당 (일시정지 중 HUD 숨김 판정에 필요).");
-            if (runScore == null)
-                throw new System.Exception("[PickShoot] GameHud.runScore 미할당 (우상단 스코어 표기에 필요).");
+            if (experience == null)
+                throw new System.Exception("[PickShoot] GameHud.experience 미할당 (하단 중앙 경험치 게이지에 필요).");
             playerMovement = playerHealth.GetComponent<PlayerMovement>();
             if (playerMovement == null)
                 throw new System.Exception("[PickShoot] GameHud: 플레이어에 PlayerMovement 없음 (대시 쿨다운 표시에 필요).");
@@ -194,7 +197,7 @@ namespace PickShoot
             int hudScale = PixelGui.TextScale;
             using var canvas = PixelGui.BeginCanvas();
             DrawHealthBar(hudScale);
-            DrawScoreLine(skin, canvas, runScore.Total);
+            DrawExpGauge(canvas, hudScale);
             DrawWeaponRows(canvas, hudScale, leftSide: true);
             DrawWeaponRows(canvas, hudScale, leftSide: false);
             DrawWaveBanner(canvas, hudScale);
@@ -216,18 +219,25 @@ namespace PickShoot
             PixelGui.DrawText(font, "HP", x, y, s);
             x += PixelGui.MeasureText(font, "HP", s) + colGap;
             var bar = new Rect(x, y, HpGaugeWidthTexels * s, tile);
-            DrawGauge(bar, (float)playerHealth.Current / playerHealth.Max, s);
+            DrawGauge(bar, (float)playerHealth.Current / playerHealth.Max, skin.BarFillRed, s);
             x += (int)bar.width + colGap;
             PixelGui.DrawText(font, $"{playerHealth.Current}/{playerHealth.Max}", x, y, s);
         }
 
-        // 우상단 한 줄: "SCORE" · 러닝 누적 총점, 오른쪽 끝 정렬. 좌상단 HP 줄과 같은 y·같은 결(패널 없음, 글자 배율). 정적인 이유 — 카드 화면은
-        // HUD를 숨기므로 UpgradeManager가 같은 자리에 같은 모양으로 다시 그린다. 화면이 바뀌어도 숫자가 제자리에 있어야 리롤 문턱과 견주기 쉽다.
-        public static void DrawScoreLine(PixelUiSkin skin, PixelGui.CanvasScope canvas, int score)
+        // 하단 중앙 두 줄: "LV N" · 그 아래 지금 레벨 구간의 경험치 게이지 (파란 채움, 숫자 없음). 상단 중앙의 웨이브 배너·시간 바와 짝 —
+        // 러닝 진행(시간·레벨)은 중앙 축, 플레이어 상태(체력)는 좌상단. 게이지의 아래 가장자리는 무기 줄의 맨 아래와 같은 y라 하단이 한 띠로 읽힌다.
+        void DrawExpGauge(PixelGui.CanvasScope canvas, int s)
         {
-            int s = PixelGui.TextScale;
+            var font = skin.FontPlain;
+            int tile = skin.TileSize * s;
+            int gap = GapTexels * s;
             int margin = MarginTexels * s;
-            PixelGui.DrawTextRight(skin.FontPlain, $"SCORE {score}", canvas.Width - margin, margin, s);
+            int centerX = canvas.Width / 2;
+
+            int barW = ExpGaugeWidthTexels * s;
+            var bar = new Rect(centerX - barW / 2, canvas.Height - margin - tile, barW, tile);
+            DrawGauge(bar, experience.LevelProgress, skin.BarFillBlue, s);
+            PixelGui.DrawTextCentered(font, LevelLabel(experience.Level), centerX, (int)bar.y - gap - font.lineHeight * s, s);
         }
 
         // 플레이어 스프라이트 위에 체력 비율 게이지와 대시 쿨다운 원판을 가운데 정렬로 띄운다 (숫자 없음).
@@ -273,13 +283,13 @@ namespace PickShoot
             }
         }
 
-        // 프레임 + 비율만큼 잘라낸 붉은 채움. 채움 조각은 프레임과 같은 자리에 그리면 안쪽에 딱 맞고, 오른쪽부터 줄어든다.
-        void DrawGauge(Rect bar, float ratio, int s)
+        // 프레임 + 비율만큼 잘라낸 채움(fill: 붉은색·파란색). 채움 조각은 프레임과 같은 자리에 그리면 안쪽에 딱 맞고, 오른쪽부터 줄어든다.
+        void DrawGauge(Rect bar, float ratio, PixelUiSkin.BarStrip fill, int s)
         {
             PixelGui.DrawBarStrip(skin.BarFrame, bar, skin.TileSize, s);
             int inset = BarFillInsetTexels * s;
             int fillW = inset + Mathf.RoundToInt((bar.width - 2 * inset) * Mathf.Clamp01(ratio));
-            PixelGui.DrawBarStrip(skin.BarFillRed, bar, skin.TileSize, s, fillW);
+            PixelGui.DrawBarStrip(fill, bar, skin.TileSize, s, fillW);
         }
 
         // 하단 한쪽 구석: 링의 해당 쪽에 있는 슬롯만, 슬롯마다 한 줄. 줄 전체를 감싸는 패널 배경은 두지 않는다 — 글꼴·핍은 시트의
@@ -404,7 +414,7 @@ namespace PickShoot
             PixelGui.DrawTextCentered(font, title, centerX, (int)banner.y + (bannerH - lineH) / 2, s);
 
             var bar = new Rect(banner.x, banner.yMax + gap, bannerW, tile);
-            DrawGauge(bar, waveManager.WaveTimeRemaining / waveManager.WaveDuration, s);
+            DrawGauge(bar, waveManager.WaveTimeRemaining / waveManager.WaveDuration, skin.BarFillRed, s);
 
             string status = waveManager.Phase switch
             {

@@ -15,7 +15,7 @@ MonoBehaviour:
   displayName: Collector
   maxHp: 24
   contactDamage: 1
-  scoreValue: 3
+  expValue: 3
   moveSpeed: 2
   edgeMargin: 2
   pullRadius: 1.5

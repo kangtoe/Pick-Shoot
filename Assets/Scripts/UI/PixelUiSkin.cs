@@ -49,9 +49,10 @@ namespace PickShoot
         [SerializeField] Sprite iconBullet;
         [SerializeField] Sprite iconChevronUp;
         [SerializeField] Sprite iconArrowUp;
-        // 진행 바: 흰 테두리 프레임과, 같은 자리에 겹쳐 그리면 안쪽에 맞는 붉은 채움.
+        // 진행 바: 흰 테두리 프레임과, 같은 자리에 겹쳐 그리면 안쪽에 맞는 채움 — 붉은색(체력·웨이브 남은 시간)과 파란색(경험치).
         [SerializeField] BarStrip barFrame;
         [SerializeField] BarStrip barFillRed;
+        [SerializeField] BarStrip barFillBlue;
         // 테두리 없는 작은 탄환(탄약 핍)과 붉은 X(탄약 부족 표시).
         [SerializeField] Sprite iconBulletPlain;
         [SerializeField] Sprite iconCross;
@@ -71,6 +72,7 @@ namespace PickShoot
         public Sprite IconArrowUp => iconArrowUp;
         public BarStrip BarFrame => barFrame;
         public BarStrip BarFillRed => barFillRed;
+        public BarStrip BarFillBlue => barFillBlue;
         public Sprite IconBulletPlain => iconBulletPlain;
         public Sprite IconCross => iconCross;
         public Sprite IconSkull => iconSkull;
@@ -90,6 +92,7 @@ namespace PickShoot
             if (iconArrowUp == null) throw Missing(nameof(iconArrowUp));
             ValidateBarStrip(barFrame, nameof(barFrame));
             ValidateBarStrip(barFillRed, nameof(barFillRed));
+            ValidateBarStrip(barFillBlue, nameof(barFillBlue));
             if (iconBulletPlain == null) throw Missing(nameof(iconBulletPlain));
             if (iconCross == null) throw Missing(nameof(iconCross));
             if (iconSkull == null) throw Missing(nameof(iconSkull));

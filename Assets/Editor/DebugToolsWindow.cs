@@ -6,7 +6,7 @@ namespace PickShoot
 {
     // 플레이 모드 디버그 도구 창 (메뉴 PickShoot/Debug Tools). 장기 보존 도구 (DEVELOPMENT §2.1).
     // 씬 참조 없이 플레이 중인 오브젝트를 찾아 조작하므로 씬·프리팹을 건드리지 않고, 빌드에도 들어가지 않는다.
-    // 현재 제공: 진행 중인 웨이브 즉시 클리어 / 적 종류를 골라 즉시 스폰 / 무기 종류를 골라 추가 / 마지막 무기 버리기 / 자루별 레벨업 / 스코어 더하기(리롤 문턱 시험용).
+    // 현재 제공: 진행 중인 웨이브 즉시 클리어 / 적 종류를 골라 즉시 스폰 / 무기 종류를 골라 추가 / 마지막 무기 버리기 / 자루별 레벨업 / 경험치 더하기(레벨 업·리롤 적립 시험용).
     public class DebugToolsWindow : EditorWindow
     {
         // 드롭다운 옆 실행 버튼(Spawn/Add) 너비. 드롭다운이 남는 폭을 다 차지한다.
@@ -106,11 +106,11 @@ namespace PickShoot
 
             DrawSeparator();
 
-            var score = FindFirstObjectByType<RunScore>();
-            if (score == null)
-                EditorGUILayout.HelpBox("씬에 RunScore가 없습니다.", MessageType.Warning);
+            var experience = FindFirstObjectByType<PlayerExperience>();
+            if (experience == null)
+                EditorGUILayout.HelpBox("씬에 PlayerExperience가 없습니다.", MessageType.Warning);
             else
-                DrawScore(score);
+                DrawExperience(experience);
 
             DrawSeparator();
 
@@ -172,14 +172,14 @@ namespace PickShoot
             }
         }
 
-        // 처치 없이 스코어를 올려 리롤 문턱(UpgradeManager)을 바로 시험한다. 플로팅 텍스트는 띄우지 않는다.
-        void DrawScore(RunScore score)
+        // 처치 없이 경험치를 올려 레벨 업(체력 성장·리롤 적립)을 바로 시험한다. 플로팅 텍스트는 띄우지 않는다.
+        void DrawExperience(PlayerExperience experience)
         {
             using (new EditorGUILayout.HorizontalScope())
             {
-                GUILayout.Label($"Score {score.Total}", EditorStyles.boldLabel);
+                GUILayout.Label($"XP {experience.Total}   LV {experience.Level}", EditorStyles.boldLabel);
                 if (GUILayout.Button("+10", GUILayout.Width(ActionButtonWidth)))
-                    score.Add(10);
+                    experience.Add(10);
             }
         }
 

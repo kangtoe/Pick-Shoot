@@ -4,7 +4,8 @@ using UnityEngine.InputSystem;
 namespace PickShoot
 {
     // ESC로 게임을 멈추고 화면을 어둡게 덮는 일시정지 화면. PixelUiSkin(Kenney Interface 시트)으로 OnGUI에 그린다.
-    // 구성은 데스 화면과 같은 결: 파란 배너("PAUSED") → 회색 패널(재개 안내). 배너는 패널 배율, 그 아래는 글자 배율.
+    // 구성은 데스 화면과 같은 결: 파란 배너("PAUSED") → 회색 패널(레벨·누적 경험치 한 줄 + 재개 안내). 배너는 패널 배율, 그 아래는 글자 배율.
+    // 누적 경험치 총량은 여기서만 보인다 — HUD는 레벨과 구간 게이지만 보인다 (GDD §3.3).
     // 멈춤은 업그레이드 카드와 같은 방식(Time.timeScale = 0)이라 물리·코루틴·사격이 함께 멎는다.
     // 카드 선택 중(이미 멈춰 있음)과 플레이어 사망 뒤(데스 화면이 이어받음)에는 ESC를 받지 않는다.
     // 멈춘 동안 HUD는 GameHud가 걷고 하드웨어 커서를 되살린다 — 볼륨 조절 등 클릭 조작이 들어올 자리.
@@ -14,6 +15,7 @@ namespace PickShoot
     {
         [SerializeField] PlayerHealth playerHealth;
         [SerializeField] UpgradeManager upgradeManager;
+        [SerializeField] PlayerExperience experience;
 
         [Header("Presentation")]
         [SerializeField] PixelUiSkin skin;
@@ -23,6 +25,7 @@ namespace PickShoot
         const string Title = "PAUSED";
         const string Hint = "PRESS ESC TO RESUME";
         const int PaddingTexels = 8;     // 패널 테두리 → 내용
+        const int LineGapTexels = 4;     // 패널 안 줄 사이
 
         bool paused;
         float prevTimeScale;
@@ -35,6 +38,8 @@ namespace PickShoot
                 throw new System.Exception("[PickShoot] PauseScreen.playerHealth 미할당 (사망 뒤 일시정지 차단에 필요).");
             if (upgradeManager == null)
                 throw new System.Exception("[PickShoot] PauseScreen.upgradeManager 미할당 (카드 선택 중 일시정지 차단에 필요).");
+            if (experience == null)
+                throw new System.Exception("[PickShoot] PauseScreen.experience 미할당 (레벨·누적 경험치 표기에 필요).");
             if (skin == null)
                 throw new System.Exception("[PickShoot] PauseScreen.skin 미할당. PixelUiSkin 자산(Assets/Data/UI) 필요.");
             skin.Validate();
@@ -97,9 +102,14 @@ namespace PickShoot
             int bannerW = CeilToMultiple(titleW + 2 * tile, tile);
             int bannerH = 2 * tile;
 
+            // 패널은 두 줄: 레벨·누적 경험치, 재개 안내. 폭은 긴 쪽에 맞춘다.
             int pad = PaddingTexels * textScale;
-            int panelW = CeilToMultiple(PixelGui.MeasureText(skin.FontPlain, Hint, textScale) + 2 * pad, textTile);
-            int panelH = CeilToMultiple(lineH + 2 * pad, textTile);
+            int lineGap = LineGapTexels * textScale;
+            string stats = $"LV {experience.Level}  XP {experience.Total}";
+            int contentW = Mathf.Max(PixelGui.MeasureText(skin.FontPlain, stats, textScale), PixelGui.MeasureText(skin.FontPlain, Hint, textScale));
+            int contentH = 2 * lineH + lineGap;
+            int panelW = CeilToMultiple(contentW + 2 * pad, textTile);
+            int panelH = CeilToMultiple(contentH + 2 * pad, textTile);
             int gap = textTile;
 
             // 배너·패널 묶음을 화면 세로 중앙에 놓는다.
@@ -115,7 +125,9 @@ namespace PickShoot
 
             var panel = new Rect(centerX - panelW / 2, y, panelW, panelH);
             PixelGui.DrawNineSlice(skin.PanelGrey, panel, skin.TileSize, textScale);
-            PixelGui.DrawTextCentered(skin.FontPlain, Hint, centerX, y + (panelH - lineH) / 2, textScale);
+            int textY = y + (panelH - contentH) / 2;
+            PixelGui.DrawTextCentered(skin.FontPlain, stats, centerX, textY, textScale);
+            PixelGui.DrawTextCentered(skin.FontPlain, Hint, centerX, textY + lineH + lineGap, textScale);
         }
 
         static int CeilToMultiple(int value, int multiple)

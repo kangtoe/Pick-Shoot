@@ -5,7 +5,7 @@ namespace PickShoot
     // 적의 HP·피격·사망 (Enemies §1). 피격 순간 스프라이트를 흰 실루엣으로 한 번 점멸한다 — 렌더러의 색 틴트(SpriteRenderer.color)는 곱셈이라
     // 흰색을 넣어도 원본 그대로이므로, 텍스처 알파만 읽고 단색으로 채우는 SpriteFlash 머티리얼로 바꿔 끼웠다가 flashDuration 뒤 원래 것으로 되돌린다.
     // 켜고 끄기뿐이고 페이드는 없다(픽셀아트). 색 틴트는 건드리지 않으므로 다른 연출이 색을 써도 겹치지 않는다.
-    // 죽는 타격에는 플래시가 없다 — 그 자리에서 파괴되고 사망 이펙트가 대신한다. 플레이어가 죽였으면 처치 스코어(RunScore)가 적립되고 노란 +N이 뜬다.
+    // 죽는 타격에는 플래시가 없다 — 그 자리에서 파괴되고 사망 이펙트가 대신한다. 플레이어가 죽였으면 처치 경험치(PlayerExperience)가 적립되고 노란 XP N이 뜬다.
     [RequireComponent(typeof(SpriteRenderer))]
     public class EnemyHealth : MonoBehaviour
     {
@@ -79,7 +79,7 @@ namespace PickShoot
             flashing = false;
         }
 
-        // 누적 피해 숫자와 처치 스코어는 스프라이트의 위쪽 가장자리를 기준으로 뜬다.
+        // 누적 피해 숫자와 처치 경험치는 스프라이트의 위쪽 가장자리를 기준으로 뜬다.
         Vector3 DamageNumberOrigin()
         {
             var p = transform.position;
@@ -102,8 +102,8 @@ namespace PickShoot
             if (deathEffectPrefab != null)
                 Instantiate(deathEffectPrefab, transform.position, Quaternion.identity);
             if (slain && deathClip != null) SoundPlayer.Play(deathClip);
-            // 처치 스코어는 플레이어가 죽인 때만 (GDD §3.3). 플로팅 텍스트는 데미지 숫자와 같은 자리를 기준으로 뜬다 — RunScore가 한 줄 위로 올린다.
-            if (slain) RunScore.Award(data.ScoreValue, DamageNumberOrigin());
+            // 처치 경험치는 플레이어가 죽인 때만 (GDD §3.3). 플로팅 텍스트는 데미지 숫자와 같은 자리를 기준으로 뜬다 — PlayerExperience가 한 줄 위로 올린다.
+            if (slain) PlayerExperience.Award(data.ExpValue, DamageNumberOrigin());
             if (slain) Slain?.Invoke();
             Died?.Invoke();
             Destroy(gameObject);

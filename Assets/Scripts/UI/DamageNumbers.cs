@@ -3,13 +3,13 @@ using UnityEngine;
 
 namespace PickShoot
 {
-    // 피해 숫자·처치 스코어 등 월드에 붙어 뜨는 짧은 문구의 단일 창구. 씬에 정확히 하나 존재해야 한다.
+    // 피해 숫자·처치 경험치 등 월드에 붙어 뜨는 짧은 문구의 단일 창구. 씬에 정확히 하나 존재해야 한다.
     // 문구는 월드 좌표에 묶이고, 매 프레임 화면 좌표로 바꿔 OnGUI에서 PixelUiSkin 비트맵 글꼴로 그린다 (픽셀 UI 규약: PixelGui 기준 캔버스).
     // 표시는 셋 (GDD §3.3):
     //   누적 피해(Tally) — 적 머리 위에 받은 피해의 합계. 적을 따라다니며 맞을 때마다 더해지고, 한동안 맞지 않으면 지워져 0으로 돌아간다.
     //   Pop — 맞은 자리에서 위로 튀어올랐다가 가라앉는 낱개 숫자 (Terraria 전투 텍스트 모델). 플레이어 피격이 쓴다.
-    //   Rise — 등속으로 곧장 떠오르는 문구. 처치 스코어 "+N"이 쓴다.
-    // 색은 호출자가 정한다 — 적 피해는 흰색(EnemyHealth), 플레이어 피격은 붉은색(PlayerHealth), 처치 스코어는 노란색(RunScore).
+    //   Rise — 등속으로 곧장 떠오르는 문구. 처치 경험치 "XP N"과 플레이어 레벨 업 "LV UP!"이 쓴다.
+    // 색은 호출자가 정한다 — 적 피해는 흰색(EnemyHealth), 플레이어 피격은 붉은색(PlayerHealth), 처치 경험치는 노란색(PlayerExperience), 레벨 업은 게이지의 파란색(PlayerHealth).
     public class DamageNumbers : MonoBehaviour
     {
         [SerializeField] PixelUiSkin skin;
@@ -36,7 +36,7 @@ namespace PickShoot
             [Range(0f, 1f)] public float fadeStart = 0.5f;
         }
 
-        // 처치 스코어(Rise)의 움직임 — 등속으로 곧장 위로 오르며 투명해진다. 중력도 감쇠도 흩뿌림도 없다.
+        // 처치 경험치·레벨 업(Rise)의 움직임 — 등속으로 곧장 위로 오르며 투명해진다. 중력도 감쇠도 흩뿌림도 없다.
         [System.Serializable]
         public class RiseParams
         {
@@ -67,7 +67,7 @@ namespace PickShoot
         }
 
         // 적 하나의 누적 피해 표시. anchor(적)를 따라다니며 맞을 때마다 합계가 늘고, tallyHoldSeconds 동안 맞지 않으면 지워진다 — 다음 타격은 0부터.
-        // 적이 죽어 anchor가 파괴되면 바로 지운다 — 죽는 자리에는 사망 이펙트와 처치 스코어가 뜬다.
+        // 적이 죽어 anchor가 파괴되면 바로 지운다 — 죽는 자리에는 사망 이펙트와 처치 경험치가 뜬다.
         class Tally
         {
             public Transform Anchor;
@@ -109,7 +109,7 @@ namespace PickShoot
             Show(worldPos, amount.ToString(), color, Motion.Pop);
         }
 
-        // 임의 문구("+10" 등)를 정해진 움직임으로 띄운다. 글꼴에 없는 문자는 그릴 때 PixelGui가 예외로 알린다.
+        // 임의 문구("XP10" 등)를 정해진 움직임으로 띄운다. 글꼴에 없는 문자는 그릴 때 PixelGui가 예외로 알린다.
         public static void Show(Vector3 worldPos, string text, Color color, Motion motion)
         {
             if (instance == null)

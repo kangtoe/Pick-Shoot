@@ -15,7 +15,7 @@ MonoBehaviour:
   displayName: Summoner
   maxHp: 20
   contactDamage: 1
-  scoreValue: 3
+  expValue: 3
   moveSpeed: 3.2
   edgeMargin: 2
   summonInterval: 2

@@ -15,5 +15,5 @@ MonoBehaviour:
   displayName: Dart
   maxHp: 4
   contactDamage: 1
-  scoreValue: 1
+  expValue: 1
   moveSpeed: 6
