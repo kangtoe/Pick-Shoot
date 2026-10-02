@@ -1097,6 +1097,7 @@ MonoBehaviour:
   playerHealth: {fileID: 142563684}
   upgradeManager: {fileID: 1698421208}
   experience: {fileID: 1698421210}
+  waveManager: {fileID: 1698421207}
   skin: {fileID: 11400000, guid: 75b98a2d2daa9a04797ea6f248de2474, type: 2}
   dimAlpha: 0.7
 --- !u!114 &1698421210

@@ -4,8 +4,10 @@ using UnityEngine.InputSystem;
 namespace PickShoot
 {
     // ESC로 게임을 멈추고 화면을 어둡게 덮는 일시정지 화면. PixelUiSkin(Kenney Interface 시트)으로 OnGUI에 그린다.
-    // 구성은 데스 화면과 같은 결: 파란 배너("PAUSED") → 회색 패널(레벨·누적 경험치 한 줄 + 재개 안내). 배너는 패널 배율, 그 아래는 글자 배율.
-    // 누적 경험치 총량은 여기서만 보인다 — HUD는 레벨과 구간 게이지만 보인다 (GDD §3.3).
+    // 구성은 업그레이드 카드와 같은 결의 상태 카드 한 장: 회색 카드(패널 배율) 위쪽 끝에 파란 "PAUSED" 배지(카드 배지와 같은 그리기, UpgradeCardPainter.DrawBadge)가
+    // 걸치고, 안에는 WAVE·LEVEL·XP 표 — 라벨은 왼쪽(일반 글꼴), 값은 오른쪽(아웃라인 글꼴), 글자 배율. 줄이 카드 폭을 끝까지 쓰므로 카드 크기는 줄 수에서 정해진다.
+    // 재개 안내는 카드 밖 아래. 배너 + 상자를 쌓는 데스 화면 꼴은 짧은 두 줄로는 상자가 배너와 겨루는 두 번째 덩어리로 보여 뺐다 (2026-10-02).
+    // 일시정지 중엔 HUD가 숨으므로 웨이브도 여기서 보이고, 누적 경험치 총량은 여기서만 보인다 (GDD §3.3).
     // 멈춤은 업그레이드 카드와 같은 방식(Time.timeScale = 0)이라 물리·코루틴·사격이 함께 멎는다.
     // 카드 선택 중(이미 멈춰 있음)과 플레이어 사망 뒤(데스 화면이 이어받음)에는 ESC를 받지 않는다.
     // 멈춘 동안 HUD는 GameHud가 걷고 하드웨어 커서를 되살린다 — 볼륨 조절 등 클릭 조작이 들어올 자리.
@@ -16,6 +18,7 @@ namespace PickShoot
         [SerializeField] PlayerHealth playerHealth;
         [SerializeField] UpgradeManager upgradeManager;
         [SerializeField] PlayerExperience experience;
+        [SerializeField] WaveManager waveManager;
 
         [Header("Presentation")]
         [SerializeField] PixelUiSkin skin;
@@ -24,8 +27,12 @@ namespace PickShoot
         // 글꼴에 있는 문자(A-Z 0-9 % + - 공백)만 써야 한다. 없는 문자는 PixelGui가 예외로 알린다.
         const string Title = "PAUSED";
         const string Hint = "PRESS ESC TO RESUME";
-        const int PaddingTexels = 8;     // 패널 테두리 → 내용
-        const int LineGapTexels = 4;     // 패널 안 줄 사이
+        static readonly string[] RowLabels = { "WAVE", "LEVEL", "XP" };
+        const int CardWidthTiles = 7;        // 업그레이드 카드와 같은 폭
+        const int SidePaddingTexels = 10;    // 카드 테두리 → 라벨·값 (패널 텍셀). 카드의 좌우 여백과 같다.
+        const int TablePaddingTexels = 10;   // 배지 아래 가장자리 → 첫 줄, 마지막 줄 → 카드 아래 테두리의 최소 여백 (패널 텍셀). 타일 올림의 여분은 위아래 균등.
+        const int RowGapTexels = 4;          // 줄 사이 (글자 텍셀)
+        const int HintGapTexels = 16;        // 카드 아래 → 재개 안내 (글자 텍셀)
 
         bool paused;
         float prevTimeScale;
@@ -40,6 +47,8 @@ namespace PickShoot
                 throw new System.Exception("[PickShoot] PauseScreen.upgradeManager 미할당 (카드 선택 중 일시정지 차단에 필요).");
             if (experience == null)
                 throw new System.Exception("[PickShoot] PauseScreen.experience 미할당 (레벨·누적 경험치 표기에 필요).");
+            if (waveManager == null)
+                throw new System.Exception("[PickShoot] PauseScreen.waveManager 미할당 (웨이브 표기에 필요).");
             if (skin == null)
                 throw new System.Exception("[PickShoot] PauseScreen.skin 미할당. PixelUiSkin 자산(Assets/Data/UI) 필요.");
             skin.Validate();
@@ -88,7 +97,6 @@ namespace PickShoot
             int scale = PixelGui.PanelScale;
             int textScale = PixelGui.TextScale;
             int tile = skin.TileSize * scale;
-            int textTile = skin.TileSize * textScale;
             int lineH = skin.FontPlain.lineHeight * textScale;
 
             // 어둡게 덮는 막은 화면 픽셀 그대로 (캔버스를 열기 전).
@@ -98,36 +106,46 @@ namespace PickShoot
 
             using var canvas = PixelGui.BeginCanvas();
 
-            int titleW = PixelGui.MeasureText(skin.FontOutlined, Title, scale);
-            int bannerW = CeilToMultiple(titleW + 2 * tile, tile);
-            int bannerH = 2 * tile;
-
-            // 패널은 두 줄: 레벨·누적 경험치, 재개 안내. 폭은 긴 쪽에 맞춘다.
-            int pad = PaddingTexels * textScale;
-            int lineGap = LineGapTexels * textScale;
-            string stats = $"LV {experience.Level}  XP {experience.Total}";
-            int contentW = Mathf.Max(PixelGui.MeasureText(skin.FontPlain, stats, textScale), PixelGui.MeasureText(skin.FontPlain, Hint, textScale));
-            int contentH = 2 * lineH + lineGap;
-            int panelW = CeilToMultiple(contentW + 2 * pad, textTile);
-            int panelH = CeilToMultiple(contentH + 2 * pad, textTile);
-            int gap = textTile;
-
-            // 배너·패널 묶음을 화면 세로 중앙에 놓는다.
-            int blockH = bannerH + gap + panelH;
-            int y = (canvas.Height - blockH) / 2;
+            int rowGap = RowGapTexels * textScale;
+            int tableH = RowLabels.Length * lineH + (RowLabels.Length - 1) * rowGap;
+            // 카드 높이 = 배지가 들어온 깊이 + 표 + 위아래 최소 여백, 타일 배수로 올림. 배지가 위로 솟은 만큼까지 묶음에 넣어 세로 중앙에 놓는다.
+            int inset = UpgradeCardPainter.BadgeInsetTexels * scale;
+            int cardW = CardWidthTiles * tile;
+            int cardH = CeilToMultiple(inset + tableH + 2 * TablePaddingTexels * scale, tile);
+            int overhang = UpgradeCardPainter.BadgeOverhang(skin, scale);
+            int hintGap = HintGapTexels * textScale;
+            int blockH = overhang + cardH + hintGap + lineH;
             int centerX = canvas.Width / 2;
 
-            var banner = new Rect(centerX - bannerW / 2, y, bannerW, bannerH);
-            PixelGui.DrawNineSlice(skin.PanelBlue, banner, skin.TileSize, scale);
-            PixelGui.DrawTextCentered(skin.FontOutlined, Title, centerX,
-                y + (bannerH - skin.FontOutlined.lineHeight * scale) / 2, scale);
-            y += bannerH + gap;
+            var card = new Rect(centerX - cardW / 2, (canvas.Height - blockH) / 2 + overhang, cardW, cardH);
+            PixelGui.DrawNineSlice(skin.PanelGrey, card, skin.TileSize, scale);
+            UpgradeCardPainter.DrawBadge(skin, card, scale, Title, skin.PanelBlue);
 
-            var panel = new Rect(centerX - panelW / 2, y, panelW, panelH);
-            PixelGui.DrawNineSlice(skin.PanelGrey, panel, skin.TileSize, textScale);
-            int textY = y + (panelH - contentH) / 2;
-            PixelGui.DrawTextCentered(skin.FontPlain, stats, centerX, textY, textScale);
-            PixelGui.DrawTextCentered(skin.FontPlain, Hint, centerX, textY + lineH + lineGap, textScale);
+            // 표는 배지 아래 남은 높이의 세로 가운데. 라벨은 왼쪽 정렬, 값은 오른쪽 정렬.
+            int sidePad = SidePaddingTexels * scale;
+            int labelX = (int)card.x + sidePad;
+            int valueRight = (int)card.xMax - sidePad;
+            int y = (int)card.y + inset + (cardH - inset - tableH) / 2;
+            for (int i = 0; i < RowLabels.Length; i++)
+            {
+                PixelGui.DrawText(skin.FontPlain, RowLabels[i], labelX, y, textScale);
+                PixelGui.DrawTextRight(skin.FontOutlined, RowValue(i), valueRight, y, textScale);
+                y += lineH + rowGap;
+            }
+
+            PixelGui.DrawTextCentered(skin.FontPlain, Hint, centerX, (int)card.yMax + hintGap, textScale);
+        }
+
+        // RowLabels와 같은 순서의 값.
+        string RowValue(int row)
+        {
+            switch (row)
+            {
+                case 0: return waveManager.CurrentWave.ToString();
+                case 1: return experience.Level.ToString();
+                case 2: return experience.Total.ToString();
+                default: throw new System.Exception($"[PickShoot] PauseScreen: 표에 없는 줄 {row}.");
+            }
         }
 
         static int CeilToMultiple(int value, int multiple)
