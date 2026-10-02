@@ -15,5 +15,5 @@ MonoBehaviour:
   displayName: Swarmer
   maxHp: 6
   contactDamage: 1
-  scoreValue: 10
+  scoreValue: 1
   moveSpeed: 4.5

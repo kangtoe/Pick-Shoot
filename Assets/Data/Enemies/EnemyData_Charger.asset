@@ -15,7 +15,7 @@ MonoBehaviour:
   displayName: Charger
   maxHp: 15
   contactDamage: 1
-  scoreValue: 20
+  scoreValue: 2
   moveSpeed: 1.8
   chargeTriggerDistance: 6
   windupDuration: 0.7

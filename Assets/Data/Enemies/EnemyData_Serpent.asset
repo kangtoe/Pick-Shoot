@@ -15,7 +15,7 @@ MonoBehaviour:
   displayName: Serpent
   maxHp: 20
   contactDamage: 1
-  scoreValue: 20
+  scoreValue: 2
   moveSpeed: 3
   segmentCount: 8
   segmentSpacing: 1.25

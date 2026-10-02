@@ -15,5 +15,5 @@ MonoBehaviour:
   displayName: Tank
   maxHp: 50
   contactDamage: 1
-  scoreValue: 50
+  scoreValue: 5
   moveSpeed: 1.2

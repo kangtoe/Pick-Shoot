@@ -20,7 +20,7 @@ namespace PickShoot
         // 벌어들인 총점이 지금까지의 리롤 비용 합을 넘어야 한다는 뜻이라 차감 모델과 조건은 같지만, 우상단 숫자가 총점이라는 뜻을 잃지 않는다.
         // 앞 문턱은 여기 적고(둘 이상, 내려가지 않게), 목록이 끝나면 마지막 둘의 합(피보나치식)으로 이어 간다 — 처치 수는 웨이브마다 선형으로 늘지만
         // 문턱은 지수로 늘어 리롤이 점점 귀해진다. 0이면 공짜 리롤.
-        [SerializeField] int[] rerollScoreThresholds = { 100, 200 };
+        [SerializeField] int[] rerollScoreThresholds = { 10, 20 };
         [SerializeField] AudioClip selectClip;
         [SerializeField] AudioClip rerollClip;
 

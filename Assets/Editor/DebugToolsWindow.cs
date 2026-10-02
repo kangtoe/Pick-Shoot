@@ -178,8 +178,8 @@ namespace PickShoot
             using (new EditorGUILayout.HorizontalScope())
             {
                 GUILayout.Label($"Score {score.Total}", EditorStyles.boldLabel);
-                if (GUILayout.Button("+100", GUILayout.Width(ActionButtonWidth)))
-                    score.Add(100);
+                if (GUILayout.Button("+10", GUILayout.Width(ActionButtonWidth)))
+                    score.Add(10);
             }
         }
 
