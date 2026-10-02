@@ -1264,10 +1264,19 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PickShoot.DamageNumbers
   skin: {fileID: 11400000, guid: 75b98a2d2daa9a04797ea6f248de2474, type: 2}
-  duration: 0.6
-  riseDistance: 1
-  fadeStart: 0.5
-  horizontalJitter: 0.3
+  pop:
+    duration: 0.5
+    upSpeed: 4
+    randomSpeed: {x: 2, y: 6}
+    gravity: 16
+    damping: 2
+    fadeStart: 0.2
+  rise:
+    duration: 0.75
+    speed: 2
+    fadeStart: 0.2
+  tallyHoldSeconds: 1.5
+  tallyFadeSeconds: 0.5
 --- !u!1 &2100000030
 GameObject:
   m_ObjectHideFlags: 0

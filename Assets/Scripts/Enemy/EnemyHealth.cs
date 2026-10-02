@@ -52,7 +52,8 @@ namespace PickShoot
         {
             if (current <= 0) return;
             current -= amount;
-            DamageNumbers.Show(DamageNumberOrigin(), amount, damageNumberColor);
+            // 머리 위 누적 피해에 더한다 (GDD §3.3). 타격마다 낱개 숫자를 띄우지 않는다.
+            DamageNumbers.Accumulate(transform, DamageNumberOrigin(), amount, damageNumberColor);
             if (current <= 0)
             {
                 Die(slain: true);
@@ -76,7 +77,7 @@ namespace PickShoot
             flashing = false;
         }
 
-        // 데미지 숫자는 피격당한 스프라이트의 위쪽 가장자리에서 떠오른다.
+        // 누적 피해 숫자와 처치 스코어는 스프라이트의 위쪽 가장자리를 기준으로 뜬다.
         Vector3 DamageNumberOrigin()
         {
             var p = transform.position;
