@@ -956,6 +956,7 @@ GameObject:
   - component: {fileID: 1698421207}
   - component: {fileID: 1698421208}
   - component: {fileID: 1698421209}
+  - component: {fileID: 1698421210}
   m_Layer: 0
   m_Name: GameManager
   m_TagString: Untagged
@@ -1095,6 +1096,20 @@ MonoBehaviour:
   upgradeManager: {fileID: 1698421208}
   skin: {fileID: 11400000, guid: 75b98a2d2daa9a04797ea6f248de2474, type: 2}
   dimAlpha: 0.7
+--- !u!114 &1698421210
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1698421204}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e1bdd48c35c24561a3090b8087842062, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::PickShoot.RunScore
+  popupColor: {r: 1, g: 0.72156864, b: 0.29803923, a: 1}
+  popupRiseOffset: 0.5
 --- !u!1 &1905229426
 GameObject:
   m_ObjectHideFlags: 0
@@ -1327,6 +1342,7 @@ MonoBehaviour:
   waveManager: {fileID: 1698421207}
   upgradeManager: {fileID: 1698421208}
   pauseScreen: {fileID: 1698421209}
+  runScore: {fileID: 1698421210}
   spentPipColor: {r: 0, g: 0, b: 0, a: 0.35}
   weaponPlateFillColor: {r: 0.6, g: 0.6039216, b: 0.76862746, a: 1}
   weaponPlateOutlineColor: {r: 0.2784314, g: 0.19607843, b: 0.29411766, a: 1}

@@ -14,6 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::PickShoot.SummonerData
   displayName: Summoner
   maxHp: 20
+  scoreValue: 30
   moveSpeed: 3.2
   edgeMargin: 2
   summonInterval: 2

@@ -5,6 +5,7 @@ namespace PickShoot
 {
     // 인게임 HUD 단일 창구. PixelUiSkin(Kenney Interface 시트)으로 OnGUI에 그린다.
     //   체력: 좌상단 패널에 칸 단위 핍으로 자세히, 플레이어 머리 위에는 비율만 보이는 작은 게이지.
+    //   스코어: 우상단에 러닝 누적 총점 (GDD §3.3). 카드 화면도 같은 자리에 같은 모양으로 그린다 (DrawScoreLine).
     //   대시: 쿨다운 중에만 머리 위 체력 게이지 위쪽에 시계 방향으로 차오르는 작은 원판 (GDD §3.5).
     //   무기: 링에서 조준 기준 왼쪽에 있는 슬롯은 화면 하단 왼쪽 구석, 오른쪽 슬롯은 하단 오른쪽 구석에 거울상으로.
     //         패널 배경 없이 슬롯마다 한 줄(스프라이트 · 레벨 · 탄창)만 바닥 위에 바로 그린다. 스프라이트 밑에만 작은 판을 깐다.
@@ -24,6 +25,7 @@ namespace PickShoot
         [SerializeField] WaveManager waveManager;
         [SerializeField] UpgradeManager upgradeManager;
         [SerializeField] PauseScreen pauseScreen;
+        [SerializeField] RunScore runScore;
         // 소진한 탄약 핍에 곱하는 색. 남은 탄약은 원래 색 그대로. 기본값은 반투명 검정 — 핍이 탄창에 난 빈 자리(어두운 실루엣)로 보인다.
         // 패널 없이 바닥 위에 바로 그리므로, 원래 색을 흐리게만 하면 밝은 바닥에 묻혀 최대치가 읽히지 않는다.
         [SerializeField] Color spentPipColor = new Color(0f, 0f, 0f, 0.35f);
@@ -135,6 +137,8 @@ namespace PickShoot
                 throw new System.Exception("[PickShoot] GameHud.upgradeManager 미할당 (카드 선택 중 HUD 숨김 판정에 필요).");
             if (pauseScreen == null)
                 throw new System.Exception("[PickShoot] GameHud.pauseScreen 미할당 (일시정지 중 HUD 숨김 판정에 필요).");
+            if (runScore == null)
+                throw new System.Exception("[PickShoot] GameHud.runScore 미할당 (우상단 스코어 표기에 필요).");
             playerMovement = playerHealth.GetComponent<PlayerMovement>();
             if (playerMovement == null)
                 throw new System.Exception("[PickShoot] GameHud: 플레이어에 PlayerMovement 없음 (대시 쿨다운 표시에 필요).");
@@ -190,6 +194,7 @@ namespace PickShoot
             int hudScale = PixelGui.TextScale;
             using var canvas = PixelGui.BeginCanvas();
             DrawHealthPanel(hudScale);
+            DrawScoreLine(skin, canvas, runScore.Total);
             DrawWeaponRows(canvas, hudScale, leftSide: true);
             DrawWeaponRows(canvas, hudScale, leftSide: false);
             DrawWaveBanner(canvas, hudScale);
@@ -226,6 +231,15 @@ namespace PickShoot
                 var cell = i < playerHealth.Current ? skin.BarCellRed : skin.BarCellEmpty;
                 PixelGui.DrawSprite(cell, new Rect(x + i * stride, y, tile, tile));
             }
+        }
+
+        // 우상단 한 줄: "SCORE" · 러닝 누적 총점, 오른쪽 끝 정렬. 좌상단 HP 줄과 같은 y·같은 결(패널 없음, 글자 배율). 정적인 이유 — 카드 화면은
+        // HUD를 숨기므로 UpgradeManager가 같은 자리에 같은 모양으로 다시 그린다. 화면이 바뀌어도 숫자가 제자리에 있어야 리롤 문턱과 견주기 쉽다.
+        public static void DrawScoreLine(PixelUiSkin skin, PixelGui.CanvasScope canvas, int score)
+        {
+            int s = PixelGui.TextScale;
+            int margin = MarginTexels * s;
+            PixelGui.DrawTextRight(skin.FontPlain, $"SCORE {score}", canvas.Width - margin, margin, s);
         }
 
         // 플레이어 스프라이트 위에 체력 비율 게이지와 대시 쿨다운 원판을 가운데 정렬로 띄운다 (숫자 없음).
