@@ -7,15 +7,20 @@ namespace PickShoot
     // 웨이브 클리어 시 3장 카드(획득/강화 혼합)를 제시하고 선택을 대기한다.
     // 게임 흐름 제어를 위해 Time.timeScale=0로 일시정지, 선택 시 원복. WaveManager가 코루틴으로 호출.
     // 카드는 IMGUI 위에 PixelUiSkin(Kenney Interface 시트)으로 그린다. 글꼴이 A-Z 0-9만 있어 UI 문구는 영문 대문자.
-    // 카드 밑의 리롤 버튼은 카드 화면마다 정해진 횟수만큼 3장을 다시 뽑는다 — 보이는 카드 중 한 장은 반드시 바뀐다 (Weapons §3).
+    // 카드 밑의 리롤 버튼은 러닝 누적 스코어(RunScore)가 문턱에 닿았을 때 3장을 다시 뽑는다 — 보이는 카드 중 한 장은 반드시 바뀐다 (Weapons §3).
+    // 버튼에는 지금 스코어로 이어서 할 수 있는 횟수만 적고, 스코어는 HUD가 숨는 동안에도 HUD와 같은 자리에 보인다.
     // 카드는 (다시) 뽑힐 때마다 화면 아래 밖에서 차례로 튀어 올라 스프링처럼 흔들리며 멎는다 — 멎기 전에는 카드도 버튼도 입력을 받지 않는다.
     public class UpgradeManager : MonoBehaviour
     {
         [SerializeField] PlayerWeapons weapons;
         [SerializeField] List<WeaponData> weaponPool = new List<WeaponData>();
         [SerializeField] int cardsToShow = 3;
-        // 카드 화면 한 번에 쓸 수 있는 리롤 횟수 (무료). 0이면 버튼을 두지 않는다.
-        [SerializeField, Min(0)] int rerollsPerReward = 1;
+        [SerializeField] RunScore score;
+        // 리롤 문턱 (Weapons §3): 러닝에서 k번째 리롤은 누적 스코어가 문턱 S_k 이상일 때만 할 수 있다. 횟수 제한은 따로 없다. 스코어는 줄지 않는다 —
+        // 벌어들인 총점이 지금까지의 리롤 비용 합을 넘어야 한다는 뜻이라 차감 모델과 조건은 같지만, 우상단 숫자가 총점이라는 뜻을 잃지 않는다.
+        // 앞 문턱은 여기 적고(둘 이상, 내려가지 않게), 목록이 끝나면 마지막 둘의 합(피보나치식)으로 이어 간다 — 처치 수는 웨이브마다 선형으로 늘지만
+        // 문턱은 지수로 늘어 리롤이 점점 귀해진다. 0이면 공짜 리롤.
+        [SerializeField] int[] rerollScoreThresholds = { 100, 200 };
         [SerializeField] AudioClip selectClip;
         [SerializeField] AudioClip rerollClip;
 
@@ -43,7 +48,8 @@ namespace PickShoot
         List<UpgradeOption> candidates;
         UpgradeOption[] currentCards;
         int clearedWave;
-        int rerollsLeft;
+        // 이 러닝에서 쓴 리롤 수 — 다음 문턱의 색인. 카드 화면마다 초기화하지 않는다.
+        int rerollsUsed;
         // 지금 카드들이 뽑힌 실시간 — 등장 연출의 기준.
         float cardsShownAt;
         bool active;
@@ -53,7 +59,20 @@ namespace PickShoot
 
         // 후보가 카드 수 이하면 다시 뽑아도 같은 카드가 순서만 바뀌어 나오므로 리롤 버튼을 두지 않는다. 후보가 카드 수보다 많으면
         // 한 장을 빼도(Reroll) 카드를 채울 수 있다.
-        bool RerollOffered => rerollsPerReward > 0 && candidates.Count > currentCards.Length;
+        bool RerollOffered => candidates.Count > currentCards.Length;
+        int NextRerollThreshold => RerollThreshold(rerollsUsed);
+        bool RerollAffordable => score.Total >= NextRerollThreshold;
+        // 지금 스코어로 이어서 할 수 있는 리롤 수 — 다음 문턱부터 차례로 세어 스코어를 넘는 첫 문턱에서 멈춘다. 버튼에 적는 숫자.
+        // 문턱이 자라므로(Awake에서 보장) 끝난다.
+        int AffordableRerolls
+        {
+            get
+            {
+                int count = 0;
+                while (score.Total >= RerollThreshold(rerollsUsed + count)) count++;
+                return count;
+            }
+        }
 
         void Awake()
         {
@@ -71,6 +90,19 @@ namespace PickShoot
             if (skin == null)
                 throw new System.Exception("[PickShoot] UpgradeManager.skin 미할당. PixelUiSkin 자산(Assets/Data/UI) 필요.");
             skin.Validate();
+            if (score == null)
+                throw new System.Exception("[PickShoot] UpgradeManager.score 미할당. RunScore(GameManager) 참조 필요 (리롤 문턱 판정).");
+            if (rerollScoreThresholds == null || rerollScoreThresholds.Length < 2)
+                throw new System.Exception("[PickShoot] UpgradeManager.rerollScoreThresholds는 둘 이상이어야 함 — 그 뒤를 마지막 둘의 합으로 이어 간다.");
+            for (int i = 0; i < rerollScoreThresholds.Length; i++)
+            {
+                if (rerollScoreThresholds[i] < 0)
+                    throw new System.Exception($"[PickShoot] UpgradeManager.rerollScoreThresholds[{i}]가 음수 ({rerollScoreThresholds[i]}).");
+                if (i > 0 && rerollScoreThresholds[i] < rerollScoreThresholds[i - 1])
+                    throw new System.Exception($"[PickShoot] UpgradeManager.rerollScoreThresholds[{i}]({rerollScoreThresholds[i]})가 앞 값({rerollScoreThresholds[i - 1]})보다 작음 — 문턱은 내려가지 않아야 함.");
+            }
+            if (rerollScoreThresholds[rerollScoreThresholds.Length - 1] <= 0)
+                throw new System.Exception("[PickShoot] UpgradeManager.rerollScoreThresholds의 마지막 값은 0보다 커야 함 — 전부 0이면 문턱이 자라지 않아 리롤이 무한.");
         }
 
         // clearedWave는 헤더("WAVE N CLEAR") 표기용.
@@ -82,7 +114,6 @@ namespace PickShoot
             candidates = BuildCandidates();
             if (candidates.Count == 0) yield break;
             currentCards = Draw(candidates);
-            rerollsLeft = rerollsPerReward;
             cardsShownAt = Time.unscaledTime;
 
             active = true;
@@ -144,9 +175,9 @@ namespace PickShoot
         // 카드는 둘 없으므로 동등성으로 빼면 정확하다.
         void Reroll()
         {
-            if (rerollsLeft <= 0)
-                throw new System.Exception("[PickShoot] UpgradeManager.Reroll: 남은 리롤이 없는데 호출됨.");
-            rerollsLeft--;
+            if (!RerollAffordable)
+                throw new System.Exception($"[PickShoot] UpgradeManager.Reroll: 스코어({score.Total})가 문턱({NextRerollThreshold})에 못 미치는데 호출됨.");
+            rerollsUsed++;
             var pool = new List<UpgradeOption>(candidates);
             var excluded = currentCards[Random.Range(0, currentCards.Length)];
             if (!pool.Remove(excluded))
@@ -154,6 +185,23 @@ namespace PickShoot
             currentCards = Draw(pool);
             cardsShownAt = Time.unscaledTime;
             if (rerollClip != null) SoundPlayer.Play(rerollClip);
+        }
+
+        // 러닝에서 index번째(0부터) 리롤의 문턱. 목록 안은 그대로, 밖은 마지막 둘의 합으로 이어 간다. int를 넘으면 오류 — 그만큼 리롤할 일은 없다.
+        int RerollThreshold(int index)
+        {
+            if (index < rerollScoreThresholds.Length) return rerollScoreThresholds[index];
+            long a = rerollScoreThresholds[rerollScoreThresholds.Length - 2];
+            long b = rerollScoreThresholds[rerollScoreThresholds.Length - 1];
+            for (int i = rerollScoreThresholds.Length; i <= index; i++)
+            {
+                long next = a + b;
+                if (next > int.MaxValue)
+                    throw new System.Exception($"[PickShoot] UpgradeManager: {index}번째 리롤 문턱이 int 범위를 넘음.");
+                a = b;
+                b = next;
+            }
+            return (int)b;
         }
 
         void OnGUI()
@@ -173,6 +221,9 @@ namespace PickShoot
             // 클릭 판정(GUI.Button)도 캔버스 좌표로 하므로 Repaint뿐 아니라 모든 이벤트에서 캔버스를 연다.
             using var canvas = PixelGui.BeginCanvas();
 
+            // 스코어는 HUD가 숨는 동안에도 같은 자리에 같은 모양으로 — 리롤 문턱과 견줄 수 있어야 한다.
+            GameHud.DrawScoreLine(skin, canvas, score.Total);
+
             // 카드 크기는 고정 (UpgradeCardPainter). 어떤 조합이 나와도 세 장이 같은 크기·자리에 놓인다.
             var cardSize = UpgradeCardPainter.CardSize(skin, scale);
 
@@ -184,9 +235,10 @@ namespace PickShoot
             int lineH = skin.FontPlain.lineHeight * textScale;
             int gap = tile;
 
-            // 리롤 버튼은 일시정지 화면의 안내 패널과 같은 결: 글자 배율 회색 패널에 한 줄. 남은 횟수를 괄호에 넣어 함께 적는다.
+            // 리롤 버튼은 일시정지 화면의 안내 패널과 같은 결: 글자 배율 회색 패널에 한 줄. 지금 스코어로 이어서 할 수 있는 횟수를 괄호에 적는다 —
+            // 문턱 값은 보이지 않고 횟수만 보인다 (문턱 전의 남은 횟수 표기와 같은 꼴).
             bool rerollOffered = RerollOffered;
-            string rerollText = $"{RerollLabel} ({rerollsLeft})";
+            string rerollText = $"{RerollLabel} ({AffordableRerolls})";
             int textTile = skin.TileSize * textScale;
             int buttonPad = ButtonPaddingTexels * textScale;
             int buttonW = CeilToMultiple(PixelGui.MeasureText(skin.FontPlain, rerollText, textScale) + 2 * buttonPad, textTile);
@@ -235,12 +287,13 @@ namespace PickShoot
 
         void DrawRerollButton(Rect button, string text, int lineH, int textScale, Vector2 mouse, bool interactable)
         {
-            // 다 쓴 뒤에도 어둡게 남겨 둔다 — 카드 묶음이 움직이지 않고, 리롤이 있었다는 것도 읽힌다.
-            bool enabled = interactable && rerollsLeft > 0;
+            // 할 수 있는 리롤이 없으면(0) 어둡게 남겨 둔다 — 카드 묶음이 움직이지 않고, 리롤이 있다는 것도 읽힌다.
+            bool affordable = RerollAffordable;
+            bool enabled = interactable && affordable;
             bool hovered = enabled && button.Contains(mouse);
             var drawn = button;
             if (hovered) drawn.y -= HoverLiftTexels * textScale;
-            GUI.color = rerollsLeft > 0 ? Color.white : DisabledTint;
+            GUI.color = affordable ? Color.white : DisabledTint;
             PixelGui.DrawNineSlice(skin.PanelGrey, drawn, skin.TileSize, textScale);
             PixelGui.DrawTextCentered(skin.FontPlain, text, (int)button.center.x, (int)drawn.y + ((int)button.height - lineH) / 2, textScale);
             GUI.color = Color.white;

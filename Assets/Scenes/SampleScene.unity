@@ -1071,7 +1071,8 @@ MonoBehaviour:
   - {fileID: 11400000, guid: 2fa50543e0fe421ebee116376d6ffc2a, type: 2}
   - {fileID: 11400000, guid: dab4cd0b95004ddf8b75e92e6f76ea8f, type: 2}
   cardsToShow: 3
-  rerollsPerReward: 1
+  score: {fileID: 1698421210}
+  rerollScoreThresholds: 64000000c8000000
   selectClip: {fileID: 8300000, guid: 460e5219f0f84004790b551e7a638e25, type: 3}
   rerollClip: {fileID: 8300000, guid: be6acc78056b18742bf774689a87c295, type: 3}
   skin: {fileID: 11400000, guid: 75b98a2d2daa9a04797ea6f248de2474, type: 2}
