@@ -26,6 +26,12 @@ TextureImporter:
   - first:
       213: 7000000000000000108
     second: font_extra_7
+  - first:
+      213: 7000000000000000109
+    second: font_extra_8
+  - first:
+      213: 7000000000000000110
+    second: font_extra_9
   externalObjects: {}
   serializedVersion: 13
   mipmaps:
@@ -309,6 +315,50 @@ TextureImporter:
       indices:
       edges: []
       weights: []
+    - serializedVersion: 2
+      name: font_extra_8
+      rect:
+        serializedVersion: 2
+        x: 128
+        y: 0
+        width: 16
+        height: 16
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData:
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: baaa5fcc1c6340b589b9af482e706838
+      internalID: 7000000000000000109
+      vertices: []
+      indices:
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: font_extra_9
+      rect:
+        serializedVersion: 2
+        x: 144
+        y: 0
+        width: 16
+        height: 16
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData:
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 5e6ac4d9562c444180c3e3a08aad0b6f
+      internalID: 7000000000000000110
+      vertices: []
+      indices:
+      edges: []
+      weights: []
     outline: []
     customData:
     physicsShape: []
@@ -331,6 +381,8 @@ TextureImporter:
       font_extra_5: 7000000000000000106
       font_extra_6: 7000000000000000107
       font_extra_7: 7000000000000000108
+      font_extra_8: 7000000000000000109
+      font_extra_9: 7000000000000000110
   mipmapLimitGroupName: 
   pSDRemoveMatte: 0
   userData: 
