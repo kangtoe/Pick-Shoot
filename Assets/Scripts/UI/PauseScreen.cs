@@ -8,6 +8,7 @@ namespace PickShoot
     // 걸치고, 안에는 WAVE·LEVEL·XP 표 — 라벨은 왼쪽(일반 글꼴), 값은 오른쪽(아웃라인 글꼴), 글자 배율. 줄이 카드 폭을 끝까지 쓰므로 카드 크기는 줄 수에서 정해진다.
     // 재개 안내는 카드 밖 아래. 배너 + 상자를 쌓는 데스 화면 꼴은 짧은 두 줄로는 상자가 배너와 겨루는 두 번째 덩어리로 보여 뺐다 (2026-10-02).
     // 일시정지 중엔 HUD가 숨으므로 웨이브도 여기서 보이고, 누적 경험치 총량은 여기서만 보인다 (GDD §3.3).
+    // 상태 카드 아래에 현재 빌드 두 줄(보유 무기·유물, BuildStripPainter)을 둔다 (Roadmap 일시정지 화면 확장의 빌드 표시, 2026-10-04).
     // 멈춤은 업그레이드 카드와 같은 방식(Time.timeScale = 0)이라 물리·코루틴·사격이 함께 멎는다.
     // 카드 선택 중(이미 멈춰 있음)과 플레이어 사망 뒤(데스 화면이 이어받음)에는 ESC를 받지 않는다.
     // 멈춘 동안 HUD는 GameHud가 걷고 하드웨어 커서를 되살린다 — 볼륨 조절 등 클릭 조작이 들어올 자리.
@@ -32,10 +33,14 @@ namespace PickShoot
         const int SidePaddingTexels = 10;    // 카드 테두리 → 라벨·값 (패널 텍셀). 카드의 좌우 여백과 같다.
         const int TablePaddingTexels = 10;   // 배지 아래 가장자리 → 첫 줄, 마지막 줄 → 카드 아래 테두리의 최소 여백 (패널 텍셀). 타일 올림의 여분은 위아래 균등.
         const int RowGapTexels = 4;          // 줄 사이 (글자 텍셀)
-        const int HintGapTexels = 16;        // 카드 아래 → 재개 안내 (글자 텍셀)
+        const int StripGapTexels = 8;        // 카드 아래 → 빌드 두 줄 (글자 텍셀)
+        const int HintGapTexels = 16;        // 빌드 두 줄 아래 → 재개 안내 (글자 텍셀)
 
         bool paused;
         float prevTimeScale;
+        // 빌드 두 줄의 출처. 플레이어 오브젝트의 컴포넌트라 playerHealth에서 함께 찾는다.
+        PlayerWeapons weapons;
+        PlayerStats stats;
 
         public bool IsPaused => paused;
 
@@ -52,6 +57,12 @@ namespace PickShoot
             if (skin == null)
                 throw new System.Exception("[PickShoot] PauseScreen.skin 미할당. PixelUiSkin 자산(Assets/Data/UI) 필요.");
             skin.Validate();
+            weapons = playerHealth.GetComponent<PlayerWeapons>();
+            if (weapons == null)
+                throw new System.Exception("[PickShoot] PauseScreen: 플레이어에 PlayerWeapons 없음 (빌드 두 줄의 무기 줄).");
+            stats = playerHealth.GetComponent<PlayerStats>();
+            if (stats == null)
+                throw new System.Exception("[PickShoot] PauseScreen: 플레이어에 PlayerStats 없음 (빌드 두 줄의 유물 줄).");
         }
 
         // 멈춘 채 파괴되면(씬 재시작 등) timeScale이 0으로 남아 다음 씬까지 멎으므로 되돌린다.
@@ -113,8 +124,11 @@ namespace PickShoot
             int cardW = CardWidthTiles * tile;
             int cardH = CeilToMultiple(inset + tableH + 2 * TablePaddingTexels * scale, tile);
             int overhang = UpgradeCardPainter.BadgeOverhang(skin, scale);
+            int stripGap = StripGapTexels * textScale;
+            int stripH = BuildStripPainter.Height(skin, textScale);
             int hintGap = HintGapTexels * textScale;
-            int blockH = overhang + cardH + hintGap + lineH;
+            // 묶음 = 배지 돌출 + 카드 + 빌드 두 줄 + 재개 안내. 세로 중앙에.
+            int blockH = overhang + cardH + stripGap + stripH + hintGap + lineH;
             int centerX = canvas.Width / 2;
 
             var card = new Rect(centerX - cardW / 2, (canvas.Height - blockH) / 2 + overhang, cardW, cardH);
@@ -133,7 +147,9 @@ namespace PickShoot
                 y += lineH + rowGap;
             }
 
-            PixelGui.DrawTextCentered(skin.FontPlain, Hint, centerX, (int)card.yMax + hintGap, textScale);
+            int stripY = (int)card.yMax + stripGap;
+            BuildStripPainter.Draw(skin, weapons, stats, centerX, stripY, textScale, canvas.Width);
+            PixelGui.DrawTextCentered(skin.FontPlain, Hint, centerX, stripY + stripH + hintGap, textScale);
         }
 
         // RowLabels와 같은 순서의 값.

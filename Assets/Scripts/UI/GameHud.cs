@@ -29,9 +29,6 @@ namespace PickShoot
         // 소진한 탄약 핍에 곱하는 색. 남은 탄약은 원래 색 그대로. 기본값은 반투명 검정 — 핍이 탄창에 난 빈 자리(어두운 실루엣)로 보인다.
         // 패널 없이 바닥 위에 바로 그리므로, 원래 색을 흐리게만 하면 밝은 바닥에 묻혀 최대치가 읽히지 않는다.
         [SerializeField] Color spentPipColor = new Color(0f, 0f, 0f, 0.35f);
-        // 무기 스프라이트 밑에 까는 작은 판의 색. 기본값은 시트 회색 패널의 바탕색과 시트 외곽선 색(#47324B).
-        [SerializeField] Color weaponPlateFillColor = new Color32(153, 154, 196, 255);
-        [SerializeField] Color weaponPlateOutlineColor = new Color32(71, 50, 75, 255);
         // 탄약이 부족해 쏠 수 없는 무기 스프라이트 위 X 아이콘의 깜빡임 주기 (초, 실시간).
         [SerializeField, Min(0.01f)] float emptyBlinkInterval = 0.3f;
 
@@ -71,15 +68,11 @@ namespace PickShoot
         const int ExpGaugeWidthTexels = 64;
         // 무기 줄 사이의 세로 간격(줄 위 가장자리 → 다음 줄 위 가장자리). 글자·핍 타일(16텍셀)보다 조금 넓다.
         // 무기 스프라이트 타일(24텍셀)은 이보다 크지만 위아래가 투명 여백이라 이웃 줄과 겹쳐도 그림끼리는 닿지 않는다.
-        // 그림은 그 밑의 판(WeaponPlate*) 안에 들어간다.
+        // 그림은 그 밑의 판(PixelGui.DrawWeaponPlate) 안에 들어간다.
         const int WeaponRowPitchTexels = 20;
         // 무기 스프라이트 밑에 까는 판. 무기 그림은 어두운 보라 계열이라 바닥·울타리·적 위에 바로 놓으면 묻히기 쉬워 아이콘에만
-        // 작은 배경을 준다. 시트 조각 없이 단색 사각형으로 그린다 — 시트의 작은 판 조각은 흰 테두리와 리벳이 총 그림과 겹쳐 어수선했다.
-        // 외곽선 두께는 글꼴·핍의 외곽선과 같은 2텍셀, 네 귀는 1텍셀씩 깎는다. 크기는 가장 큰 그림(저격소총 22×12텍셀)에 외곽선과
-        // 여백 1텍셀을 두른 값이고, 높이가 줄 간격(WeaponRowPitchTexels)보다 작아 이웃 줄의 판과 2텍셀 떨어진다.
-        const int WeaponPlateWidthTexels = 28;
-        const int WeaponPlateHeightTexels = 18;
-        const int WeaponPlateOutlineTexels = 2;
+        // 작은 배경을 준다. 그리기와 크기(28×18텍셀 — 가장 큰 그림 저격소총 22×12에 외곽선 2와 여백 1)는 PixelGui.DrawWeaponPlate에 있고
+        // 빌드 띠(BuildStripPainter)가 같은 것을 쓴다. 높이가 줄 간격(WeaponRowPitchTexels)보다 작아 이웃 줄의 판과 2텍셀 떨어진다.
         // 탄약 핍(시트 16텍셀 타일)에서 실제 그림이 있는 가로 구간: 왼쪽 여백 4텍셀 뒤로 8텍셀 (외곽선 2 + 몸통 4 + 외곽선 2).
         const int AmmoPipInsetTexels = 4;
         const int AmmoPipWidthTexels = 8;
@@ -318,8 +311,8 @@ namespace PickShoot
             // 열 폭은 그쪽 모든 줄에서 공통 — 스프라이트 크기가 달라도 레벨과 탄창이 세로로 나란히 정렬되도록.
             // 아이콘 열은 판·무기 스프라이트·그 위에 겹쳐 깜빡이는 탄약 부족 X(타일 한 칸) 중 가장 넓은 쪽. X에 따로 자리를 주지 않아
             // 깜빡여도 레벨·탄창이 움직이지 않는다. 레벨 열은 고정 폭(levelColumnTexels)이라 레벨이 올라도 탄창이 밀리지 않는다.
-            int plateW = WeaponPlateWidthTexels * s;
-            int plateH = WeaponPlateHeightTexels * s;
+            int plateW = PixelGui.WeaponPlateWidthTexels * s;
+            int plateH = PixelGui.WeaponPlateHeightTexels * s;
             int iconW = Mathf.Max(tile, plateW);
             for (int k = 0; k < sideSlots.Count; k++)
                 iconW = Mathf.Max(iconW, Mathf.RoundToInt(slots[sideSlots[k]].Data.WeaponSprite.rect.width) * s);
@@ -336,7 +329,7 @@ namespace PickShoot
                 var w = slots[sideSlots[k]];
 
                 // 판과 스프라이트는 아이콘 열 가로 가운데·줄(타일 높이) 세로 가운데. 타일보다 크면 줄 위아래로 고르게 넘친다.
-                DrawWeaponPlate(new Rect(InwardX(edge, leftSide, (iconW - plateW) / 2, plateW), y + (tile - plateH) / 2, plateW, plateH), s);
+                PixelGui.DrawWeaponPlate(skin, new Rect(InwardX(edge, leftSide, (iconW - plateW) / 2, plateW), y + (tile - plateH) / 2, plateW, plateH), s);
                 var sprite = w.Data.WeaponSprite;
                 int sw = Mathf.RoundToInt(sprite.rect.width) * s;
                 int sh = Mathf.RoundToInt(sprite.rect.height) * s;
@@ -363,16 +356,6 @@ namespace PickShoot
         static int InwardX(int edge, bool leftSide, int inset, int width)
         {
             return leftSide ? edge + inset : edge - inset - width;
-        }
-
-        // 무기 스프라이트 밑의 판: 네 귀를 1텍셀씩 깎은 외곽선 색 사각형 위에 바탕색을 채운다.
-        // 귀를 깎은 모양은 가로로 긴 사각형과 세로로 긴 사각형을 겹쳐 만든다 — 겹쳐 그리므로 비정수 배율에서도 조각 사이에 틈이 없다.
-        void DrawWeaponPlate(Rect r, int s)
-        {
-            int o = WeaponPlateOutlineTexels * s;
-            PixelGui.FillRect(new Rect(r.x + s, r.y, r.width - 2 * s, r.height), weaponPlateOutlineColor);
-            PixelGui.FillRect(new Rect(r.x, r.y + s, r.width, r.height - 2 * s), weaponPlateOutlineColor);
-            PixelGui.FillRect(new Rect(r.x + o, r.y + o, r.width - 2 * o, r.height - 2 * o), weaponPlateFillColor);
         }
 
         // 탄창: 탄환 한 발이 핍 하나. 핍을 외곽선이 포개지는 간격으로 붙여 한 덩이로 그린다. 레벨 쪽 끝(rowX)부터 남은 탄약만큼은

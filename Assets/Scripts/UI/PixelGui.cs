@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using UnityEngine;
 
 namespace PickShoot
@@ -74,6 +75,21 @@ namespace PickShoot
         public static void DrawSprite(Sprite sprite, Rect screenRect)
         {
             DrawSpritePart(sprite, screenRect, 0f, 0f, 1f, 1f);
+        }
+
+        // 무기 스프라이트 밑의 작은 판 (HUD 무기 줄·빌드 띠). 크기는 텍셀 단위 고정 — 16텍셀 무기 그림이 여백을 두고 들어간다.
+        // 네 귀를 1텍셀씩 깎은 외곽선 색 사각형 위에 바탕색을 채운다. 귀를 깎은 모양은 가로로 긴 사각형과 세로로 긴 사각형을 겹쳐 만든다 —
+        // 겹쳐 그리므로 비정수 배율에서도 조각 사이에 틈이 없다. 시트의 작은 판 조각은 흰 테두리·리벳이 총 그림과 겹쳐 어수선해 쓰지 않는다 (DEVELOPMENT §2).
+        public const int WeaponPlateWidthTexels = 28;
+        public const int WeaponPlateHeightTexels = 18;
+        const int WeaponPlateOutlineTexels = 2;
+
+        public static void DrawWeaponPlate(PixelUiSkin skin, Rect r, int scale)
+        {
+            int o = WeaponPlateOutlineTexels * scale;
+            FillRect(new Rect(r.x + scale, r.y, r.width - 2 * scale, r.height), skin.WeaponPlateOutline);
+            FillRect(new Rect(r.x, r.y + scale, r.width, r.height - 2 * scale), skin.WeaponPlateOutline);
+            FillRect(new Rect(r.x + o, r.y + o, r.width - 2 * o, r.height - 2 * o), skin.WeaponPlateFill);
         }
 
         // 좌우 반전. 화면 오른쪽에 거울상으로 놓는 조각(HUD 무기 스프라이트)용 — UV의 가로 구간을 뒤집어 넘긴다.
@@ -163,6 +179,30 @@ namespace PickShoot
                 width += AdvanceTexels(font, text[i]);
             }
             return width * scale;
+        }
+
+        // 글을 공백 단위로 접어 maxWidth(캔버스 픽셀) 안에 들어가는 줄들로 나눈다. 같은 줄에 남는 연속 공백은 그대로, 줄 끝의 공백은 뗀다.
+        // 한 단어가 maxWidth보다 넓으면 예외 — 글자 단위로 쪼개 읽히지 않게 만들지 않는다. 펼친 카드의 상세 글(설명·특성)이 쓴다.
+        public static List<string> WrapText(PixelUiSkin.BitmapFont font, string text, int scale, int maxWidth)
+        {
+            var lines = new List<string>();
+            string line = "";
+            foreach (var word in text.Split(' '))
+            {
+                // 빈 토큰은 연속 공백 — 줄을 바꾸지 않고 공백만 더한다.
+                string candidate = word.Length == 0 ? line + " " : (line.Length == 0 ? word : line + " " + word);
+                if (MeasureText(font, candidate.TrimEnd(), scale) <= maxWidth)
+                {
+                    line = candidate;
+                    continue;
+                }
+                if (MeasureText(font, word, scale) > maxWidth)
+                    throw new System.Exception($"[PickShoot] PixelGui.WrapText: 단어 '{word}'의 폭이 허용 폭 {maxWidth}px를 넘음. 문구를 줄이거나 영역을 넓힐 것.");
+                lines.Add(line.TrimEnd());
+                line = word;
+            }
+            if (line.TrimEnd().Length > 0) lines.Add(line.TrimEnd());
+            return lines;
         }
 
         // (x, y)는 텍스트 줄의 좌상단 픽셀. 줄 높이는 font.lineHeight * scale.

@@ -37,6 +37,8 @@ namespace PickShoot
 
         [Header("Presentation")]
         [SerializeField] Sprite weaponSprite;
+        // 보상 화면 상세 패널의 역할 설명 한 줄 (선택). 시트 글꼴 문자만. 비어 있으면 줄을 두지 않는다 — 스탯·특성 줄은 자산 값에서 생성한다.
+        [SerializeField] string description = "";
         [SerializeField] AudioClip shootClip;
         // 폭발 탄환의 폭발음. 접촉 지점에서 튕김음·명중 파문 대신 난다.
         [SerializeField] AudioClip explosionClip;
@@ -65,6 +67,7 @@ namespace PickShoot
         public bool AutoRetrieve => autoRetrieve;
         public Color VisualColor => visualColor;
         public Sprite WeaponSprite => weaponSprite;
+        public string Description => description;
         public AudioClip ShootClip => shootClip;
         public AudioClip ExplosionClip => explosionClip;
         public float MuzzleOffset => muzzleOffset;
