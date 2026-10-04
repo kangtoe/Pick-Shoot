@@ -6,7 +6,8 @@ namespace PickShoot
 {
     // 플레이 모드 디버그 도구 창 (메뉴 PickShoot/Debug Tools). 장기 보존 도구 (DEVELOPMENT §2.1).
     // 씬 참조 없이 플레이 중인 오브젝트를 찾아 조작하므로 씬·프리팹을 건드리지 않고, 빌드에도 들어가지 않는다.
-    // 현재 제공: 진행 중인 웨이브 즉시 클리어 / 적 종류를 골라 즉시 스폰 / 무기 종류를 골라 추가 / 마지막 무기 버리기 / 자루별 레벨업 / 경험치 더하기(레벨 업·리롤 적립 시험용).
+    // 현재 제공: 진행 중인 웨이브 즉시 클리어 / 적 종류를 골라 즉시 스폰 / 무기 종류를 골라 추가 / 마지막 무기 버리기 / 자루별 레벨업 / 경험치 더하기(레벨 업·리롤 적립 시험용)
+    //   / 유물 종류를 골라 획득 + 보유 유물·스탯 총계 표시 (Relics §2).
     public class DebugToolsWindow : EditorWindow
     {
         // 드롭다운 옆 실행 버튼(Spawn/Add) 너비. 드롭다운이 남는 폭을 다 차지한다.
@@ -24,6 +25,10 @@ namespace PickShoot
         GameObject[] enemyPrefabs = new GameObject[0];
         string[] enemyNames = new string[0];
         int selectedEnemy;
+        // 프로젝트의 모든 RelicData 자산. 유물 풀(UpgradeManager.relicPool)에 아직 없는 유물도 시험할 수 있게 자산 DB에서 직접 찾는다.
+        RelicData[] relicAssets = new RelicData[0];
+        string[] relicNames = new string[0];
+        int selectedRelic;
 
         [MenuItem("PickShoot/Debug Tools")]
         static void Open()
@@ -35,12 +40,31 @@ namespace PickShoot
         {
             RefreshWeaponAssets();
             RefreshEnemyPrefabs();
+            RefreshRelicAssets();
         }
 
         void OnProjectChange()
         {
             RefreshWeaponAssets();
             RefreshEnemyPrefabs();
+            RefreshRelicAssets();
+        }
+
+        void RefreshRelicAssets()
+        {
+            var guids = AssetDatabase.FindAssets("t:RelicData");
+            relicAssets = new RelicData[guids.Length];
+            for (int i = 0; i < guids.Length; i++)
+            {
+                string path = AssetDatabase.GUIDToAssetPath(guids[i]);
+                relicAssets[i] = AssetDatabase.LoadAssetAtPath<RelicData>(path);
+                if (relicAssets[i] == null)
+                    throw new System.Exception($"[PickShoot] DebugToolsWindow: RelicData 자산 로드 실패: {path}");
+            }
+            relicNames = new string[relicAssets.Length];
+            for (int i = 0; i < relicAssets.Length; i++)
+                relicNames[i] = relicAssets[i].DisplayName;
+            selectedRelic = ClampSelection(selectedRelic, relicAssets.Length);
         }
 
         void RefreshWeaponAssets()
@@ -131,6 +155,52 @@ namespace PickShoot
             DrawAddWeapon(weapons);
             DrawSeparator();
             DrawWeapons(weapons);
+
+            var stats = weapons.GetComponent<PlayerStats>();
+            if (stats == null)
+                throw new System.Exception("[PickShoot] DebugToolsWindow: 플레이어에 PlayerStats 없음 (유물 획득·스탯 표시에 필요).");
+            DrawSeparator();
+            DrawAddRelic(stats);
+            DrawSeparator();
+            DrawRelics(stats);
+        }
+
+        // 드롭다운에서 유물 종류를 고르고 Add — 카드 없이 곧바로 획득한다 (Relics §2, 커먼 유물은 몇 번이든 중첩). 효과는 각 스탯을 읽는 쪽이 바로 반영한다.
+        void DrawAddRelic(PlayerStats stats)
+        {
+            GUILayout.Label("Add Relic", EditorStyles.boldLabel);
+            if (relicAssets.Length == 0)
+            {
+                EditorGUILayout.HelpBox("프로젝트에 RelicData 자산이 없습니다 (검색: t:RelicData).", MessageType.Error);
+                return;
+            }
+
+            using (new EditorGUILayout.HorizontalScope())
+            {
+                selectedRelic = EditorGUILayout.Popup(selectedRelic, relicNames);
+                if (GUILayout.Button("Add", GUILayout.Width(ActionButtonWidth)))
+                    stats.AddRelic(relicAssets[selectedRelic]);
+            }
+        }
+
+        // 보유 유물(종류별 개수, 처음 얻은 순서)과 스탯 총계. 총계는 유물이 더한 수정치의 합이라 유물이 없으면 전부 0이다.
+        void DrawRelics(PlayerStats stats)
+        {
+            var relics = stats.Relics;
+            GUILayout.Label($"Relics  {relics.Count}", EditorStyles.boldLabel);
+            var listed = new List<RelicData>();
+            foreach (var r in relics)
+            {
+                if (listed.Contains(r)) continue;
+                listed.Add(r);
+                EditorGUILayout.LabelField($"{r.DisplayName}   x{stats.CountOf(r)}");
+            }
+
+            var total = stats.Total;
+            var parts = new List<string>();
+            foreach (var s in PlayerStatModifiers.Stats)
+                parts.Add($"{PlayerStatModifiers.Label(s)} {PlayerStatModifiers.Format(s, total.Get(s))}");
+            EditorGUILayout.LabelField(string.Join("   ", parts), EditorStyles.wordWrappedLabel);
         }
 
         // 섹션 사이 가로 구분선. 위아래 여백을 두고 한 픽셀 높이의 반투명 선을 그린다.

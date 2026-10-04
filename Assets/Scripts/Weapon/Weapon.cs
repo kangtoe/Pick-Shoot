@@ -7,6 +7,7 @@ namespace PickShoot
     //   무기별로 WeaponData가 정한다 — 표준 ×1.5·+2, 탄창 가산 0이면 고정 탄창 (Weapons §3).
     // 쿨다운은 레벨과 무관한 무기 특성이라 오르지 않는다 (Weapons §3).
     // 새로 획득한 자루는 항상 Lv.1로 시작하고 MaxLevel까지 오른다 (Weapons §3).
+    // 피해에는 플레이어 전역 배율(PlayerStats의 공격력, 유물 — Relics §2)이 곱해진다. Weapon은 플레이어를 모르므로 발사 때 호출자(PlayerWeapons)가 넘긴다.
     public class Weapon
     {
         // 레벨 상한. 한 자리 수로 묶어 HUD·카드의 레벨 표기가 늘 "LV n" 한 자리이고, 최대 탄약(HUD 탄창 줄 길이)도 이 안에 머문다.
@@ -27,14 +28,17 @@ namespace PickShoot
         public float NextReadyTime => nextReadyTime;
         // 점사 중 — burstInterval 뒤 CanFire가 다시 참이 되면 호출자가 이 자루를 우선해 다시 Fire한다 (Weapons §8).
         public bool IsBursting => burstShotsLeft > 0;
-        public int EffectiveDamage => DamageAtLevel(data, level);
         // 쿨다운은 레벨로 줄지 않는다 — 사격 리듬은 무기의 특성 (Weapons §3).
         public float EffectiveCooldown => data.Cooldown;
 
         // 레벨별 수치 공식. 업그레이드 카드가 "다음 레벨" 값을 미리 보여줄 때도 같은 식을 쓴다.
-        public static int DamageAtLevel(WeaponData data, int level)
+        // 피해 = 자산 값 × 레벨 배율^(레벨−1) × 플레이어 전역 배율. 셋을 곱한 뒤 한 번만 반올림한다 — 레벨 값을 먼저 반올림하고 다시 곱하면
+        // 정수 피해에서 작은 배율이 두 번 깎인다. 그래도 피해 5~10인 무기는 +10%가 반올림에 묻히기 쉽다 (Relics §2, 튜닝 대상).
+        public static int DamageAtLevel(WeaponData data, int level, float globalMultiplier)
         {
-            return Mathf.Max(1, Mathf.RoundToInt(data.Damage * Mathf.Pow(data.LevelDamageMultiplier, level - 1)));
+            if (globalMultiplier <= 0f)
+                throw new System.Exception($"[PickShoot] Weapon.DamageAtLevel: 전역 피해 배율이 0 이하 ({globalMultiplier}).");
+            return Mathf.Max(1, Mathf.RoundToInt(data.Damage * Mathf.Pow(data.LevelDamageMultiplier, level - 1) * globalMultiplier));
         }
 
         public static int MaxAmmoAtLevel(WeaponData data, int level)
@@ -93,10 +97,12 @@ namespace PickShoot
         // fireDirection은 정규화되어 있어야 한다.
         // 점사 무기(BurstCount > 1)는 첫 호출이 점사를 시작하고 burstInterval 뒤에 다시 준비되므로, 호출자가 IsBursting인 자루를
         // 우선해 다시 Fire하면 점사가 이어진다. 쿨다운은 점사의 마지막 사격 뒤에 시작하고, 탄약이 떨어지면 점사도 거기서 끝난다 (Weapons §8).
-        public void Fire(Vector3 muzzlePos, Vector2 fireDirection, Collider2D shooterCollider, float now)
+        // damageMultiplier는 플레이어 전역 피해 배율 — 이 사격의 탄환(폭발 피해 포함)에 곱해진다.
+        public void Fire(Vector3 muzzlePos, Vector2 fireDirection, Collider2D shooterCollider, float now, float damageMultiplier)
         {
             if (!CanFire(now))
                 throw new System.Exception($"[PickShoot] Weapon.Fire 호출됐지만 CanFire가 false. weapon={data.DisplayName} Lv{level}, now={now}, nextReadyTime={nextReadyTime}, ammo={currentAmmo}/{MaxAmmo}");
+            int damage = DamageAtLevel(data, level, damageMultiplier);
 
             // 점사 이어 쏘기면 잔량을 하나 줄이고, 아니면 새 점사를 연다 (점사 무기가 아니면 잔량 0).
             if (burstShotsLeft > 0) burstShotsLeft--;
@@ -137,7 +143,7 @@ namespace PickShoot
                 if (shooterCollider != null)
                     Physics2D.IgnoreCollision(shooterCollider, bulletCol, true);
 
-                bullet.Launch(dir * data.BulletSpeed, this, EffectiveDamage, data.KnockbackForce, data.MaxBounces, data.Penetration, data.ExplosionRadius);
+                bullet.Launch(dir * data.BulletSpeed, this, damage, data.KnockbackForce, data.MaxBounces, data.Penetration, data.ExplosionRadius);
             }
         }
 

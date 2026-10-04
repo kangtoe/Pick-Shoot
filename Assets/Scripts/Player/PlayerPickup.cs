@@ -4,6 +4,9 @@ using UnityEngine;
 
 namespace PickShoot
 {
+    // 탄환 회수 (GDD §3.2): 자석 반경에 들어온 탄환을 끌어와 pickupRadius 안에서 귀속 무기의 탄창에 넣는다.
+    // 자석 반경과 끌림 속도는 PlayerStats의 배율(유물의 회수 범위·회수 속도, Relics §2)을 받는다. 흡수 거리(pickupRadius)와 sweep 속도는 그대로.
+    [RequireComponent(typeof(PlayerStats))]
     public class PlayerPickup : MonoBehaviour
     {
         [SerializeField] float pickupRadius = 0.9f;
@@ -25,6 +28,21 @@ namespace PickShoot
 
         // 웨이브 클리어 sweep 중. 필드의 모든 탄환을 자석에 걸고 확정 속도로 끌어온다.
         bool sweeping;
+        PlayerStats stats;
+
+        // 유물 배율을 받은 자석 반경·끌림 속도 (Relics §2). 발사 직후 "반경을 벗어났는가"(ReleaseDeparted)도 같은 반경으로 잰다.
+        float MagnetRadius => magnetRadius * stats.PickupRadiusMultiplier;
+        float MagnetTargetSpeed => magnetTargetSpeed * stats.PickupSpeedMultiplier;
+        // 배율을 곱하기 전의 자산 값. 보상 화면의 상세 패널이 유물의 효과를 실제 값으로 보여줄 때 쓴다.
+        public float BaseMagnetRadius => magnetRadius;
+        public float BaseMagnetSpeed => magnetTargetSpeed;
+
+        void Awake()
+        {
+            stats = GetComponent<PlayerStats>();
+            if (stats == null)
+                throw new System.Exception("[PickShoot] PlayerPickup: 플레이어에 PlayerStats 없음 (회수 범위·속도 배율 출처).");
+        }
 
         void OnEnable()
         {
@@ -57,7 +75,8 @@ namespace PickShoot
             // 거는 쪽(OverlapCircle)을 먼저 — 벗어남 판정과 겹침 판정이 경계에서 어긋나도 같은 스텝에 풀리자마자 다시 걸리지 않게.
             ReleaseDeparted();
 
-            float span = Mathf.Max(0.0001f, magnetRadius - pickupRadius);
+            float magnetRadiusNow = MagnetRadius;
+            float span = Mathf.Max(0.0001f, magnetRadiusNow - pickupRadius);
             float alpha = 1f - Mathf.Exp(-magnetBlendRate * Time.fixedDeltaTime);
             for (int i = magnetized.Count - 1; i >= 0; i--)
             {
@@ -93,17 +112,17 @@ namespace PickShoot
 
                 // 끌림은 가까울수록 세고, 한 번 오른 세기는 멀어져도 줄지 않는다. 반경 밖에서도 시간에 따라
                 // 최대까지 차오르므로 스치고 지나간 탄환도 달아나는 플레이어를 끝내 따라잡는다.
-                float t = Mathf.Clamp01((magnetRadius - d) / span);
+                float t = Mathf.Clamp01((magnetRadiusNow - d) / span);
                 bullet.MagnetPull = Mathf.Min(1f, Mathf.Max(t, bullet.MagnetPull + Time.fixedDeltaTime / magnetRampTime));
 
-                Vector2 targetVel = dir * magnetTargetSpeed * bullet.MagnetPull;
+                Vector2 targetVel = dir * MagnetTargetSpeed * bullet.MagnetPull;
                 rb.linearVelocity = Vector2.Lerp(rb.linearVelocity, targetVel, alpha);
             }
         }
 
         void MagnetizeBulletsInRange()
         {
-            int count = Physics2D.OverlapCircleNonAlloc(transform.position, magnetRadius, hits);
+            int count = Physics2D.OverlapCircleNonAlloc(transform.position, MagnetRadius, hits);
             for (int i = 0; i < count; i++)
             {
                 var bullet = hits[i].GetComponent<Bullet>();
@@ -121,6 +140,7 @@ namespace PickShoot
         void ReleaseDeparted()
         {
             Vector2 center = transform.position;
+            float magnetRadiusNow = MagnetRadius;
             for (int i = departing.Count - 1; i >= 0; i--)
             {
                 var bullet = departing[i];
@@ -130,7 +150,7 @@ namespace PickShoot
                     continue;
                 }
                 Vector2 closest = Physics2D.ClosestPoint(center, bullet.GetComponent<Collider2D>());
-                if ((closest - center).magnitude > magnetRadius) departing.RemoveAt(i);
+                if ((closest - center).magnitude > magnetRadiusNow) departing.RemoveAt(i);
             }
         }
 

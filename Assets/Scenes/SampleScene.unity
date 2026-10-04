@@ -137,6 +137,7 @@ GameObject:
   - component: {fileID: 142563684}
   - component: {fileID: 142563685}
   - component: {fileID: 142563686}
+  - component: {fileID: 142563687}
   m_Layer: 0
   m_Name: Player
   m_TagString: Player
@@ -406,6 +407,18 @@ MonoBehaviour:
   - {fileID: 166411858142596255, guid: 8c4fc863c2ecf7c42830eb859ffede55, type: 3}
   strideLength: 0.6
   idleSpeed: 0.3
+--- !u!114 &142563687
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 142563674}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2095a467c3fe4f8ab23be1c26b120fb2, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::PickShoot.PlayerStats
 --- !u!1 &358240299
 GameObject:
   m_ObjectHideFlags: 0
@@ -1072,6 +1085,15 @@ MonoBehaviour:
   - {fileID: 11400000, guid: 3446f90fac474d6a8fc2b20386f28120, type: 2}
   - {fileID: 11400000, guid: 2fa50543e0fe421ebee116376d6ffc2a, type: 2}
   - {fileID: 11400000, guid: dab4cd0b95004ddf8b75e92e6f76ea8f, type: 2}
+  stats: {fileID: 142563687}
+  relicPool:
+  - {fileID: 11400000, guid: 09a5f6befc764e778332932c6c5ca463, type: 2}
+  - {fileID: 11400000, guid: 9ece1626cefb46e88bdc3a09e9045d83, type: 2}
+  - {fileID: 11400000, guid: 1b2b7ff7c2ef44d0a2af6055ae4bfe38, type: 2}
+  - {fileID: 11400000, guid: 54b6827d21fc4367b2795aabb358078e, type: 2}
+  - {fileID: 11400000, guid: a074b1c82a3a4e6fa9c51f8610fda84c, type: 2}
+  - {fileID: 11400000, guid: b17cc81330e1414fa43c54c8532baf4e, type: 2}
+  - {fileID: 11400000, guid: f4f2d62e844d4cc6bd84252cc715c678, type: 2}
   cardsToShow: 3
   experience: {fileID: 1698421210}
   selectClip: {fileID: 8300000, guid: 460e5219f0f84004790b551e7a638e25, type: 3}

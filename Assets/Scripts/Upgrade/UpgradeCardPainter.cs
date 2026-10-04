@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using UnityEngine;
 
 namespace PickShoot
@@ -6,6 +7,8 @@ namespace PickShoot
     // 레이아웃은 텍셀 단위로 정의하고 scale(패널·아이콘)과 textScale(글자)을 곱해 픽셀로 바꾼다.
     // 카드 크기는 타일 단위로 고정이며 내용에 맞춰 늘리지 않는다 — 내용이 카드를 넘치면 예외로 알린다.
     // 획득·레벨업 카드는 같은 패널·같은 줄 구성이고, 종류는 카드 위쪽 끝에 걸치는 배지(노란 NEW! / 카드와 같은 파란 LV UP)로만 표기한다.
+    // 유물 카드(Relics §2)도 같은 패널·줄 구성이다 — 배지는 등급(회색 COMMON), 전시 칸에 유물 아이콘, 슬롯 줄 자리에 보유 수 "OWNED n → n+1",
+    // 스탯 줄에는 그 유물이 건드리는 스탯만 "지금 총계 → 획득 뒤 총계"로 — 중첩이 카드에서 바로 읽힌다.
     public static class UpgradeCardPainter
     {
         const int CardWidthTiles = 7;
@@ -17,8 +20,8 @@ namespace PickShoot
         const int NameGapTexels = 12;     // 이름→슬롯 줄. 위쪽(전시·이름)과 아래쪽(슬롯·스탯 표)을 나눈다.
         const int ShowcaseWidthTiles = 4;
         const int ShowcaseHeightTiles = 3;
-        // 무기 스프라이트는 패널 배율의 2배로 크게 보여준다 (16텍셀 → 1080p에서 128px).
-        const int WeaponScaleMultiplier = 2;
+        // 전시 칸의 그림(무기 스프라이트·유물 아이콘)은 패널 배율의 2배로 크게 보여준다 (16텍셀 → 1080p에서 128px).
+        const int ShowcaseScaleMultiplier = 2;
         const int HoverLiftTexels = 4;
         // 무기 이름은 카드의 제목이라 글자 배율(2)보다 한 단계 큰 3 — 배너 제목(패널 배율 4)보다는 작게.
         const int NameScale = 3;
@@ -29,6 +32,8 @@ namespace PickShoot
         // 문구는 짧게 — "LEVEL UP"은 배율 3에서 카드 폭의 2/3을 차지한다. 일시정지 화면의 상태 카드도 같은 배지(DrawBadge)를 쓴다.
         const string NewBadgeText = "NEW!";
         const string LevelUpBadgeText = "LV UP";
+        // 유물 카드의 슬롯 줄 라벨 — 값은 보유 수 "n → n+1".
+        const string OwnedLabel = "OWNED";
         const int BadgeScale = 3;
         const int BadgePaddingXTexels = 10; // 배지 패널 테두리 → 글자, 좌우 (배지 배율)
         const int BadgePaddingYTexels = 8;  // 위아래
@@ -39,7 +44,7 @@ namespace PickShoot
         {
             public string Badge;
             public PixelUiSkin.NineSlice BadgePanel;
-            public Sprite WeaponSprite;
+            public Sprite ShowcaseSprite;
             public string Name;
             public string SlotLabel;
             public string LevelNow;
@@ -55,9 +60,9 @@ namespace PickShoot
             return new Vector2Int(CardWidthTiles * tile, CardHeightTiles * tile);
         }
 
-        public static void Draw(PixelUiSkin skin, UpgradeOption option, PlayerWeapons weapons, Rect rect, int scale, int textScale, bool hovered)
+        public static void Draw(PixelUiSkin skin, UpgradeOption option, PlayerWeapons weapons, PlayerStats stats, Rect rect, int scale, int textScale, bool hovered)
         {
-            var c = Build(skin, option, weapons);
+            var c = Build(skin, option, weapons, stats);
             int tile = skin.TileSize * scale;
             int pad = SidePaddingTexels * scale;
             int gap = RowGapTexels * scale;
@@ -102,17 +107,17 @@ namespace PickShoot
             // 위 여백은 고정(배지 자리), 남는 공간은 아래 여백. 획득·레벨업 카드의 내용 위치가 같다.
             int y = (int)rect.y + topMargin;
 
-            // 무기 전시: 회색 패널 안에 스프라이트를 크게
+            // 전시: 회색 패널 안에 무기 스프라이트·유물 아이콘을 크게
             int showcaseW = ShowcaseWidthTiles * tile;
             int showcaseH = ShowcaseHeightTiles * tile;
             var showcase = new Rect(centerX - showcaseW / 2, y, showcaseW, showcaseH);
             PixelGui.DrawNineSlice(skin.PanelGrey, showcase, skin.TileSize, scale);
-            int weaponScale = scale * WeaponScaleMultiplier;
-            var wr = c.WeaponSprite.rect;
-            int weaponW = Mathf.RoundToInt(wr.width) * weaponScale;
-            int weaponH = Mathf.RoundToInt(wr.height) * weaponScale;
-            PixelGui.DrawSprite(c.WeaponSprite,
-                new Rect((int)showcase.center.x - weaponW / 2, (int)showcase.center.y - weaponH / 2, weaponW, weaponH));
+            int showcaseScale = scale * ShowcaseScaleMultiplier;
+            var sr = c.ShowcaseSprite.rect;
+            int spriteW = Mathf.RoundToInt(sr.width) * showcaseScale;
+            int spriteH = Mathf.RoundToInt(sr.height) * showcaseScale;
+            PixelGui.DrawSprite(c.ShowcaseSprite,
+                new Rect((int)showcase.center.x - spriteW / 2, (int)showcase.center.y - spriteH / 2, spriteW, spriteH));
             y += showcaseH + gap;
 
             PixelGui.DrawTextCentered(skin.FontOutlined, c.Name, centerX, y, NameScale);
@@ -171,7 +176,7 @@ namespace PickShoot
                 throw new System.Exception($"[PickShoot] UpgradeCardPainter: 카드 내용 '{what}'의 폭 {width}px가 카드 안쪽 폭 {innerW}px를 넘음. 카드 크기는 고정이라 내용에 맞춰 늘지 않는다 — CardWidthTiles를 늘리거나 문구를 줄일 것.");
         }
 
-        static CardContent Build(PixelUiSkin skin, UpgradeOption option, PlayerWeapons weapons)
+        static CardContent Build(PixelUiSkin skin, UpgradeOption option, PlayerWeapons weapons, PlayerStats stats)
         {
             switch (option.Kind)
             {
@@ -182,14 +187,14 @@ namespace PickShoot
                     {
                         Badge = NewBadgeText,
                         BadgePanel = skin.PanelYellow,
-                        WeaponSprite = d.WeaponSprite,
+                        ShowcaseSprite = d.WeaponSprite,
                         Name = d.DisplayName.ToUpperInvariant(),
                         SlotLabel = $"SLOT {weapons.Slots.Count + 1}",
                         LevelNow = NoValue,
                         LevelNext = "LV 1",
                         StatLabels = new[] { "DMG", "RPM", "AMMO" },
                         StatNow = new[] { NoValue, NoValue, NoValue },
-                        StatNext = StatValues(d, 1),
+                        StatNext = StatValues(d, 1, stats.DamageMultiplier),
                     };
                 }
 
@@ -202,14 +207,48 @@ namespace PickShoot
                     {
                         Badge = LevelUpBadgeText,
                         BadgePanel = skin.PanelBlue,
-                        WeaponSprite = w.Data.WeaponSprite,
+                        ShowcaseSprite = w.Data.WeaponSprite,
                         Name = w.Data.DisplayName.ToUpperInvariant(),
                         SlotLabel = $"SLOT {option.TargetSlotIndex + 1}",
                         LevelNow = $"LV {w.Level}",
                         LevelNext = $"LV {w.Level + 1}",
                         StatLabels = new[] { "DMG", "RPM", "AMMO" },
-                        StatNow = StatValues(w.Data, w.Level),
-                        StatNext = StatValues(w.Data, w.Level + 1),
+                        StatNow = StatValues(w.Data, w.Level, stats.DamageMultiplier),
+                        StatNext = StatValues(w.Data, w.Level + 1, stats.DamageMultiplier),
+                    };
+                }
+
+                case UpgradeKind.Relic:
+                {
+                    var d = option.RelicData;
+                    if (d.Modifiers.IsZero)
+                        throw new System.Exception($"[PickShoot] UpgradeCardPainter: 유물 '{d.DisplayName}'의 수정치가 전부 0 — 효과 없는 유물. 자산 확인.");
+                    // 줄은 그 유물이 건드리는 스탯만. 값은 "지금 총계 → 획득 뒤 총계".
+                    var now = stats.Total;
+                    var next = now + d.Modifiers;
+                    var labels = new List<string>();
+                    var nowText = new List<string>();
+                    var nextText = new List<string>();
+                    foreach (var s in PlayerStatModifiers.Stats)
+                    {
+                        if (d.Modifiers.Get(s) == 0) continue;
+                        labels.Add(PlayerStatModifiers.Label(s));
+                        nowText.Add(PlayerStatModifiers.Format(s, now.Get(s)));
+                        nextText.Add(PlayerStatModifiers.Format(s, next.Get(s)));
+                    }
+                    int owned = stats.CountOf(d);
+                    return new CardContent
+                    {
+                        Badge = d.Grade.ToString().ToUpperInvariant(),
+                        BadgePanel = GradeBadgePanel(skin, d.Grade),
+                        ShowcaseSprite = d.Icon,
+                        Name = d.DisplayName.ToUpperInvariant(),
+                        SlotLabel = OwnedLabel,
+                        LevelNow = owned.ToString(),
+                        LevelNext = (owned + 1).ToString(),
+                        StatLabels = labels.ToArray(),
+                        StatNow = nowText.ToArray(),
+                        StatNext = nextText.ToArray(),
                     };
                 }
 
@@ -218,10 +257,22 @@ namespace PickShoot
             }
         }
 
-        // 카드에 싣는 3개 스탯: 공격력(한 차례에 여러 발이면 X발수 — 동시 발사 × 점사), 분당 사격 차례 수(RPM, 점사 소요 시간 포함), 최대 탄약. 모두 정수 표기.
-        static string[] StatValues(WeaponData d, int level)
+        // 등급 배지의 패널 (Relics §1). 커먼은 회색 — 무기 카드의 노란 NEW!·파란 LV UP과 겹치지 않는다. 레어·유니크는 그 단계에서 정한다 (Relics §5).
+        static PixelUiSkin.NineSlice GradeBadgePanel(PixelUiSkin skin, RelicGrade grade)
         {
-            int dmg = Weapon.DamageAtLevel(d, level);
+            switch (grade)
+            {
+                case RelicGrade.Common: return skin.PanelGrey;
+                default:
+                    throw new System.Exception($"[PickShoot] UpgradeCardPainter: 등급 {grade}의 배지 패널이 아직 정해지지 않음 (Relics §5 3·4단계).");
+            }
+        }
+
+        // 카드에 싣는 3개 스탯: 공격력(한 차례에 여러 발이면 X발수 — 동시 발사 × 점사), 분당 사격 차례 수(RPM, 점사 소요 시간 포함), 최대 탄약. 모두 정수 표기.
+        // 공격력은 플레이어 전역 배율(유물)을 곱한 실제 값 — 유물을 얻은 뒤의 무기 카드는 그만큼 큰 수를 보인다.
+        static string[] StatValues(WeaponData d, int level, float damageMultiplier)
+        {
+            int dmg = Weapon.DamageAtLevel(d, level, damageMultiplier);
             int bullets = Weapon.BulletsPerTriggerAtLevel(d, level);
             string dmgText = bullets > 1 ? $"{dmg}X{bullets}" : dmg.ToString();
             int rpm = Mathf.RoundToInt(60f / Weapon.TriggerIntervalAtLevel(d, level));

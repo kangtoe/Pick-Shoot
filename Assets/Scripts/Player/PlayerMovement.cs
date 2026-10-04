@@ -10,7 +10,10 @@ namespace PickShoot
     // 대시 중에는 지나온 궤적에 일정 간격으로 잔상(DashAfterimage)을 남기고, 회피 대상 레이어(적·추후 적 탄환)와는 충돌하지 않아
     // 몸이 그대로 통과한다. 이 회피는 대시가 끝난 뒤에도 짧은 유예(dashEvadeGrace) 동안 이어진다 — 적과 겹친 채 끝나도 빠져나올
     // 틈을 준다. 회피 중 피해를 받지 않는 것은 PlayerHealth가 IsEvading을 보고 처리한다.
+    // 이동속도와 대시 쿨다운은 PlayerStats의 배율(유물, Relics §2)을 받는다 — 이동속도 배율은 목표 속도와 대시 뒤 클램프에, 리차지 배율은 쿨다운을
+    // 나누는 데 쓴다. 가속·마찰은 그대로라 빨라진 만큼 최고 속도에 닿기까지 조금 더 걸린다. 대시 거리·시간은 바뀌지 않는다.
     [RequireComponent(typeof(Rigidbody2D))]
+    [RequireComponent(typeof(PlayerStats))]
     [RequireComponent(typeof(SpriteWalkCycle))]
     [RequireComponent(typeof(PlayerAiming))]
     public class PlayerMovement : MonoBehaviour
@@ -42,6 +45,7 @@ namespace PickShoot
         SpriteWalkCycle walkCycle;
         PlayerAiming aiming;
         SpriteRenderer sr;
+        PlayerStats stats;
         Vector2 input;
         bool dashRequested;
         // 대시가 끝나기까지 남은 시간. 0보다 크면 대시 중.
@@ -62,6 +66,11 @@ namespace PickShoot
         public bool DashReady => Time.time >= dashReadyTime;
         // 대시 쿨다운 진행도. 0 = 방금 대시함, 1 = 사용 가능. GameHud의 머리 위 원형 표시가 읽는다.
         public float DashCooldownProgress => DashReady ? 1f : Mathf.InverseLerp(dashStartTime, dashReadyTime, Time.time);
+        // 유물 배율을 받은 이동속도 (Relics §2).
+        float EffectiveMoveSpeed => moveSpeed * stats.MoveSpeedMultiplier;
+        // 배율을 곱하기 전의 자산 값. 보상 화면의 상세 패널이 유물의 효과를 "지금 → 다음"의 실제 값으로 보여줄 때 쓴다.
+        public float BaseMoveSpeed => moveSpeed;
+        public float BaseDashCooldown => dashCooldown;
 
         void Awake()
         {
@@ -69,6 +78,9 @@ namespace PickShoot
             walkCycle = GetComponent<SpriteWalkCycle>();
             aiming = GetComponent<PlayerAiming>();
             sr = GetComponent<SpriteRenderer>();
+            stats = GetComponent<PlayerStats>();
+            if (stats == null)
+                throw new System.Exception("[PickShoot] PlayerMovement: 플레이어에 PlayerStats 없음 (이동속도·리차지 배율 출처).");
             if (dashPassThroughLayers.value == 0)
                 throw new System.Exception("[PickShoot] PlayerMovement.dashPassThroughLayers 미설정. 대시 중 통과할 레이어(Enemy 등) 필요.");
             baseExcludeLayers = rb.excludeLayers;
@@ -130,7 +142,7 @@ namespace PickShoot
                 if (dashTimeLeft > Time.fixedDeltaTime * 0.5f) return;
                 dashTimeLeft = 0f;
                 evadeEndTime = Time.time + dashEvadeGrace;
-                rb.linearVelocity = Vector2.ClampMagnitude(rb.linearVelocity, moveSpeed);
+                rb.linearVelocity = Vector2.ClampMagnitude(rb.linearVelocity, EffectiveMoveSpeed);
             }
 
             // 유예까지 지나면 충돌을 되살린다. 이 순간에도 적과 겹쳐 있으면 접촉이 새로 시작돼 평소대로 피해를 입는다 (GDD §3.5).
@@ -140,7 +152,7 @@ namespace PickShoot
                 rb.excludeLayers = baseExcludeLayers;
             }
 
-            var target = input * moveSpeed;
+            var target = input * EffectiveMoveSpeed;
             float rate = input.sqrMagnitude > 0.0001f ? acceleration : friction;
             rb.linearVelocity = Vector2.MoveTowards(rb.linearVelocity, target, rate * Time.fixedDeltaTime);
         }
@@ -153,7 +165,8 @@ namespace PickShoot
             // 시작한 스텝도 대시 한 스텝으로 센다 (FixedUpdate가 곧바로 한 스텝을 뺀다).
             dashTimeLeft = dashDuration + Time.fixedDeltaTime;
             dashStartTime = Time.time;
-            dashReadyTime = dashStartTime + dashCooldown;
+            // 리차지 배율(Relics §2 능력 리차지 속도)은 시작하는 대시의 쿨다운에만 적용 — 진행 중인 쿨다운은 건드리지 않는다.
+            dashReadyTime = dashStartTime + dashCooldown / stats.RechargeMultiplier;
             evading = true;
             rb.excludeLayers = baseExcludeLayers | dashPassThroughLayers;
 

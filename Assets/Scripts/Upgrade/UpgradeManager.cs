@@ -4,7 +4,11 @@ using UnityEngine;
 
 namespace PickShoot
 {
-    // 웨이브 클리어 시 3장 카드(획득/강화 혼합)를 제시하고 선택을 대기한다.
+    // 웨이브 클리어 보상의 종류 (GDD §3.4). 한 화면은 한 종류만.
+    public enum RewardKind { Relic, Weapon }
+
+    // 웨이브 클리어 시 3장 카드를 제시하고 선택을 대기한다. 보상은 유물 화면과 무기 화면(획득/강화 혼합)이 웨이브마다 교대한다 — 홀수 웨이브 클리어는
+    // 유물, 짝수는 무기 (GDD §3.4). 한 화면에 섞지 않는다. 무기 개조(Relics §5 2단계)가 들어오면 다섯 주기로 바뀐다.
     // 게임 흐름 제어를 위해 Time.timeScale=0로 일시정지, 선택 시 원복. WaveManager가 코루틴으로 호출.
     // 카드는 IMGUI 위에 PixelUiSkin(Kenney Interface 시트)으로 그린다. 글꼴이 A-Z 0-9만 있어 UI 문구는 영문 대문자.
     // 카드 밑의 리롤 버튼은 레벨 업(PlayerExperience)으로 적립한 리롤이 남아 있을 때 3장을 다시 뽑는다 — 보이는 카드 중 한 장은 반드시 바뀐다 (Weapons §3).
@@ -14,6 +18,9 @@ namespace PickShoot
     {
         [SerializeField] PlayerWeapons weapons;
         [SerializeField] List<WeaponData> weaponPool = new List<WeaponData>();
+        // 유물 화면의 후보 (Relics §2)와 획득한 유물이 쌓이는 곳. 커먼 유물은 반복 획득이 가능하므로 보유 여부와 무관하게 풀 전체가 후보다.
+        [SerializeField] PlayerStats stats;
+        [SerializeField] List<RelicData> relicPool = new List<RelicData>();
         [SerializeField] int cardsToShow = 3;
         [SerializeField] PlayerExperience experience;
         [SerializeField] AudioClip selectClip;
@@ -39,10 +46,11 @@ namespace PickShoot
         const int HoverLiftTexels = 4;       // 카드(UpgradeCardPainter)와 같은 텍셀 수. 버튼은 글자 배율이라 화면에서는 절반.
         static readonly Color DisabledTint = new Color(0.5f, 0.5f, 0.5f, 1f);
 
-        // 이번 카드 화면의 후보 전체(획득 + 레벨업, 순서 고정). 처음 카드도 리롤도 여기서 뽑는다.
+        // 이번 카드 화면의 후보 전체(유물 화면은 유물 풀 전체, 무기 화면은 획득 + 레벨업, 순서 고정). 처음 카드도 리롤도 여기서 뽑는다.
         List<UpgradeOption> candidates;
         UpgradeOption[] currentCards;
         int clearedWave;
+        RewardKind rewardKind;
         // 이 러닝에서 쓴 리롤 수. 카드 화면마다 초기화하지 않는다 — 적립(레벨 업 횟수)에서 이것을 뺀 만큼이 남은 리롤이다.
         int rerollsUsed;
         // 지금 카드들이 뽑힌 실시간 — 등장 연출의 기준.
@@ -72,6 +80,19 @@ namespace PickShoot
                 if (weaponPool[i].WeaponSprite == null)
                     throw new System.Exception($"[PickShoot] UpgradeManager.weaponPool[{i}] '{weaponPool[i].DisplayName}'에 WeaponSprite 미할당. 획득 카드 전시용 sprite 필요.");
             }
+            if (stats == null)
+                throw new System.Exception("[PickShoot] UpgradeManager.stats 미할당. 플레이어의 PlayerStats 참조 필요 (유물 획득·카드의 스탯 총계).");
+            if (relicPool.Count == 0)
+                throw new System.Exception("[PickShoot] UpgradeManager.relicPool이 비어있음. 최소 1종의 RelicData 필요 (유물 카드 후보, Assets/Data/Relics).");
+            for (int i = 0; i < relicPool.Count; i++)
+            {
+                if (relicPool[i] == null)
+                    throw new System.Exception($"[PickShoot] UpgradeManager.relicPool[{i}]가 null.");
+                if (relicPool[i].Icon == null)
+                    throw new System.Exception($"[PickShoot] UpgradeManager.relicPool[{i}] '{relicPool[i].DisplayName}'에 Icon 미할당. 유물 카드 전시용 sprite 필요.");
+                if (relicPool[i].Modifiers.IsZero)
+                    throw new System.Exception($"[PickShoot] UpgradeManager.relicPool[{i}] '{relicPool[i].DisplayName}'의 수정치가 전부 0 — 효과 없는 유물.");
+            }
             if (skin == null)
                 throw new System.Exception("[PickShoot] UpgradeManager.skin 미할당. PixelUiSkin 자산(Assets/Data/UI) 필요.");
             skin.Validate();
@@ -79,13 +100,20 @@ namespace PickShoot
                 throw new System.Exception("[PickShoot] UpgradeManager.experience 미할당. PlayerExperience(GameManager) 참조 필요 (리롤 적립 횟수).");
         }
 
-        // clearedWave는 헤더("WAVE N CLEAR") 표기용.
+        // 클리어한 웨이브 번호로 보상 종류를 정한다 (GDD §3.4): 1은 유물, 2는 무기, 다시 유물…. 종류별로 번갈아 오므로 무기 보상은 그전의 절반 빈도.
+        public static RewardKind RewardKindForWave(int clearedWave)
+        {
+            return clearedWave % 2 == 1 ? RewardKind.Relic : RewardKind.Weapon;
+        }
+
+        // clearedWave는 헤더("WAVE N CLEAR") 표기와 보상 종류(RewardKindForWave)의 기준.
         public IEnumerator PresentAndWait(int clearedWave)
         {
             if (clearedWave < 1)
                 throw new System.Exception($"[PickShoot] UpgradeManager.PresentAndWait: clearedWave가 1 미만 ({clearedWave}).");
             this.clearedWave = clearedWave;
-            candidates = BuildCandidates();
+            rewardKind = RewardKindForWave(clearedWave);
+            candidates = BuildCandidates(rewardKind);
             if (candidates.Count == 0) yield break;
             currentCards = Draw(candidates);
             cardsShownAt = Time.unscaledTime;
@@ -101,22 +129,33 @@ namespace PickShoot
             active = false;
         }
 
-        List<UpgradeOption> BuildCandidates()
+        List<UpgradeOption> BuildCandidates(RewardKind kind)
         {
             var result = new List<UpgradeOption>();
-
-            if (weapons.HasEmptySlot)
+            switch (kind)
             {
-                foreach (var d in weaponPool)
-                    result.Add(UpgradeOption.Acquire(d));
+                case RewardKind.Relic:
+                    // 유물 후보는 늘 풀 전체 — 커먼 유물은 반복 획득이 가능해 빠지는 것이 없고, 유물 화면은 건너뛰는 일이 없다.
+                    foreach (var r in relicPool)
+                        result.Add(UpgradeOption.Relic(r));
+                    return result;
+
+                case RewardKind.Weapon:
+                    if (weapons.HasEmptySlot)
+                    {
+                        foreach (var d in weaponPool)
+                            result.Add(UpgradeOption.Acquire(d));
+                    }
+
+                    // 최대 레벨(Weapon.MaxLevel) 자루는 레벨업 후보에서 뺀다. 슬롯이 가득 차고 전부 최대 레벨이면 후보가 없어 카드 화면을 건너뛴다.
+                    for (int i = 0; i < weapons.Slots.Count; i++)
+                        if (!weapons.Slots[i].IsMaxLevel)
+                            result.Add(UpgradeOption.LevelUpSlot(i));
+                    return result;
+
+                default:
+                    throw new System.Exception($"[PickShoot] UpgradeManager.BuildCandidates: 알 수 없는 보상 종류 {kind}");
             }
-
-            // 최대 레벨(Weapon.MaxLevel) 자루는 레벨업 후보에서 뺀다. 슬롯이 가득 차고 전부 최대 레벨이면 후보가 없어 카드 화면을 건너뛴다.
-            for (int i = 0; i < weapons.Slots.Count; i++)
-                if (!weapons.Slots[i].IsMaxLevel)
-                    result.Add(UpgradeOption.LevelUpSlot(i));
-
-            return result;
         }
 
         // pool을 섞어 앞에서 cardsToShow장을 뽑는다.
@@ -139,7 +178,7 @@ namespace PickShoot
 
         void Select(int index)
         {
-            currentCards[index].Apply(weapons);
+            currentCards[index].Apply(weapons, stats);
             if (selectClip != null) SoundPlayer.Play(selectClip);
             selected = true;
         }
@@ -182,7 +221,8 @@ namespace PickShoot
             var cardSize = UpgradeCardPainter.CardSize(skin, scale);
 
             string title = $"WAVE {clearedWave} CLEAR";
-            const string subtitle = "CHOOSE A CARD";
+            // 부제가 이 화면의 종류를 알린다 — 유물 화면은 RELIC, 무기 화면은 획득·레벨업이 섞이므로 CARD.
+            string subtitle = rewardKind == RewardKind.Relic ? "CHOOSE A RELIC" : "CHOOSE A CARD";
             int titleW = PixelGui.MeasureText(skin.FontOutlined, title, scale);
             int bannerW = CeilToMultiple(titleW + 2 * tile, tile);
             int bannerH = 2 * tile;
@@ -231,7 +271,7 @@ namespace PickShoot
                 // 출발점은 카드 위쪽 끝이 화면 아래 끝에 닿는 곳 — 화면 밖에서 들어온다.
                 r.y += EnterOffset(t, canvas.Height - cardsY, scale);
                 bool hovered = interactable && r.Contains(mouse);
-                UpgradeCardPainter.Draw(skin, currentCards[i], weapons, r, scale, textScale, hovered);
+                UpgradeCardPainter.Draw(skin, currentCards[i], weapons, stats, r, scale, textScale, hovered);
                 // 보이지 않는 버튼으로 클릭만 받는다. 카드 그림은 위에서 직접 그렸다.
                 if (interactable && GUI.Button(r, GUIContent.none, GUIStyle.none))
                     Select(i);

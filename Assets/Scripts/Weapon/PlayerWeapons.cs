@@ -42,6 +42,8 @@ namespace PickShoot
 
         Collider2D myCollider;
         PlayerAiming aiming;
+        // 전역 피해 배율(유물의 공격력, Relics §2)의 출처. 발사마다 Weapon에 넘긴다.
+        PlayerStats stats;
         Transform ringPivot;
         readonly List<Weapon> slots = new List<Weapon>(MaxSlots);
         readonly List<Transform> slotVisuals = new List<Transform>(MaxSlots);
@@ -75,6 +77,9 @@ namespace PickShoot
             aiming = GetComponent<PlayerAiming>();
             if (aiming == null)
                 throw new System.Exception("[PickShoot] PlayerWeapons는 같은 GameObject의 PlayerAiming을 요구합니다 (조준각 출처).");
+            stats = GetComponent<PlayerStats>();
+            if (stats == null)
+                throw new System.Exception("[PickShoot] PlayerWeapons는 같은 GameObject의 PlayerStats를 요구합니다 (전역 피해 배율 출처).");
             if (startingWeapons.Count == 0)
                 throw new System.Exception("[PickShoot] PlayerWeapons.startingWeapons가 비어 있음. 최소 1자루의 WeaponData가 필요합니다.");
             if (startingWeapons.Count > MaxSlots)
@@ -271,7 +276,7 @@ namespace PickShoot
             // 탄환은 그 무기의 위치에서 커서를 향해 날아간다 (Weapons §2) → 여러 자루의 발사선이 조준점으로 수렴.
             float fireRad = AimAngleFrom(pos) * Mathf.Deg2Rad;
             Vector2 dir = new Vector2(Mathf.Cos(fireRad), Mathf.Sin(fireRad));
-            slots[slotIndex].Fire(pos, dir, myCollider, now);
+            slots[slotIndex].Fire(pos, dir, myCollider, now, stats.DamageMultiplier);
             PlayFireFeedback(slotIndex);
             Fired?.Invoke(slots[slotIndex]);
             nextGlobalShotTime = now + globalShotInterval;
