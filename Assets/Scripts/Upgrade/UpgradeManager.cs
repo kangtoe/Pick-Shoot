@@ -51,8 +51,8 @@ namespace PickShoot
         const int CardGapTexels = 8;
         const int ButtonGapTexels = 6;
         const int StripGapTexels = 2;
-        // 빌드 줄의 타일 배율. 글자 배율(2, 56px)에서는 레벨 배지 `LV.5`(글자 배율 2로 78px)가 타일보다 넓어 이웃 배지와 겹치고, 패널 배율(4, 112px)은 세로가
-        // 없다. 카드의 무기 이름과 같은 중간 배율 3(84px) — 배지가 양옆 3px를 남기고 들어간다.
+        // 빌드 줄의 타일 배율. 글자 배율(2, 56px)에서는 레벨 배지 `LV5`(글자 배율 2로 64px)가 타일보다 넓어 이웃 배지와 붙고, 패널 배율(4, 112px)은 세로가
+        // 없다. 카드의 무기 이름과 같은 중간 배율 3(84px) — 배지가 양옆 10px를 남기고 들어간다.
         const int StripTileScale = 3;
         const int HoverLiftTexels = 4;       // 카드(UpgradeCardPainter)와 같은 텍셀 수. 버튼은 글자 배율이라 화면에서는 절반.
         static readonly Color DisabledTint = new Color(0.5f, 0.5f, 0.5f, 1f);
