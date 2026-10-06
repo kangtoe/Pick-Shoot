@@ -10,9 +10,10 @@ namespace PickShoot
     // + 설명 문단(notes: 자산의 description — 단어 단위로 접는다). 무기 설명은 아직 자산에 비어 있다 — 특성은 수치에서 만든 사실 항목이 알린다.
     public static class ItemInfoText
     {
+        // 무기 타일의 레벨 배지 `LV.5` — HUD·카드의 `LV 5`와 같은 낱말이고, 좁은 타일 띠에서는 띄어쓰기 대신 점으로 붙인다 (2026-10-06, 그전 `L5`).
         public static string WeaponBadge(int level)
         {
-            return "L" + level;
+            return "LV." + level;
         }
 
         public static string RelicBadge(int count)

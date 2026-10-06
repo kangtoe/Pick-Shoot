@@ -9,7 +9,8 @@ namespace PickShoot
     // 걸치고, 안에는 WAVE·LEVEL·XP 표 — 라벨은 왼쪽(일반 글꼴), 값은 오른쪽(아웃라인 글꼴), 글자 배율. 줄이 카드 폭을 끝까지 쓰므로 카드 크기는 줄 수에서 정해진다.
     // 재개 안내는 카드 밖 아래. 배너 + 상자를 쌓는 데스 화면 꼴은 짧은 두 줄로는 상자가 배너와 겨루는 두 번째 덩어리로 보여 뺐다 (2026-10-02).
     // 일시정지 중엔 HUD가 숨으므로 웨이브도 여기서 보이고, 누적 경험치 총량은 여기서만 보인다 (GDD §3.3).
-    // 상태 카드 아래에 현재 빌드 격자(BuildGridPainter — 무기 슬롯 12칸 한 줄과 보유 유물 격자, 패널 배율 타일)를 둔다 (2026-10-04 두 줄 띠 → 2026-10-06 타일 격자).
+    // 상태 카드 아래에 현재 빌드 격자(BuildGridPainter — 제목 `WEAPONS (7/12)` 아래 보유 무기 한 줄, 제목 `RELICS (5)` 아래 유물 격자, 패널 배율 타일)를 둔다
+    // (2026-10-04 두 줄 띠 → 2026-10-06 타일 격자·섹션 제목).
     // 타일에 마우스를 올리면 툴팁(TooltipPainter)이 뜬다 — 하드웨어 커서는 멈춘 동안 GameHud가 되살린다.
     // 멈춤은 업그레이드 카드와 같은 방식(Time.timeScale = 0)이라 물리·코루틴·사격이 함께 멎는다.
     // 카드 선택 중(이미 멈춰 있음)과 플레이어 사망 뒤(데스 화면이 이어받음)에는 ESC를 받지 않는다.
@@ -37,6 +38,7 @@ namespace PickShoot
         const int RowGapTexels = 4;          // 줄 사이 (글자 텍셀)
         const int StripGapTexels = 8;        // 카드 아래 → 빌드 격자 (글자 텍셀)
         const int HintGapTexels = 16;        // 빌드 격자 아래 → 재개 안내 (글자 텍셀)
+        const int SectionGapTexels = 12;     // 무기 줄 아래 → 유물 제목 (글자 텍셀). 제목과 그 타일 사이(BuildGridPainter, 4)보다 넓어 섹션이 갈린다.
 
         bool paused;
         float prevTimeScale;
@@ -133,7 +135,11 @@ namespace PickShoot
             int gridScale = scale;
             BuildGridPainter.RequireFits(gridScale, canvas.Width);
             int relicRows = BuildGridPainter.RelicRows(BuildGridPainter.RelicKinds(stats).Count);
-            int gridH = BuildGridPainter.Height(skin, gridScale, 1 + relicRows);
+            // 격자 묶음 = 제목 줄 + 무기 줄 + 섹션 간격 + 제목 줄 + 유물 격자.
+            int titleH = BuildGridPainter.TitleHeight(skin);
+            int tileH = ItemTilePainter.Size(gridScale);
+            int sectionGap = SectionGapTexels * textScale;
+            int gridH = titleH + tileH + sectionGap + titleH + BuildGridPainter.Height(skin, gridScale, relicRows);
             int hintGap = HintGapTexels * textScale;
             // 묶음 = 배지 돌출 + 카드 + 빌드 격자(무기 한 줄 + 유물 줄들) + 재개 안내. 세로 중앙에.
             int blockH = overhang + cardH + stripGap + gridH + hintGap + lineH;
@@ -160,8 +166,12 @@ namespace PickShoot
             int gridX = centerX - BuildGridPainter.Width(gridScale) / 2;
             int gridY = (int)card.yMax + stripGap;
             var mouse = Event.current.mousePosition;
-            int slot = BuildGridPainter.DrawWeaponRow(skin, weapons, gridX, gridY, gridScale, mouse, out var weaponTile);
-            var relic = BuildGridPainter.DrawRelicGrid(skin, stats, gridX, gridY + BuildGridPainter.RowPitch(skin, gridScale), gridScale, relicRows, mouse, out var relicTile);
+            BuildGridPainter.DrawTitle(skin, BuildGridPainter.WeaponTitle(weapons), gridX, gridY);
+            int weaponY = gridY + titleH;
+            int slot = BuildGridPainter.DrawWeaponRow(skin, weapons, gridX, weaponY, gridScale, mouse, out var weaponTile);
+            int relicTitleY = weaponY + tileH + sectionGap;
+            BuildGridPainter.DrawTitle(skin, BuildGridPainter.RelicTitle(stats), gridX, relicTitleY);
+            var relic = BuildGridPainter.DrawRelicGrid(skin, stats, gridX, relicTitleY + titleH, gridScale, relicRows, mouse, out var relicTile);
             PixelGui.DrawTextCentered(skin.FontPlain, Hint, centerX, gridY + gridH + hintGap, textScale);
 
             // 툴팁은 다 그린 뒤 맨 마지막에 — 이웃 타일 위로 뜬다.

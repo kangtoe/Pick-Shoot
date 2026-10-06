@@ -86,15 +86,9 @@ namespace PickShoot
 
         public static void DrawWeaponPlate(PixelUiSkin skin, Rect r, int scale)
         {
-            DrawWeaponPlate(skin, r, scale, Color.white);
-        }
-
-        // tint를 색에 곱한다 — 빈 슬롯 타일(ItemTilePainter)이 어둡게 깐 판에 쓴다.
-        public static void DrawWeaponPlate(PixelUiSkin skin, Rect r, int scale, Color tint)
-        {
             int o = WeaponPlateOutlineTexels * scale;
-            Color outline = skin.WeaponPlateOutline * tint;
-            Color fill = skin.WeaponPlateFill * tint;
+            Color outline = skin.WeaponPlateOutline;
+            Color fill = skin.WeaponPlateFill;
             FillRect(new Rect(r.x + scale, r.y, r.width - 2 * scale, r.height), outline);
             FillRect(new Rect(r.x, r.y + scale, r.width, r.height - 2 * scale), outline);
             FillRect(new Rect(r.x + o, r.y + o, r.width - 2 * o, r.height - 2 * o), fill);

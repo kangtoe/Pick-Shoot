@@ -14,7 +14,8 @@ namespace PickShoot
     // 카드 밑의 리롤 버튼은 레벨 업(PlayerExperience)으로 적립한 리롤이 남아 있을 때 3장을 다시 뽑는다 — 보이는 카드 중 한 장은 반드시 바뀐다 (Weapons §3).
     // 버튼에는 남은 적립 횟수를 적는다. 쓰지 않은 횟수는 다음 카드 화면으로 이어진다.
     // 카드는 (다시) 뽑힐 때마다 화면 아래 밖에서 차례로 튀어 올라 스프링처럼 흔들리며 멎는다 — 멎기 전에는 카드도 버튼도 입력을 받지 않는다.
-    // 카드 밑(리롤 버튼 아래)에 이 화면 종류의 빌드 한 줄(BuildGridPainter — 무기 화면은 슬롯 12칸, 유물 화면은 보유 유물)을 글자 배율로 둔다. 타일과 카드 전시 칸에
+    // 카드 밑(리롤 버튼 아래)에 이 화면 종류의 빌드 한 줄(BuildGridPainter — 제목 `WEAPONS (7/12)`·`RELICS (5)` 아래 무기 화면은 보유 자루, 유물 화면은 보유 유물)을
+    // 타일 배율 3으로 둔다. 타일과 카드 전시 칸에
     // 마우스를 올리면 툴팁(TooltipPainter)이 뜬다 — 카드·버튼을 다 그린 뒤 맨 마지막에 (2026-10-06).
     public class UpgradeManager : MonoBehaviour
     {
@@ -44,12 +45,15 @@ namespace PickShoot
         // 글꼴에 있는 문자(A-Z 0-9 % + - 공백)만 써야 한다. 없는 문자는 PixelGui가 예외로 알린다.
         const string RerollLabel = "REROLL";
         const int ButtonPaddingTexels = 8;   // 버튼 패널 테두리 → 글자
-        const int SubtitleGapTexels = 4;     // 배너 아래 안내 문구("CHOOSE A CARD")까지 간격 (패널 텍셀)
-        // 부제 → 카드, 카드 → 리롤 버튼, 버튼(없으면 카드) → 빌드 줄 (패널 텍셀). 블록이 세로 1080 중 1016px를 쓴다 — 그전엔 앞 둘이 16(한 타일)이었는데
-        // 빌드 줄(56px)을 넣으며 8로 줄였다.
+        const int SubtitleGapTexels = 2;     // 배너 아래 안내 문구("CHOOSE A CARD")까지 간격 (패널 텍셀)
+        // 부제 → 카드, 카드 → 리롤 버튼, 버튼(없으면 카드) → 빌드 줄 (패널 텍셀). 블록이 세로 1080 중 1060px를 쓴다 — 그전엔 부제·카드 간격이 16(한 타일)이었는데
+        // 빌드 줄(제목 줄 40 + 타일 84 = 124px)을 넣으며 줄였다 (2026-10-06).
         const int CardGapTexels = 8;
-        const int ButtonGapTexels = 8;
-        const int StripGapTexels = 4;
+        const int ButtonGapTexels = 6;
+        const int StripGapTexels = 2;
+        // 빌드 줄의 타일 배율. 글자 배율(2, 56px)에서는 레벨 배지 `LV.5`(글자 배율 2로 78px)가 타일보다 넓어 이웃 배지와 겹치고, 패널 배율(4, 112px)은 세로가
+        // 없다. 카드의 무기 이름과 같은 중간 배율 3(84px) — 배지가 양옆 3px를 남기고 들어간다.
+        const int StripTileScale = 3;
         const int HoverLiftTexels = 4;       // 카드(UpgradeCardPainter)와 같은 텍셀 수. 버튼은 글자 배율이라 화면에서는 절반.
         static readonly Color DisabledTint = new Color(0.5f, 0.5f, 0.5f, 1f);
 
@@ -252,10 +256,12 @@ namespace PickShoot
             int buttonW = CeilToMultiple(PixelGui.MeasureText(skin.FontPlain, rerollText, textScale) + 2 * buttonPad, textTile);
             int buttonH = CeilToMultiple(lineH + 2 * buttonPad, textTile);
 
-            // 빌드 줄은 글자 배율 타일 한 줄 (BuildGridPainter).
-            int stripScale = textScale;
+            // 빌드 줄은 배율 3 타일 한 줄 (BuildGridPainter).
+            int stripScale = StripTileScale;
             BuildGridPainter.RequireFits(stripScale, canvas.Width);
-            int stripH = BuildGridPainter.Height(skin, stripScale, 1);
+            // 빌드 줄 = 제목 줄 + 타일 한 줄.
+            int titleH = BuildGridPainter.TitleHeight(skin);
+            int stripH = titleH + BuildGridPainter.Height(skin, stripScale, 1);
 
             // 배너·부제·카드·리롤 버튼·빌드 줄 묶음을 화면 세로 중앙에 놓는다.
             int subtitleGap = SubtitleGapTexels * scale;
@@ -297,6 +303,8 @@ namespace PickShoot
             tipNotes.Clear();
             int stripX = centerX - BuildGridPainter.Width(stripScale) / 2;
             int stripY = belowCards + stripGap;
+            BuildGridPainter.DrawTitle(skin, rewardKind == RewardKind.Weapon ? BuildGridPainter.WeaponTitle(weapons) : BuildGridPainter.RelicTitle(stats), stripX, stripY);
+            stripY += titleH;
             if (rewardKind == RewardKind.Weapon)
             {
                 int slot = BuildGridPainter.DrawWeaponRow(skin, weapons, stripX, stripY, stripScale, mouse, out var tileRect);
