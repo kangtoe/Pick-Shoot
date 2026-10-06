@@ -14,7 +14,7 @@ namespace PickShoot
         [SerializeField] RelicGrade grade = RelicGrade.Common;
         // 카드 전시 칸의 그림. 지금은 임시 조각 — Tiles 시트의 열쇠를 유물별 색으로 바꾼 사본(Assets/Art/UI/relic_keys.png). 유물별 그림은 고유 아트 때 (Relics §2).
         [SerializeField] Sprite icon;
-        // 보상 화면의 상세 패널 첫 줄. 시트 글꼴 문자(영문 대문자·숫자·% + - ! ( ) / .)만, 한 줄 — 패널 폭을 넘치면 그릴 때 예외. 비어 있으면 UpgradeManager가 예외로 알린다.
+        // 타일 툴팁(TooltipPainter)의 설명 문단. 시트 글꼴 문자(영문 대문자·숫자·% + - ! ( ) / .)만, 단어 단위로 접힌다 — 한 단어가 툴팁 폭을 넘치면 그릴 때 예외. 비어 있으면 UpgradeManager가 시작 때 예외로 알린다.
         [SerializeField] string description = "";
         [SerializeField] PlayerStatModifiers modifiers;
 

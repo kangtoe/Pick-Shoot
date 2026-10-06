@@ -14,6 +14,8 @@ namespace PickShoot
     // 카드 밑의 리롤 버튼은 레벨 업(PlayerExperience)으로 적립한 리롤이 남아 있을 때 3장을 다시 뽑는다 — 보이는 카드 중 한 장은 반드시 바뀐다 (Weapons §3).
     // 버튼에는 남은 적립 횟수를 적는다. 쓰지 않은 횟수는 다음 카드 화면으로 이어진다.
     // 카드는 (다시) 뽑힐 때마다 화면 아래 밖에서 차례로 튀어 올라 스프링처럼 흔들리며 멎는다 — 멎기 전에는 카드도 버튼도 입력을 받지 않는다.
+    // 카드 밑(리롤 버튼 아래)에 이 화면 종류의 빌드 한 줄(BuildGridPainter — 무기 화면은 슬롯 12칸, 유물 화면은 보유 유물)을 글자 배율로 둔다. 타일과 카드 전시 칸에
+    // 마우스를 올리면 툴팁(TooltipPainter)이 뜬다 — 카드·버튼을 다 그린 뒤 맨 마지막에 (2026-10-06).
     public class UpgradeManager : MonoBehaviour
     {
         [SerializeField] PlayerWeapons weapons;
@@ -43,6 +45,11 @@ namespace PickShoot
         const string RerollLabel = "REROLL";
         const int ButtonPaddingTexels = 8;   // 버튼 패널 테두리 → 글자
         const int SubtitleGapTexels = 4;     // 배너 아래 안내 문구("CHOOSE A CARD")까지 간격 (패널 텍셀)
+        // 부제 → 카드, 카드 → 리롤 버튼, 버튼(없으면 카드) → 빌드 줄 (패널 텍셀). 블록이 세로 1080 중 1016px를 쓴다 — 그전엔 앞 둘이 16(한 타일)이었는데
+        // 빌드 줄(56px)을 넣으며 8로 줄였다.
+        const int CardGapTexels = 8;
+        const int ButtonGapTexels = 8;
+        const int StripGapTexels = 4;
         const int HoverLiftTexels = 4;       // 카드(UpgradeCardPainter)와 같은 텍셀 수. 버튼은 글자 배율이라 화면에서는 절반.
         static readonly Color DisabledTint = new Color(0.5f, 0.5f, 0.5f, 1f);
 
@@ -57,6 +64,9 @@ namespace PickShoot
         float cardsShownAt;
         bool active;
         bool selected;
+        // 툴팁 내용 버퍼 (프레임마다 비우고 채운다).
+        readonly List<string> tipFacts = new List<string>();
+        readonly List<string> tipNotes = new List<string>();
 
         public bool IsActive => active;
 
@@ -92,6 +102,8 @@ namespace PickShoot
                     throw new System.Exception($"[PickShoot] UpgradeManager.relicPool[{i}] '{relicPool[i].DisplayName}'에 Icon 미할당. 유물 카드 전시용 sprite 필요.");
                 if (relicPool[i].Modifiers.IsZero)
                     throw new System.Exception($"[PickShoot] UpgradeManager.relicPool[{i}] '{relicPool[i].DisplayName}'의 수정치가 전부 0 — 효과 없는 유물.");
+                if (string.IsNullOrEmpty(relicPool[i].Description))
+                    throw new System.Exception($"[PickShoot] UpgradeManager.relicPool[{i}] '{relicPool[i].DisplayName}'에 description이 비어 있음. 타일 툴팁의 설명 줄에 필요 (Relics §2).");
             }
             if (skin == null)
                 throw new System.Exception("[PickShoot] UpgradeManager.skin 미할당. PixelUiSkin 자산(Assets/Data/UI) 필요.");
@@ -227,7 +239,10 @@ namespace PickShoot
             int bannerW = CeilToMultiple(titleW + 2 * tile, tile);
             int bannerH = 2 * tile;
             int lineH = skin.FontPlain.lineHeight * textScale;
-            int gap = tile;
+            int gap = tile;   // 카드 사이
+            int cardGap = CardGapTexels * scale;
+            int buttonGap = ButtonGapTexels * scale;
+            int stripGap = StripGapTexels * scale;
 
             // 리롤 버튼은 일시정지 화면의 안내 패널과 같은 결: 글자 배율 회색 패널에 한 줄. 남은 적립 횟수를 괄호에 적는다.
             bool rerollOffered = RerollOffered;
@@ -237,10 +252,18 @@ namespace PickShoot
             int buttonW = CeilToMultiple(PixelGui.MeasureText(skin.FontPlain, rerollText, textScale) + 2 * buttonPad, textTile);
             int buttonH = CeilToMultiple(lineH + 2 * buttonPad, textTile);
 
-            // 배너·부제·카드·리롤 버튼 묶음을 화면 세로 중앙에 놓는다.
+            // 빌드 줄은 글자 배율 타일 한 줄 (BuildGridPainter).
+            int stripScale = textScale;
+            BuildGridPainter.RequireFits(stripScale, canvas.Width);
+            int stripH = BuildGridPainter.Height(skin, stripScale, 1);
+
+            // 배너·부제·카드·리롤 버튼·빌드 줄 묶음을 화면 세로 중앙에 놓는다.
             int subtitleGap = SubtitleGapTexels * scale;
-            int blockH = bannerH + subtitleGap + lineH + gap + cardSize.y;
-            if (rerollOffered) blockH += gap + buttonH;
+            int blockH = bannerH + subtitleGap + lineH + cardGap + cardSize.y;
+            if (rerollOffered) blockH += buttonGap + buttonH;
+            blockH += stripGap + stripH;
+            if (blockH > canvas.Height)
+                throw new System.Exception($"[PickShoot] UpgradeManager: 보상 화면 블록 높이 {blockH}px가 캔버스 {canvas.Height}px를 넘음. 간격을 줄일 것.");
             int blockY = (canvas.Height - blockH) / 2;
             int centerX = canvas.Width / 2;
 
@@ -250,7 +273,7 @@ namespace PickShoot
                 blockY + (bannerH - skin.FontOutlined.lineHeight * scale) / 2, scale);
             PixelGui.DrawTextCentered(skin.FontPlain, subtitle, centerX, blockY + bannerH + subtitleGap, textScale);
 
-            int cardsY = blockY + bannerH + subtitleGap + lineH + gap;
+            int cardsY = blockY + bannerH + subtitleGap + lineH + cardGap;
             int totalW = currentCards.Length * cardSize.x + (currentCards.Length - 1) * gap;
             int startX = centerX - totalW / 2;
             var mouse = Event.current.mousePosition;
@@ -258,10 +281,45 @@ namespace PickShoot
             float sinceShown = Time.unscaledTime - cardsShownAt;
             bool interactable = sinceShown >= EnterTotalSeconds(currentCards.Length);
 
-            // 리롤 버튼은 카드보다 먼저 그린다 — 화면 아래에서 올라오는 카드가 버튼 위를 지나가므로 카드가 앞에 보여야 한다.
+            // 리롤 버튼과 빌드 줄은 카드보다 먼저 그린다 — 화면 아래에서 올라오는 카드가 그 위를 지나가므로 카드가 앞에 보여야 한다.
+            int belowCards = cardsY + cardSize.y;
             if (rerollOffered)
-                DrawRerollButton(new Rect(centerX - buttonW / 2, cardsY + cardSize.y + gap, buttonW, buttonH),
+            {
+                DrawRerollButton(new Rect(centerX - buttonW / 2, belowCards + buttonGap, buttonW, buttonH),
                     rerollText, lineH, textScale, mouse, interactable);
+                belowCards += buttonGap + buttonH;
+            }
+
+            // 툴팁은 하나만, 다 그린 뒤 맨 마지막에. 멎기 전에는 카드처럼 호버에 반응하지 않는다.
+            string tipTitle = null;
+            Rect tipAnchor = default;
+            tipFacts.Clear();
+            tipNotes.Clear();
+            int stripX = centerX - BuildGridPainter.Width(stripScale) / 2;
+            int stripY = belowCards + stripGap;
+            if (rewardKind == RewardKind.Weapon)
+            {
+                int slot = BuildGridPainter.DrawWeaponRow(skin, weapons, stripX, stripY, stripScale, mouse, out var tileRect);
+                if (interactable && slot >= 0)
+                {
+                    var w = weapons.Slots[slot];
+                    tipTitle = ItemInfoText.WeaponTitle(w.Data);
+                    tipAnchor = tileRect;
+                    ItemInfoText.WeaponFacts(w.Data, w.Level, slot, stats, tipFacts);
+                    ItemInfoText.WeaponNotes(w.Data, tipNotes);
+                }
+            }
+            else
+            {
+                var relic = BuildGridPainter.DrawRelicGrid(skin, stats, stripX, stripY, stripScale, 1, mouse, out var tileRect);
+                if (interactable && relic != null)
+                {
+                    tipTitle = ItemInfoText.RelicTitle(relic);
+                    tipAnchor = tileRect;
+                    ItemInfoText.RelicFacts(relic, stats.CountOf(relic), tipFacts);
+                    ItemInfoText.RelicNotes(relic, tipNotes);
+                }
+            }
 
             for (int i = 0; i < currentCards.Length; i++)
             {
@@ -271,10 +329,46 @@ namespace PickShoot
                 // 출발점은 카드 위쪽 끝이 화면 아래 끝에 닿는 곳 — 화면 밖에서 들어온다.
                 r.y += EnterOffset(t, canvas.Height - cardsY, scale);
                 bool hovered = interactable && r.Contains(mouse);
-                UpgradeCardPainter.Draw(skin, currentCards[i], weapons, stats, r, scale, textScale, hovered);
+                var showcaseTile = UpgradeCardPainter.Draw(skin, currentCards[i], weapons, stats, r, scale, textScale, hovered);
+                // 전시 타일 위의 툴팁은 고른 뒤의 상태 (타일 배지와 같다).
+                if (hovered && showcaseTile.Contains(mouse))
+                {
+                    tipAnchor = showcaseTile;
+                    tipTitle = CardTooltip(currentCards[i], tipFacts, tipNotes);
+                }
                 // 보이지 않는 버튼으로 클릭만 받는다. 카드 그림은 위에서 직접 그렸다.
                 if (interactable && GUI.Button(r, GUIContent.none, GUIStyle.none))
                     Select(i);
+            }
+
+            if (tipTitle != null && Event.current.type == EventType.Repaint)
+                TooltipPainter.Draw(skin, canvas, tipAnchor, tipTitle, tipFacts, tipNotes);
+        }
+
+        // 카드가 가리키는 것의 툴팁 — 고른 뒤의 상태. 획득 카드는 슬롯이 아직 없어 NEW·LEVEL 1, 레벨업은 그 슬롯의 다음 레벨, 유물은 보유 수 + 1.
+        string CardTooltip(UpgradeOption option, List<string> facts, List<string> notes)
+        {
+            facts.Clear();
+            notes.Clear();
+            switch (option.Kind)
+            {
+                case UpgradeKind.AcquireWeapon:
+                    ItemInfoText.WeaponFacts(option.AcquireData, 1, -1, stats, facts);
+                    ItemInfoText.WeaponNotes(option.AcquireData, notes);
+                    return ItemInfoText.WeaponTitle(option.AcquireData);
+                case UpgradeKind.LevelUp:
+                {
+                    var w = weapons.Slots[option.TargetSlotIndex];
+                    ItemInfoText.WeaponFacts(w.Data, w.Level + 1, option.TargetSlotIndex, stats, facts);
+                    ItemInfoText.WeaponNotes(w.Data, notes);
+                    return ItemInfoText.WeaponTitle(w.Data);
+                }
+                case UpgradeKind.Relic:
+                    ItemInfoText.RelicFacts(option.RelicData, stats.CountOf(option.RelicData) + 1, facts);
+                    ItemInfoText.RelicNotes(option.RelicData, notes);
+                    return ItemInfoText.RelicTitle(option.RelicData);
+                default:
+                    throw new System.Exception($"[PickShoot] UpgradeManager.CardTooltip: 알 수 없는 Kind {option.Kind}");
             }
         }
 
