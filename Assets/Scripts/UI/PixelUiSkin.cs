@@ -35,6 +35,10 @@ namespace PickShoot
             public int lineHeight = 16;
             public int letterSpacing = 1;
             public int spaceWidth = 5;
+            // 대문자·숫자 글리프의 어두운 상자가 칸(lineHeight) 안에서 차지하는 세로 구간(텍셀) — 위 여백과 높이. 배지 바탕(ItemTilePainter)이 글자에 꼭 맞게 쓴다.
+            // Q(꼬리)·구두점은 구간이 다르지만 배지 문구는 대문자·숫자뿐이다.
+            public int capTop = 2;
+            public int capHeight = 12;
         }
 
         [SerializeField, Min(1)] int tileSize = 16;
@@ -134,6 +138,8 @@ namespace PickShoot
                 || font.glyphLeft == null || font.glyphLeft.Length != n
                 || font.glyphWidth == null || font.glyphWidth.Length != n)
                 throw new System.Exception($"[PickShoot] PixelUiSkin '{name}'.{field}: characters({n})와 glyphs/glyphLeft/glyphWidth 길이가 다름.");
+            if (font.capTop < 0 || font.capHeight <= 0 || font.capTop + font.capHeight > font.lineHeight)
+                throw new System.Exception($"[PickShoot] PixelUiSkin '{name}'.{field}: capTop {font.capTop}·capHeight {font.capHeight}가 lineHeight {font.lineHeight} 안에 있지 않음.");
             for (int i = 0; i < n; i++)
             {
                 if (font.glyphs[i] == null)

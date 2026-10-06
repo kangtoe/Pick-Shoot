@@ -120,6 +120,8 @@ MonoBehaviour:
     lineHeight: 16
     letterSpacing: 1
     spaceWidth: 5
+    capTop: 2
+    capHeight: 12
   fontPlain:
     characters: '%+-0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ!()/.'
     glyphs:
@@ -172,6 +174,8 @@ MonoBehaviour:
     lineHeight: 16
     letterSpacing: 1
     spaceWidth: 5
+    capTop: 2
+    capHeight: 12
   iconBullet: {fileID: -1195037750732930561, guid: 65de3997573b9644a9473502c275f409, type: 3}
   iconChevronUp: {fileID: 748365258719605950, guid: 65de3997573b9644a9473502c275f409, type: 3}
   iconArrowUp: {fileID: -2019297513408167234, guid: 65de3997573b9644a9473502c275f409, type: 3}

@@ -72,7 +72,7 @@ namespace PickShoot
         const int WeaponRowPitchTexels = 20;
         // 무기 스프라이트 밑에 까는 판. 무기 그림은 어두운 보라 계열이라 바닥·울타리·적 위에 바로 놓으면 묻히기 쉬워 아이콘에만
         // 작은 배경을 준다. 그리기와 크기(28×18텍셀 — 가장 큰 그림 저격소총 22×12에 외곽선 2와 여백 1)는 PixelGui.DrawWeaponPlate에 있고
-        // 빌드 띠(BuildStripPainter)가 같은 것을 쓴다. 높이가 줄 간격(WeaponRowPitchTexels)보다 작아 이웃 줄의 판과 2텍셀 떨어진다.
+        // 무기·유물 타일(ItemTilePainter)이 같은 그리기를 정사각(28×28)으로 쓴다 — HUD만 가로 판을 유지한다 (DEVELOPMENT §2). 높이가 줄 간격(WeaponRowPitchTexels)보다 작아 이웃 줄의 판과 2텍셀 떨어진다.
         // 탄약 핍(시트 16텍셀 타일)에서 실제 그림이 있는 가로 구간: 왼쪽 여백 4텍셀 뒤로 8텍셀 (외곽선 2 + 몸통 4 + 외곽선 2).
         const int AmmoPipInsetTexels = 4;
         const int AmmoPipWidthTexels = 8;

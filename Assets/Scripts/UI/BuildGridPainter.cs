@@ -1,0 +1,120 @@
+using System.Collections.Generic;
+using UnityEngine;
+
+namespace PickShoot
+{
+    // 현재 러닝의 빌드를 타일 격자(ItemTilePainter)로 (2026-10-06, 그전의 두 줄 띠 BuildStripPainter를 대체).
+    // 무기 줄은 슬롯 순서로 12칸(PlayerWeapons.MaxSlots) 한 줄 — 빈 슬롯은 빈 타일이라 남은 슬롯 수가 보이고, 자루가 늘어도 줄이 움직이지 않는다.
+    // 유물 격자는 종류별(처음 얻은 순서) 한 칸씩 같은 12열에 왼쪽부터 채우고 넘치면 다음 줄 — 종류가 레어·유니크로 늘어도 접힌다. 없어도 한 줄 자리는 둔다.
+    // 일시정지 화면(PauseScreen)은 패널 배율로 두 격자를 다 보이고(전체 인벤토리), 보상 화면(UpgradeManager)은 글자 배율로 그 화면 종류의 한 줄만 보인다 —
+    // 블록이 세로 1080 중 1008을 쓰고 있어 작은 한 줄이 한계다. 10월 4일 "보상 화면에는 두지 않는다"를 뒤집은 것 — 빈 슬롯(남은 슬롯 수)과 호버 툴팁(보유
+    // 자루와 카드 비교)으로 줄에 기능이 생겼다 (Roadmap).
+    // 패널 배경은 없다 — 어두운 막 위에 바로 그린다. 줄 이름(WEAPONS·RELICS)은 두지 않는다 — 총과 열쇠라 그림으로 갈린다.
+    // 무기 줄은 탄창을 보이지 않는다 — 카드 화면은 sweep 직후라 늘 가득하고, 여기서 필요한 것은 종류와 레벨뿐이다 (Weapons §3).
+    // 호버한 타일을 돌려주고, 툴팁(TooltipPainter)은 화면이 맨 마지막에 그린다.
+    public static class BuildGridPainter
+    {
+        public const int Columns = PlayerWeapons.MaxSlots;
+        const int ColumnGapTexels = 4;   // 타일 사이 (타일 배율)
+        const int RowGapTexels = 4;      // 줄 사이 (타일 배율)
+
+        public static int Width(int scale)
+        {
+            return Columns * ItemTilePainter.Size(scale) + (Columns - 1) * ColumnGapTexels * scale;
+        }
+
+        // 줄 위 가장자리 → 다음 줄 위 가장자리.
+        public static int RowPitch(PixelUiSkin skin, int scale)
+        {
+            return ItemTilePainter.Size(scale) + RowGapTexels * scale;
+        }
+
+        // rows줄 격자의 높이.
+        public static int Height(PixelUiSkin skin, int scale, int rows)
+        {
+            return rows * RowPitch(skin, scale) - RowGapTexels * scale;
+        }
+
+        // 12칸이 캔버스 폭을 넘으면 예외 — 패널 배율에서 1520px라 16:10(1728)까지 들어가고 4:3(1440)은 안 된다.
+        public static void RequireFits(int scale, int canvasWidth)
+        {
+            int w = Width(scale);
+            if (w > canvasWidth)
+                throw new System.Exception($"[PickShoot] BuildGridPainter: 격자 폭 {w}px가 캔버스 폭 {canvasWidth}px를 넘음 (배율 {scale}). 열 수를 줄이거나 배율을 낮출 것.");
+        }
+
+        // 보유 유물의 종류 (처음 얻은 순서).
+        public static List<RelicData> RelicKinds(PlayerStats stats)
+        {
+            var kinds = new List<RelicData>();
+            foreach (var r in stats.Relics)
+                if (!kinds.Contains(r)) kinds.Add(r);
+            return kinds;
+        }
+
+        // 유물 종류 수가 차지하는 줄 수. 없어도 한 줄 — 첫 유물을 얻을 때 묶음이 움직이지 않게.
+        public static int RelicRows(int kinds)
+        {
+            return Mathf.Max(1, (kinds + Columns - 1) / Columns);
+        }
+
+        // 무기 줄. (x, y)는 격자 좌상단. 반환: 마우스가 올라간 보유 자루의 슬롯 인덱스, 없으면(빈 슬롯·밖) -1. hovered는 그 타일.
+        public static int DrawWeaponRow(PixelUiSkin skin, PlayerWeapons weapons, int x, int y, int scale, Vector2 mouse, out Rect hovered)
+        {
+            var slots = weapons.Slots;
+            int pitch = ItemTilePainter.Size(scale) + ColumnGapTexels * scale;
+            int result = -1;
+            hovered = default;
+            for (int i = 0; i < Columns; i++)
+            {
+                int tx = x + i * pitch;
+                if (i >= slots.Count)
+                {
+                    ItemTilePainter.Draw(skin, null, null, tx, y, scale);
+                    continue;
+                }
+                var w = slots[i];
+                ItemTilePainter.Draw(skin, w.Data.WeaponSprite, ItemInfoText.WeaponBadge(w.Level), tx, y, scale);
+                var r = TileRect(skin, tx, y, scale);
+                if (r.Contains(mouse))
+                {
+                    result = i;
+                    hovered = r;
+                }
+            }
+            return result;
+        }
+
+        // 유물 격자. maxRows를 넘치면 예외. 반환: 마우스가 올라간 유물, 없으면 null.
+        public static RelicData DrawRelicGrid(PixelUiSkin skin, PlayerStats stats, int x, int y, int scale, int maxRows, Vector2 mouse, out Rect hovered)
+        {
+            var kinds = RelicKinds(stats);
+            int rows = RelicRows(kinds.Count);
+            if (rows > maxRows)
+                throw new System.Exception($"[PickShoot] BuildGridPainter: 유물 종류 {kinds.Count}이 {maxRows}줄({maxRows * Columns}칸)을 넘음. 보상 화면의 한 줄 한계 — 종류가 늘면 접는 방식을 정할 것 (Relics §5).");
+            int pitch = ItemTilePainter.Size(scale) + ColumnGapTexels * scale;
+            int rowPitch = RowPitch(skin, scale);
+            RelicData result = null;
+            hovered = default;
+            for (int i = 0; i < kinds.Count; i++)
+            {
+                int tx = x + (i % Columns) * pitch;
+                int ty = y + (i / Columns) * rowPitch;
+                ItemTilePainter.Draw(skin, kinds[i].Icon, ItemInfoText.RelicBadge(stats.CountOf(kinds[i])), tx, ty, scale);
+                var r = TileRect(skin, tx, ty, scale);
+                if (r.Contains(mouse))
+                {
+                    result = kinds[i];
+                    hovered = r;
+                }
+            }
+            return result;
+        }
+
+        static Rect TileRect(PixelUiSkin skin, int x, int y, int scale)
+        {
+            int size = ItemTilePainter.Size(scale);
+            return new Rect(x, y, size, size);
+        }
+    }
+}

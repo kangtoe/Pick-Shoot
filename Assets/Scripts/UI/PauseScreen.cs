@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.InputSystem;
 
@@ -8,7 +9,8 @@ namespace PickShoot
     // 걸치고, 안에는 WAVE·LEVEL·XP 표 — 라벨은 왼쪽(일반 글꼴), 값은 오른쪽(아웃라인 글꼴), 글자 배율. 줄이 카드 폭을 끝까지 쓰므로 카드 크기는 줄 수에서 정해진다.
     // 재개 안내는 카드 밖 아래. 배너 + 상자를 쌓는 데스 화면 꼴은 짧은 두 줄로는 상자가 배너와 겨루는 두 번째 덩어리로 보여 뺐다 (2026-10-02).
     // 일시정지 중엔 HUD가 숨으므로 웨이브도 여기서 보이고, 누적 경험치 총량은 여기서만 보인다 (GDD §3.3).
-    // 상태 카드 아래에 현재 빌드 두 줄(보유 무기·유물, BuildStripPainter)을 둔다 (Roadmap 일시정지 화면 확장의 빌드 표시, 2026-10-04).
+    // 상태 카드 아래에 현재 빌드 격자(BuildGridPainter — 무기 슬롯 12칸 한 줄과 보유 유물 격자, 패널 배율 타일)를 둔다 (2026-10-04 두 줄 띠 → 2026-10-06 타일 격자).
+    // 타일에 마우스를 올리면 툴팁(TooltipPainter)이 뜬다 — 하드웨어 커서는 멈춘 동안 GameHud가 되살린다.
     // 멈춤은 업그레이드 카드와 같은 방식(Time.timeScale = 0)이라 물리·코루틴·사격이 함께 멎는다.
     // 카드 선택 중(이미 멈춰 있음)과 플레이어 사망 뒤(데스 화면이 이어받음)에는 ESC를 받지 않는다.
     // 멈춘 동안 HUD는 GameHud가 걷고 하드웨어 커서를 되살린다 — 볼륨 조절 등 클릭 조작이 들어올 자리.
@@ -33,14 +35,17 @@ namespace PickShoot
         const int SidePaddingTexels = 10;    // 카드 테두리 → 라벨·값 (패널 텍셀). 카드의 좌우 여백과 같다.
         const int TablePaddingTexels = 10;   // 배지 아래 가장자리 → 첫 줄, 마지막 줄 → 카드 아래 테두리의 최소 여백 (패널 텍셀). 타일 올림의 여분은 위아래 균등.
         const int RowGapTexels = 4;          // 줄 사이 (글자 텍셀)
-        const int StripGapTexels = 8;        // 카드 아래 → 빌드 두 줄 (글자 텍셀)
-        const int HintGapTexels = 16;        // 빌드 두 줄 아래 → 재개 안내 (글자 텍셀)
+        const int StripGapTexels = 8;        // 카드 아래 → 빌드 격자 (글자 텍셀)
+        const int HintGapTexels = 16;        // 빌드 격자 아래 → 재개 안내 (글자 텍셀)
 
         bool paused;
         float prevTimeScale;
-        // 빌드 두 줄의 출처. 플레이어 오브젝트의 컴포넌트라 playerHealth에서 함께 찾는다.
+        // 빌드 격자의 출처. 플레이어 오브젝트의 컴포넌트라 playerHealth에서 함께 찾는다.
         PlayerWeapons weapons;
         PlayerStats stats;
+        // 툴팁 내용 버퍼 (프레임마다 비우고 채운다).
+        readonly List<string> tipFacts = new List<string>();
+        readonly List<string> tipNotes = new List<string>();
 
         public bool IsPaused => paused;
 
@@ -59,10 +64,10 @@ namespace PickShoot
             skin.Validate();
             weapons = playerHealth.GetComponent<PlayerWeapons>();
             if (weapons == null)
-                throw new System.Exception("[PickShoot] PauseScreen: 플레이어에 PlayerWeapons 없음 (빌드 두 줄의 무기 줄).");
+                throw new System.Exception("[PickShoot] PauseScreen: 플레이어에 PlayerWeapons 없음 (빌드 격자의 무기 줄).");
             stats = playerHealth.GetComponent<PlayerStats>();
             if (stats == null)
-                throw new System.Exception("[PickShoot] PauseScreen: 플레이어에 PlayerStats 없음 (빌드 두 줄의 유물 줄).");
+                throw new System.Exception("[PickShoot] PauseScreen: 플레이어에 PlayerStats 없음 (빌드 격자의 유물 격자).");
         }
 
         // 멈춘 채 파괴되면(씬 재시작 등) timeScale이 0으로 남아 다음 씬까지 멎으므로 되돌린다.
@@ -125,10 +130,15 @@ namespace PickShoot
             int cardH = CeilToMultiple(inset + tableH + 2 * TablePaddingTexels * scale, tile);
             int overhang = UpgradeCardPainter.BadgeOverhang(skin, scale);
             int stripGap = StripGapTexels * textScale;
-            int stripH = BuildStripPainter.Height(skin, textScale);
+            int gridScale = scale;
+            BuildGridPainter.RequireFits(gridScale, canvas.Width);
+            int relicRows = BuildGridPainter.RelicRows(BuildGridPainter.RelicKinds(stats).Count);
+            int gridH = BuildGridPainter.Height(skin, gridScale, 1 + relicRows);
             int hintGap = HintGapTexels * textScale;
-            // 묶음 = 배지 돌출 + 카드 + 빌드 두 줄 + 재개 안내. 세로 중앙에.
-            int blockH = overhang + cardH + stripGap + stripH + hintGap + lineH;
+            // 묶음 = 배지 돌출 + 카드 + 빌드 격자(무기 한 줄 + 유물 줄들) + 재개 안내. 세로 중앙에.
+            int blockH = overhang + cardH + stripGap + gridH + hintGap + lineH;
+            if (blockH > canvas.Height)
+                throw new System.Exception($"[PickShoot] PauseScreen: 묶음 높이 {blockH}px가 캔버스 {canvas.Height}px를 넘음 (유물 {relicRows}줄). 격자 배율을 낮추거나 줄을 줄일 것.");
             int centerX = canvas.Width / 2;
 
             var card = new Rect(centerX - cardW / 2, (canvas.Height - blockH) / 2 + overhang, cardW, cardH);
@@ -147,9 +157,31 @@ namespace PickShoot
                 y += lineH + rowGap;
             }
 
-            int stripY = (int)card.yMax + stripGap;
-            BuildStripPainter.Draw(skin, weapons, stats, centerX, stripY, textScale, canvas.Width);
-            PixelGui.DrawTextCentered(skin.FontPlain, Hint, centerX, stripY + stripH + hintGap, textScale);
+            int gridX = centerX - BuildGridPainter.Width(gridScale) / 2;
+            int gridY = (int)card.yMax + stripGap;
+            var mouse = Event.current.mousePosition;
+            int slot = BuildGridPainter.DrawWeaponRow(skin, weapons, gridX, gridY, gridScale, mouse, out var weaponTile);
+            var relic = BuildGridPainter.DrawRelicGrid(skin, stats, gridX, gridY + BuildGridPainter.RowPitch(skin, gridScale), gridScale, relicRows, mouse, out var relicTile);
+            PixelGui.DrawTextCentered(skin.FontPlain, Hint, centerX, gridY + gridH + hintGap, textScale);
+
+            // 툴팁은 다 그린 뒤 맨 마지막에 — 이웃 타일 위로 뜬다.
+            if (slot >= 0)
+            {
+                var w = weapons.Slots[slot];
+                tipFacts.Clear();
+                tipNotes.Clear();
+                ItemInfoText.WeaponFacts(w.Data, w.Level, slot, stats, tipFacts);
+                ItemInfoText.WeaponNotes(w.Data, tipNotes);
+                TooltipPainter.Draw(skin, canvas, weaponTile, ItemInfoText.WeaponTitle(w.Data), tipFacts, tipNotes);
+            }
+            else if (relic != null)
+            {
+                tipFacts.Clear();
+                tipNotes.Clear();
+                ItemInfoText.RelicFacts(relic, stats.CountOf(relic), tipFacts);
+                ItemInfoText.RelicNotes(relic, tipNotes);
+                TooltipPainter.Draw(skin, canvas, relicTile, ItemInfoText.RelicTitle(relic), tipFacts, tipNotes);
+            }
         }
 
         // RowLabels와 같은 순서의 값.

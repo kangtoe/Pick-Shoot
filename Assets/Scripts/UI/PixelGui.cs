@@ -77,7 +77,7 @@ namespace PickShoot
             DrawSpritePart(sprite, screenRect, 0f, 0f, 1f, 1f);
         }
 
-        // 무기 스프라이트 밑의 작은 판 (HUD 무기 줄·빌드 띠). 크기는 텍셀 단위 고정 — 16텍셀 무기 그림이 여백을 두고 들어간다.
+        // 무기 스프라이트 밑의 작은 판 (HUD 무기 줄). 크기는 텍셀 단위 고정 — 16텍셀 무기 그림이 여백을 두고 들어간다. 무기·유물 타일(ItemTilePainter)은 같은 그리기를 정사각 r로 쓴다.
         // 네 귀를 1텍셀씩 깎은 외곽선 색 사각형 위에 바탕색을 채운다. 귀를 깎은 모양은 가로로 긴 사각형과 세로로 긴 사각형을 겹쳐 만든다 —
         // 겹쳐 그리므로 비정수 배율에서도 조각 사이에 틈이 없다. 시트의 작은 판 조각은 흰 테두리·리벳이 총 그림과 겹쳐 어수선해 쓰지 않는다 (DEVELOPMENT §2).
         public const int WeaponPlateWidthTexels = 28;
@@ -86,10 +86,18 @@ namespace PickShoot
 
         public static void DrawWeaponPlate(PixelUiSkin skin, Rect r, int scale)
         {
+            DrawWeaponPlate(skin, r, scale, Color.white);
+        }
+
+        // tint를 색에 곱한다 — 빈 슬롯 타일(ItemTilePainter)이 어둡게 깐 판에 쓴다.
+        public static void DrawWeaponPlate(PixelUiSkin skin, Rect r, int scale, Color tint)
+        {
             int o = WeaponPlateOutlineTexels * scale;
-            FillRect(new Rect(r.x + scale, r.y, r.width - 2 * scale, r.height), skin.WeaponPlateOutline);
-            FillRect(new Rect(r.x, r.y + scale, r.width, r.height - 2 * scale), skin.WeaponPlateOutline);
-            FillRect(new Rect(r.x + o, r.y + o, r.width - 2 * o, r.height - 2 * o), skin.WeaponPlateFill);
+            Color outline = skin.WeaponPlateOutline * tint;
+            Color fill = skin.WeaponPlateFill * tint;
+            FillRect(new Rect(r.x + scale, r.y, r.width - 2 * scale, r.height), outline);
+            FillRect(new Rect(r.x, r.y + scale, r.width, r.height - 2 * scale), outline);
+            FillRect(new Rect(r.x + o, r.y + o, r.width - 2 * o, r.height - 2 * o), fill);
         }
 
         // 좌우 반전. 화면 오른쪽에 거울상으로 놓는 조각(HUD 무기 스프라이트)용 — UV의 가로 구간을 뒤집어 넘긴다.
