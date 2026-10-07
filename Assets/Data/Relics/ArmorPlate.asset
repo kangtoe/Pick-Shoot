@@ -15,7 +15,7 @@ MonoBehaviour:
   displayName: Armor Plate
   grade: 0
   icon: {fileID: 7000000000000000203, guid: ee4bfb0703344a5e8da5953c07a9d484, type: 3}
-  description: MAX HP +3 PER STACK - THE NEW HP IS FILLED
+  description: 
   modifiers:
     damagePercent: 0
     moveSpeedPercent: 0

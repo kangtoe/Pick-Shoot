@@ -53,17 +53,12 @@ namespace PickShoot
             return Mathf.Min(data.BurstCount, shotsInMagazine);
         }
 
-        // 사격 차례 사이의 간격 — 쿨다운에 점사 소요 시간(점사 간격 × (사격 수 − 1))을 더한 값. 카드의 RPM이 이 값으로 분당 사격 차례 수를 센다.
-        // 레벨은 점사 사격 수(탄창이 빌 때까지 쏘는 무기)에만 영향을 준다 — 쿨다운 자체는 레벨과 무관하다.
-        public static float TriggerIntervalAtLevel(WeaponData data, int level)
+        // 한 번의 사격에 나가는 탄환 수 = 동시 발사 수(산탄), 그 레벨의 탄창이 상한. 카드의 DMG가 'X발수'로 보여준다.
+        // 점사 수는 곱하지 않는다 (2026-10-07) — 카드에 BURST 줄이 따로 서므로 곱하면 같은 수가 두 번 들어가고, 블래스터 고레벨의
+        // "108X24" 같은 값은 카드 폭을 넘긴다.
+        public static int BulletsPerShotAtLevel(WeaponData data, int level)
         {
-            return data.Cooldown + (ShotsPerTriggerAtLevel(data, level) - 1) * data.BurstInterval;
-        }
-
-        // 한 사격 차례에 나가는 탄환 수 = 동시 발사 수 × 점사 수, 그 레벨의 탄창이 상한. 카드의 DMG가 'X발수'로 보여준다.
-        public static int BulletsPerTriggerAtLevel(WeaponData data, int level)
-        {
-            return Mathf.Min(data.ProjectilesPerShot * data.BurstCount, MaxAmmoAtLevel(data, level));
+            return Mathf.Min(data.ProjectilesPerShot, MaxAmmoAtLevel(data, level));
         }
 
         public Weapon(WeaponData data)

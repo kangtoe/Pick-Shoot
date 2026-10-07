@@ -26,7 +26,7 @@ namespace PickShoot
         // 유물을 얻어 총계가 바뀔 때마다 — 총계가 새 값으로 바뀐 뒤.
         public event System.Action Changed;
 
-        // 같은 유물을 몇 개 가졌나. 카드의 "OWNED n → n+1"이 쓴다.
+        // 같은 유물을 몇 개 가졌나. 카드·타일의 보유 수 배지(`X n`)가 쓴다.
         public int CountOf(RelicData relic)
         {
             if (relic == null)

@@ -15,7 +15,7 @@ MonoBehaviour:
   displayName: Power Core
   grade: 0
   icon: {fileID: 7000000000000000201, guid: ee4bfb0703344a5e8da5953c07a9d484, type: 3}
-  description: ALL WEAPON DAMAGE +10% PER STACK
+  description: 
   modifiers:
     damagePercent: 10
     moveSpeedPercent: 0

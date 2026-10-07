@@ -15,7 +15,7 @@ MonoBehaviour:
   displayName: Retriever
   grade: 0
   icon: {fileID: 7000000000000000206, guid: ee4bfb0703344a5e8da5953c07a9d484, type: 3}
-  description: BULLET MAGNET PULL SPEED +10% PER STACK
+  description: 
   modifiers:
     damagePercent: 0
     moveSpeedPercent: 0

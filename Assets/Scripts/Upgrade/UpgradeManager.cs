@@ -106,8 +106,6 @@ namespace PickShoot
                     throw new System.Exception($"[PickShoot] UpgradeManager.relicPool[{i}] '{relicPool[i].DisplayName}'에 Icon 미할당. 유물 카드 전시용 sprite 필요.");
                 if (relicPool[i].Modifiers.IsZero)
                     throw new System.Exception($"[PickShoot] UpgradeManager.relicPool[{i}] '{relicPool[i].DisplayName}'의 수정치가 전부 0 — 효과 없는 유물.");
-                if (string.IsNullOrEmpty(relicPool[i].Description))
-                    throw new System.Exception($"[PickShoot] UpgradeManager.relicPool[{i}] '{relicPool[i].DisplayName}'에 description이 비어 있음. 타일 툴팁의 설명 줄에 필요 (Relics §2).");
             }
             if (skin == null)
                 throw new System.Exception("[PickShoot] UpgradeManager.skin 미할당. PixelUiSkin 자산(Assets/Data/UI) 필요.");
@@ -313,7 +311,7 @@ namespace PickShoot
                     var w = weapons.Slots[slot];
                     tipTitle = ItemInfoText.WeaponTitle(w.Data);
                     tipAnchor = tileRect;
-                    ItemInfoText.WeaponFacts(w.Data, w.Level, slot, stats, tipFacts);
+                    ItemInfoText.WeaponFacts(w.Data, w.Level, stats, tipFacts);
                     ItemInfoText.WeaponNotes(w.Data, tipNotes);
                 }
             }
@@ -361,13 +359,13 @@ namespace PickShoot
             switch (option.Kind)
             {
                 case UpgradeKind.AcquireWeapon:
-                    ItemInfoText.WeaponFacts(option.AcquireData, 1, -1, stats, facts);
+                    ItemInfoText.WeaponFacts(option.AcquireData, 1, stats, facts);
                     ItemInfoText.WeaponNotes(option.AcquireData, notes);
                     return ItemInfoText.WeaponTitle(option.AcquireData);
                 case UpgradeKind.LevelUp:
                 {
                     var w = weapons.Slots[option.TargetSlotIndex];
-                    ItemInfoText.WeaponFacts(w.Data, w.Level + 1, option.TargetSlotIndex, stats, facts);
+                    ItemInfoText.WeaponFacts(w.Data, w.Level + 1, stats, facts);
                     ItemInfoText.WeaponNotes(w.Data, notes);
                     return ItemInfoText.WeaponTitle(w.Data);
                 }

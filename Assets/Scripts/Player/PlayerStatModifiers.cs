@@ -76,28 +76,37 @@ namespace PickShoot
             return stat != PlayerStat.MaxHp && stat != PlayerStat.Regen;
         }
 
-        // 카드 줄의 항목 이름. 시트 글꼴(A-Z)로 짧게 — 배율 스탯은 5글자(54텍셀) 이하여야 값 열("990%" → 화살표 → "1000%")과 함께 카드 안쪽 폭(7타일)에
-        // 들어간다 (UpgradeCardPainter가 넘치면 예외). 그래서 회수 범위는 RANGE, 능력 리차지는 SKILL — RECHARGE·MAGNET은 중첩이 쌓이면 넘친다.
+        // 카드 줄의 항목 이름. 줄임말 대신 읽어서 바로 아는 말로 둔다 (2026-10-07, 그전엔 DMG·SPEED·RANGE·PULL·SKILL 5글자) — 유물 카드가
+        // 설명 문구 없이 이 줄 하나로 효과를 말하기 때문이다 (Relics §2). 폭은 가장 긴 PICKUP RANGE·PICKUP SPEED가 244px이고, 값 열에 세 자리
+        // 퍼센트("+100%" 108px)와 사이 공백을 더해도 카드 안쪽 폭 368px(7타일) 안이다. 더 긴 이름(WEAPON DAMAGE·DASH RECHARGE)은 넘쳐서 뺐고,
+        // 넘치면 UpgradeCardPainter가 예외로 알린다.
         public static string Label(PlayerStat stat)
         {
             switch (stat)
             {
-                case PlayerStat.Damage: return "DMG";
-                case PlayerStat.MoveSpeed: return "SPEED";
+                case PlayerStat.Damage: return "GUN DAMAGE";
+                case PlayerStat.MoveSpeed: return "MOVE SPEED";
                 case PlayerStat.MaxHp: return "MAX HP";
-                case PlayerStat.Regen: return "REGEN";
-                case PlayerStat.PickupRadius: return "RANGE";
-                case PlayerStat.PickupSpeed: return "PULL";
-                case PlayerStat.Recharge: return "SKILL";
+                case PlayerStat.Regen: return "HP REGEN";
+                case PlayerStat.PickupRadius: return "PICKUP RANGE";
+                case PlayerStat.PickupSpeed: return "PICKUP SPEED";
+                case PlayerStat.Recharge: return "RECHARGE";
                 default: throw new System.Exception($"[PickShoot] PlayerStatModifiers.Label: 알 수 없는 스탯 {stat}.");
             }
         }
 
-        // 카드 값 표기: 배율은 "10%", 가산은 "3". 부호는 음수(유니크 유물의 패널티)에만 — "+"를 늘 붙이면 값 열이 넓어져 100중첩 전에 카드를 넘친다.
-        // 0도 "0%"·"0"으로 적는다 — 아직 없는 스탯의 "지금" 열.
+        // 총계 표기: 배율은 "10%", 가산은 "3". 부호는 음수(유니크 유물의 패널티)에만 — "+"를 늘 붙이면 값 열이 넓어져 100중첩 전에 넘친다.
+        // 0도 "0%"·"0"으로 적는다. 일시정지·디버그 창의 스탯 총계가 쓴다.
         public static string Format(PlayerStat stat, int value)
         {
             return IsPercent(stat) ? $"{value}%" : value.ToString();
+        }
+
+        // 수정치 표기: 그 유물이 더하는 값이라 양수에도 부호를 붙인다 ("+10%"·"+3"). 유물 카드와 타일 툴팁이 쓴다 (2026-10-07).
+        public static string FormatSigned(PlayerStat stat, int value)
+        {
+            string sign = value >= 0 ? "+" : "";
+            return IsPercent(stat) ? $"{sign}{value}%" : sign + value;
         }
     }
 }
