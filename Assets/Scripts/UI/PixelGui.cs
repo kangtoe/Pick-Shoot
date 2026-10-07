@@ -62,7 +62,6 @@ namespace PickShoot
         {
             return new CanvasScope(Screen.height / (float)DesignHeight);
         }
-
         // 단색 사각형. 시트 조각 없이 평면 색으로 칠하는 면(머리 위 게이지 등)에 쓴다.
         public static void FillRect(Rect screenRect, Color color)
         {
@@ -86,12 +85,24 @@ namespace PickShoot
 
         public static void DrawWeaponPlate(PixelUiSkin skin, Rect r, int scale)
         {
+            DrawWeaponPlate(skin, r, scale, Color.white);
+        }
+
+        // tint는 판 색에 곱한다. 단색 사각형은 GUI.color를 타지 않으므로, 어둡게 보일 판(리롤 버튼의 0회)은 막으로 덮는 대신 색을 곱한다 — 직사각형 막은
+        // 네 귀의 깎인 자리까지 덮어 모서리가 각져 보였다 (2026-10-08).
+        public static void DrawWeaponPlate(PixelUiSkin skin, Rect r, int scale, Color tint)
+        {
             int o = WeaponPlateOutlineTexels * scale;
-            Color outline = skin.WeaponPlateOutline;
-            Color fill = skin.WeaponPlateFill;
-            FillRect(new Rect(r.x + scale, r.y, r.width - 2 * scale, r.height), outline);
-            FillRect(new Rect(r.x, r.y + scale, r.width, r.height - 2 * scale), outline);
-            FillRect(new Rect(r.x + o, r.y + o, r.width - 2 * o, r.height - 2 * o), fill);
+            FillPlateShape(r, scale, skin.WeaponPlateOutline * tint);
+            FillRect(new Rect(r.x + o, r.y + o, r.width - 2 * o, r.height - 2 * o), skin.WeaponPlateFill * tint);
+        }
+
+        // 네 귀를 1텍셀씩 깎은 사각형을 한 색으로 채운다 — 판의 외곽선과, 그 바깥에 두르는 흰 선(리롤 버튼)이 쓴다. 가로로 긴 사각형과 세로로 긴 사각형을
+        // 겹쳐 그리므로 불투명 색만 쓴다 (반투명이면 겹친 데가 두 번 칠해진다).
+        public static void FillPlateShape(Rect r, int scale, Color color)
+        {
+            FillRect(new Rect(r.x + scale, r.y, r.width - 2 * scale, r.height), color);
+            FillRect(new Rect(r.x, r.y + scale, r.width, r.height - 2 * scale), color);
         }
 
         // 좌우 반전. 화면 오른쪽에 거울상으로 놓는 조각(HUD 무기 스프라이트)용 — UV의 가로 구간을 뒤집어 넘긴다.
