@@ -3,11 +3,11 @@
 `PixelGui`로 그리는 픽셀 UI(HUD·일시정지·보상 화면·카드·타일·툴팁)의 배치·배율·문구를 바꿀 때, 에디터에 넣기 전에 **실제 시트 조각을 실제 규칙으로 합성한 그림**으로 안을 고르는 절차. Pick&Shoot 전용이다 — 공통 재료(시트 `.meta` 디코드, 컴파일 검사, 목업 원칙)는 `OfflineVerification.md`에 있고, 이 문서의 코드 조각은 그 문서 §3 조각 **뒤에 이어 붙여** 실행한다.
 
 - 검증: 2026-10-07 아래 조각으로 두 글꼴 44글리프 전부 디코드, 9-slice 패널과 글자 합성 확인.
-- 적용 예: 2026-10-02 일시정지 화면 세 안, 2026-10-06 아이템 타일 배지 네 안과 HUD 네 안(`Recordings/*_mockup_2026-10-06.png`). 결정은 `DEVELOPMENT.md` §2.5와 `Docs/Roadmap.md`에 적혀 있다.
+- 적용 예: 2026-10-02 일시정지 화면 세 안, 2026-10-06 아이템 타일 배지 네 안과 HUD 네 안(`Recordings/*_mockup_2026-10-06.png`). 결정은 `Docs/Systems/PixelArtUI.md`와 `Docs/Roadmap.md`에 적혀 있다.
 
 ## 1. 재현 규칙
 
-픽셀 UI는 세로 1080px(270텍셀 × 4) 기준 캔버스에 정수 배율로 배치하고 캔버스 전체를 화면 높이에 비례해 축소·확대한다(`DEVELOPMENT.md` §2.5). 목업도 같은 좌표계를 쓴다.
+픽셀 UI는 세로 1080px(270텍셀 × 4) 기준 캔버스에 정수 배율로 배치하고 캔버스 전체를 화면 높이에 비례해 축소·확대한다(`Docs/Systems/PixelArtUI.md` §1). 목업도 같은 좌표계를 쓴다.
 
 - 캔버스 1920×1080. 배율은 패널 4·글자와 HUD 2·카드 무기 이름 3. 여백·간격·타일 수 같은 배치 상수는 해당 Painter(`GameHud`·`BuildGridPainter`·`ItemTilePainter`·`UpgradeCardPainter`·`TooltipPainter`)에서 **읽어서** 그대로 쓴다.
 - 720p는 1080p 캔버스를 **2/3로 NEAREST 축소**한 것이 실제에 가장 가깝다. 배율 1 글자·1텍셀 테두리가 빠지는 문제는 여기서만 보이므로, 확인할 부분을 크롭해 실제 크기와 2배 확대 둘 다 둔다.
@@ -82,7 +82,7 @@ cv.convert('RGB').save('Recordings/pause_mockup_2026-10-07.png')
 cv.resize((1280, 720), Image.NEAREST).convert('RGB').save('Recordings/pause_mockup_2026-10-07_720.png')
 ```
 
-- 산출물은 `Recordings/<주제>_mockup_<YYYY-MM-DD>[_vN].png`(git 무시). 고른 안과 버린 안의 이유, 파일명은 `DEVELOPMENT.md`(원칙이 바뀐 경우)나 `Docs/Roadmap.md`(진행 기록)에 적는다.
+- 산출물은 `Recordings/<주제>_mockup_<YYYY-MM-DD>[_vN].png`(git 무시). 고른 안과 버린 안의 이유, 파일명은 `Docs/Systems/PixelArtUI.md`(규칙이 바뀐 경우)나 `Docs/Roadmap.md`(진행 기록)에 적는다.
 - 스크립트는 저장소에 넣지 않는다. 다음에는 두 문서의 조각에서 다시 시작한다.
 
 ## 4. 문구 폭 사전 검증
@@ -99,6 +99,6 @@ cv.resize((1280, 720), Image.NEAREST).convert('RGB').save('Recordings/pause_mock
 |---|---|
 | 글자 간격이 코드보다 넓음 | `glyphLeft`·`glyphWidth` 크롭 생략(16텍셀 타일째 찍음) → §2 글자 규칙대로 |
 | 스킨 참조가 `.meta`에 없음(KeyError) | 시트를 다시 슬라이스해 `internalID`가 바뀜 → 에디터가 스킨을 다시 저장했는지 `git status` 확인 |
-| 시트에 없는 글자로 `ValueError` | 글꼴은 영문 대문자·숫자·`%+-!()/.`뿐 → 문구를 바꾸거나 `font_extra.png`에 글리프를 추가(`DEVELOPMENT.md` §2.5) |
-| 목업은 깨끗한데 에디터 720p에서 타일 사이 1px 틈 | 목업은 IMGUI의 쿼드별 반올림을 재현하지 않는다 → 틈은 코드에서 타일 변을 화면 픽셀에 맞춰 해결(`DEVELOPMENT.md` §2.5). 목업으로는 못 본다 |
+| 시트에 없는 글자로 `ValueError` | 글꼴은 영문 대문자·숫자·`%+-!()/.`뿐 → 문구를 바꾸거나 `font_extra.png`에 글리프를 추가(`Docs/Systems/PixelArtUI.md` §5) |
+| 목업은 깨끗한데 에디터 720p에서 타일 사이 1px 틈 | 목업은 IMGUI의 쿼드별 반올림을 재현하지 않는다 → 틈은 코드에서 타일 변을 화면 픽셀에 맞춰 해결(`UnityPrinciples.md` §7). 목업으로는 못 본다 |
 | 1080p에서는 좋은데 720p에서 획이 빠짐 | 배율 1 글자·1텍셀 선 → 720p 크롭을 반드시 같이 보고, 배율 2 이상이나 단색 사각형으로 바꾼다 |
