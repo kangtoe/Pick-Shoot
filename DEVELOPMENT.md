@@ -15,7 +15,7 @@
 
 ## 2. Unity 원칙
 
-1. **에디터 작업 자동화** — Unity Editor 수동 작업 대신 일회성 자동화 스크립트로 처리한다. **사용 후 스크립트는 삭제**한다(장기 도구만 보존). 장기 보존하는 플레이 모드 디버그 도구는 `Assets/Editor`의 `DebugToolsWindow` 한 창(메뉴 `PickShoot/Debug Tools`)에 모은다 — 씬 참조 없이 플레이 중인 오브젝트를 찾아 조작하므로 씬·빌드에 흔적을 남기지 않는다. 플레이 영상 자동 녹화 도구(`Assets/Editor/PlayRecorder.cs`·`PickShootPlayDriver.cs`, 메뉴 `PickShoot/Record Play`)는 예외로 보존한다 — 2026-09-29 아트 전면 교체 전후를 같은 봇·해상도·길이로 찍어 비교하기 위해서이며, 비교가 끝나면 삭제 여부를 정한다. 영상은 `Recordings/`(git 무시)에 날짜와 HEAD 짧은 해시를 파일명에 넣어 남긴다. 절차는 `Docs/Guides/AutoPlayRecording.md`.
+1. **에디터 작업 자동화** — Unity Editor 수동 작업 대신 일회성 자동화 스크립트로 처리한다. **사용 후 스크립트는 삭제**한다(장기 도구만 보존). 장기 보존하는 플레이 모드 디버그 도구는 `Assets/Editor`의 `DebugToolsWindow` 한 창(메뉴 `PickShoot/Debug Tools`)에 모은다 — 씬 참조 없이 플레이 중인 오브젝트를 찾아 조작하므로 씬·빌드에 흔적을 남기지 않는다. 플레이 영상 자동 녹화 도구(`Assets/Editor/PlayRecorder.cs`·`PickShootPlayDriver.cs`, 메뉴 `PickShoot/Record Play`)는 예외로 보존한다 — 2026-09-29 아트 전면 교체 전후를 같은 봇·해상도·길이로 찍어 비교하기 위해서이며, 비교가 끝나면 삭제 여부를 정한다. 영상은 `Recordings/`(git 무시)에 날짜와 HEAD 짧은 해시를 파일명에 넣어 남긴다. 절차는 `Docs/Guides/AutoPlayRecording.md`. 에디터를 열지 않고 하는 사전 검증은 두 문서로 나눈다 — Unity 번들 Roslyn 컴파일 검사·스텁 하니스로 로직 실행·스프라이트 시트 디코드는 `Docs/Guides/OfflineVerification.md`(프로젝트 비의존, 다른 프로젝트에 복사해 씀), 그 위에 `PixelUiSkin` 조각으로 UI 안을 합성해 비교하는 픽셀 UI 목업과 문구 폭 검사(결과 PNG는 `Recordings/`에 날짜 이름으로)는 `Docs/Guides/PixelUiMockup.md`.
 2. **데이터 관리** — 전역 상수 클래스 또는 ScriptableObject(SO)로.
 3. **네임스페이스** — 프로젝트 전체 단일 `PickShoot` 사용. 폴더는 자유롭게 구성하되 네임스페이스와 매핑하지 않는다. 클래스명 자체가 기능을 드러내도록 명명하고, Unity 표준 타입과 이름 충돌하는 심볼은 접두/접미로 회피 (예: 클래스 `Bullet`이 네임스페이스와 겹치지 않도록 단일 네임스페이스 채택).
 4. **데이터 위치** — 데이터는 ScriptableObject 자산이 SSOT. 구체적인 자산 경로/구조는 실제 데이터가 생길 때 이 문서에 명시.
