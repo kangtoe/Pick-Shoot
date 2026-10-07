@@ -11,12 +11,16 @@ namespace PickShoot
     // 유물, 짝수는 무기 (GDD §3.4). 한 화면에 섞지 않는다. 무기 개조(Relics §5 2단계)가 들어오면 다섯 주기로 바뀐다.
     // 게임 흐름 제어를 위해 Time.timeScale=0로 일시정지, 선택 시 원복. WaveManager가 코루틴으로 호출.
     // 카드는 IMGUI 위에 PixelUiSkin(Kenney Interface 시트)으로 그린다. 글꼴이 A-Z 0-9만 있어 UI 문구는 영문 대문자.
-    // 카드 밑의 리롤 버튼은 레벨 업(PlayerExperience)으로 적립한 리롤이 남아 있을 때 3장을 다시 뽑는다 — 보이는 카드 중 한 장은 반드시 바뀐다 (Weapons §3).
+    // 배치 (2026-10-07): 제목 `WAVE N CLEAR`(아웃라인 글꼴, 패널 배율)와 그 아래 부제가 카드 묶음의 왼쪽 끝 위에, 리롤 버튼이 오른쪽 끝 위에 — 둘이 한 띠를 이루고
+    // 그 아래 카드 세 장, 카드 밑에 빌드 두 줄(BuildGridPainter — `WEAPONS (7/12)` 보유 자루, `RELICS (5)` 보유 유물, 타일 배율 3)이 카드 왼쪽 끝에 맞춰 선다.
+    // 그전에는 빨간 배너·부제·카드·리롤 버튼·빌드 한 줄을 세로로 쌓아 1060px를 썼고, 빌드는 그 화면 종류의 한 줄뿐이었다 — 제목과 버튼을 위 띠로 올려 번 자리에
+    // 무기·유물 줄을 늘 함께 둔다 (유물 화면에서도 보유 자루를, 무기 화면에서도 보유 유물을 본다). 배너 패널은 뺐다 — 패널 배율 배너(128px)면 둘째 줄이 16px 넘친다.
+    // 띠·줄을 캔버스 가장자리가 아니라 카드 묶음에 맞추므로 화면비가 달라도 한 덩어리로 읽힌다. 안은 실제 시트로 목업해 골랐다
+    // (Recordings/reward_layout_mockup_2026-10-07.png, 절차는 Docs/Guides/PixelUiMockup.md).
+    // 리롤 버튼은 레벨 업(PlayerExperience)으로 적립한 리롤이 남아 있을 때 3장을 다시 뽑는다 — 보이는 카드 중 한 장은 반드시 바뀐다 (Weapons §3).
     // 버튼에는 남은 적립 횟수를 적는다. 쓰지 않은 횟수는 다음 카드 화면으로 이어진다.
     // 카드는 (다시) 뽑힐 때마다 화면 아래 밖에서 차례로 튀어 올라 스프링처럼 흔들리며 멎는다 — 멎기 전에는 카드도 버튼도 입력을 받지 않는다.
-    // 카드 밑(리롤 버튼 아래)에 이 화면 종류의 빌드 한 줄(BuildGridPainter — 제목 `WEAPONS (7/12)`·`RELICS (5)` 아래 무기 화면은 보유 자루, 유물 화면은 보유 유물)을
-    // 타일 배율 3으로 둔다. 타일과 카드 전시 칸에
-    // 마우스를 올리면 툴팁(TooltipPainter)이 뜬다 — 카드·버튼을 다 그린 뒤 맨 마지막에 (2026-10-06).
+    // 타일과 카드 전시 칸에 마우스를 올리면 툴팁(TooltipPainter)이 뜬다 — 카드·버튼을 다 그린 뒤 맨 마지막에 (2026-10-06).
     public class UpgradeManager : MonoBehaviour
     {
         [SerializeField] PlayerWeapons weapons;
@@ -43,19 +47,34 @@ namespace PickShoot
         const float WobbleDecay = 2.5f;
 
         // 글꼴에 있는 문자(A-Z 0-9 % + - 공백)만 써야 한다. 없는 문자는 PixelGui가 예외로 알린다.
-        const string RerollLabel = "REROLL";
-        const int ButtonPaddingTexels = 8;   // 버튼 패널 테두리 → 글자
-        const int SubtitleGapTexels = 2;     // 배너 아래 안내 문구("CHOOSE A CARD")까지 간격 (패널 텍셀)
-        // 부제 → 카드, 카드 → 리롤 버튼, 버튼(없으면 카드) → 빌드 줄 (패널 텍셀). 블록이 세로 1080 중 1060px를 쓴다 — 그전엔 부제·카드 간격이 16(한 타일)이었는데
-        // 빌드 줄(제목 줄 40 + 타일 84 = 124px)을 넣으며 줄였다 (2026-10-06).
-        const int CardGapTexels = 8;
-        const int ButtonGapTexels = 6;
-        const int StripGapTexels = 2;
+        // 리롤 버튼은 아이템 타일(ItemTilePainter)과 같은 꼴 — 단색 판 위에 글자 `R`(뒤에 리롤 아이콘으로 바꿀 자리), 아래쪽 띠에 남은 적립 횟수. 그림이 띠 위 칸의
+        // 가운데(버튼 중앙보다 위)에 오는 것도 타일과 같다 (2026-10-08. 2026-10-07엔 회색 패널 `REROLL (2)` 한 줄 → `R` + 아래로 늘어뜨린 수 배지였다. 회색 패널에
+        // 띠를 넣는 안은 테두리 6텍셀이 칸을 먹거나 띠가 테두리를 잘라 뺐다 — Recordings/reroll_band_mockup_2026-10-08.png).
+        const string RerollLabel = "R";
+        // 버튼의 배율 — 일시정지 화면 격자의 타일과 같은 패널 배율 4, 한 변은 타일과 같은 28텍셀(112px). 띠(96px)보다 커서 띠 세로 가운데에 두면 위아래로 8px씩
+        // 나온다 — 아래쪽은 카드 간격(72px)으로. 글자 배율 64px → 배율 3·32텍셀 96px → 여기로 두 번 키웠다 (2026-10-08).
+        // `R`은 일반 글꼴 버튼 배율(획 12텍셀 = 48px, 띠 위 칸 68px) — 아웃라인 글꼴로 잠시 바꿨다가 되돌렸고, 배율 5(획 60px, 칸에 드는 최대)로 키웠다가
+        // 약간 작게 4로 (2026-10-08). 아이콘으로 바꿀 때도 버튼 배율 (16텍셀 = 64px).
+        // 모서리는 다른 판과 같은 1텍셀 깎기 — 2단 깎기 안도 목업했으나 판을 다 바꿔야 해서 두었다 (Recordings/reroll_corner_mockup_2026-10-08.png).
+        const int RerollButtonScale = PixelGui.PanelScale;
+        const int RerollLabelScale = PixelGui.PanelScale;
+        // 버튼 바깥을 두르는 흰 선의 두께(텍셀) — 카드(9-slice 패널)의 바깥 흰 선과 같은 꼴. 인벤토리 타일에는 없고 누르는 것에만 둔다 (2026-10-08).
+        // 판은 그 안쪽 26텍셀(104px)이라 띠 위 칸은 60px — `R`(48px)이 든다.
+        const int RerollWhiteLineTexels = 1;
+        // 남은 리롤이 없을 때 판·띠·글자에 곱하는 색. 판·띠는 단색 사각형이라 GUI.color를 타지 않아 색을 직접 곱한다 — 검은 막으로 덮었더니 직사각형 막이
+        // 네 귀의 깎인 자리까지 덮어 모서리가 각져 보였다 (2026-10-08).
+        static readonly Color DisabledTint = new Color(0.5f, 0.5f, 0.5f, 1f);
+        // 위 띠(제목·부제) → 카드, 카드 → 빌드 줄 (패널 텍셀), 무기 줄 → 유물 제목 (글자 텍셀, 일시정지 화면의 섹션 간격보다 좁다 — 세로가 빠듯하다).
+        // 카드 위로 솟는 배지(UpgradeCardPainter.BadgeOverhang, 32px)가 띠에 닿지 않게 카드 간격은 그보다 넓어야 한다 — 10텍셀(40px)이었다가 카드를
+        // 9타일로 낮추며 번 64px 중 32를 여기에 더해 카드를 띠에서 떼었다 (2026-10-08).
+        // 카드 → 빌드 줄은 2텍셀(8px)이었다가 6(24px)으로 — 줄이 카드에 붙어 보였고, 호버 테두리가 카드 밖으로 4px 나온다 (2026-10-08).
+        // 블록 = 띠 96 + 72 + 카드 576 + 24 + 줄 124 × 2 + 16 = 1032px — 세로 1080에서 위아래 24px 남는다.
+        const int CardGapTexels = 18;
+        const int StripGapTexels = 6;
+        const int SectionGapTexels = 8;
         // 빌드 줄의 타일 배율. 글자 배율(2, 56px)에서는 레벨 배지 `LV5`(글자 배율 2로 64px)가 타일보다 넓어 이웃 배지와 붙고, 패널 배율(4, 112px)은 세로가
         // 없다. 카드의 무기 이름과 같은 중간 배율 3(84px) — 배지가 양옆 10px를 남기고 들어간다.
         const int StripTileScale = 3;
-        const int HoverLiftTexels = 4;       // 카드(UpgradeCardPainter)와 같은 텍셀 수. 버튼은 글자 배율이라 화면에서는 절반.
-        static readonly Color DisabledTint = new Color(0.5f, 0.5f, 0.5f, 1f);
 
         // 이번 카드 화면의 후보 전체(유물 화면은 유물 풀 전체, 무기 화면은 획득 + 레벨업, 순서 고정). 처음 카드도 리롤도 여기서 뽑는다.
         List<UpgradeOption> candidates;
@@ -233,98 +252,85 @@ namespace PickShoot
 
             // 카드 크기는 고정 (UpgradeCardPainter). 어떤 조합이 나와도 세 장이 같은 크기·자리에 놓인다.
             var cardSize = UpgradeCardPainter.CardSize(skin, scale);
+            int gap = tile;   // 카드 사이
+            int totalW = currentCards.Length * cardSize.x + (currentCards.Length - 1) * gap;
+            int centerX = canvas.Width / 2;
+            // 카드 묶음의 좌우 끝 — 위 띠(제목·리롤 버튼)와 빌드 줄이 여기에 맞춰 선다.
+            int startX = centerX - totalW / 2;
+            int blockRight = startX + totalW;
 
             string title = $"WAVE {clearedWave} CLEAR";
             // 부제가 이 화면의 종류를 알린다 — 유물 화면은 RELIC, 무기 화면은 획득·레벨업이 섞이므로 CARD.
             string subtitle = rewardKind == RewardKind.Relic ? "CHOOSE A RELIC" : "CHOOSE A CARD";
-            int titleW = PixelGui.MeasureText(skin.FontOutlined, title, scale);
-            int bannerW = CeilToMultiple(titleW + 2 * tile, tile);
-            int bannerH = 2 * tile;
+            // 제목은 패널 없이 아웃라인 글꼴 패널 배율, 부제는 바로 아래 글자 배율 — 둘을 합친 것이 위 띠의 높이(96px)다.
+            int titleH = skin.FontOutlined.lineHeight * scale;
             int lineH = skin.FontPlain.lineHeight * textScale;
-            int gap = tile;   // 카드 사이
+            int headerH = titleH + lineH;
             int cardGap = CardGapTexels * scale;
-            int buttonGap = ButtonGapTexels * scale;
             int stripGap = StripGapTexels * scale;
+            int sectionGap = SectionGapTexels * textScale;
 
-            // 리롤 버튼은 일시정지 화면의 안내 패널과 같은 결: 글자 배율 회색 패널에 한 줄. 남은 적립 횟수를 괄호에 적는다.
+            // 리롤 버튼은 띠 오른쪽 끝의 정사각 타일 (일시정지 격자의 타일 크기).
             bool rerollOffered = RerollOffered;
-            string rerollText = $"{RerollLabel} ({RerollsLeft})";
-            int textTile = skin.TileSize * textScale;
-            int buttonPad = ButtonPaddingTexels * textScale;
-            int buttonW = CeilToMultiple(PixelGui.MeasureText(skin.FontPlain, rerollText, textScale) + 2 * buttonPad, textTile);
-            int buttonH = CeilToMultiple(lineH + 2 * buttonPad, textTile);
+            int buttonSize = ItemTilePainter.Size(RerollButtonScale);
 
-            // 빌드 줄은 배율 3 타일 한 줄 (BuildGridPainter).
+            // 빌드는 배율 3 타일 두 줄 — 무기 줄과 유물 줄, 각각 제목 줄 + 타일 한 줄 (BuildGridPainter).
             int stripScale = StripTileScale;
             BuildGridPainter.RequireFits(stripScale, canvas.Width);
-            // 빌드 줄 = 제목 줄 + 타일 한 줄.
-            int titleH = BuildGridPainter.TitleHeight(skin);
-            int stripH = titleH + BuildGridPainter.Height(skin, stripScale, 1);
+            int rowTitleH = BuildGridPainter.TitleHeight(skin);
+            int rowH = rowTitleH + BuildGridPainter.Height(skin, stripScale, 1);
+            int stripsH = rowH + sectionGap + rowH;
 
-            // 배너·부제·카드·리롤 버튼·빌드 줄 묶음을 화면 세로 중앙에 놓는다.
-            int subtitleGap = SubtitleGapTexels * scale;
-            int blockH = bannerH + subtitleGap + lineH + cardGap + cardSize.y;
-            if (rerollOffered) blockH += buttonGap + buttonH;
-            blockH += stripGap + stripH;
+            // 위 띠·카드·빌드 두 줄 묶음을 화면 세로 중앙에 놓는다. 리롤 버튼은 띠 안이라 높이에 들지 않는다.
+            int blockH = headerH + cardGap + cardSize.y + stripGap + stripsH;
             if (blockH > canvas.Height)
                 throw new System.Exception($"[PickShoot] UpgradeManager: 보상 화면 블록 높이 {blockH}px가 캔버스 {canvas.Height}px를 넘음. 간격을 줄일 것.");
             int blockY = (canvas.Height - blockH) / 2;
-            int centerX = canvas.Width / 2;
 
-            var banner = new Rect(centerX - bannerW / 2, blockY, bannerW, bannerH);
-            PixelGui.DrawNineSlice(skin.PanelRed, banner, skin.TileSize, scale);
-            PixelGui.DrawTextCentered(skin.FontOutlined, title, centerX,
-                blockY + (bannerH - skin.FontOutlined.lineHeight * scale) / 2, scale);
-            PixelGui.DrawTextCentered(skin.FontPlain, subtitle, centerX, blockY + bannerH + subtitleGap, textScale);
+            PixelGui.DrawText(skin.FontOutlined, title, startX, blockY, scale);
+            PixelGui.DrawText(skin.FontPlain, subtitle, startX, blockY + titleH, textScale);
 
-            int cardsY = blockY + bannerH + subtitleGap + lineH + cardGap;
-            int totalW = currentCards.Length * cardSize.x + (currentCards.Length - 1) * gap;
-            int startX = centerX - totalW / 2;
+            int cardsY = blockY + headerH + cardGap;
             var mouse = Event.current.mousePosition;
             // 마지막 카드까지 멎기 전에는 카드도 버튼도 반응하지 않는다 — 날아가는 카드는 자리가 정해지지 않았고, 버튼 위를 지나간다.
             float sinceShown = Time.unscaledTime - cardsShownAt;
             bool interactable = sinceShown >= EnterTotalSeconds(currentCards.Length);
 
-            // 리롤 버튼과 빌드 줄은 카드보다 먼저 그린다 — 화면 아래에서 올라오는 카드가 그 위를 지나가므로 카드가 앞에 보여야 한다.
-            int belowCards = cardsY + cardSize.y;
+            // 리롤 버튼은 띠의 오른쪽 끝, 띠 세로 가운데 — 띠보다 커서 위아래로 나온다. 캔버스 위나 카드까지 닿으면 예외.
             if (rerollOffered)
             {
-                DrawRerollButton(new Rect(centerX - buttonW / 2, belowCards + buttonGap, buttonW, buttonH),
-                    rerollText, lineH, textScale, mouse, interactable);
-                belowCards += buttonGap + buttonH;
+                var button = new Rect(blockRight - buttonSize, blockY + (headerH - buttonSize) / 2, buttonSize, buttonSize);
+                if (button.y < 0 || button.yMax > cardsY)
+                    throw new System.Exception($"[PickShoot] UpgradeManager: 리롤 버튼({button.y}~{button.yMax}px)이 캔버스 위 또는 카드 위 끝({cardsY}px)을 넘음. RerollButtonScale이나 CardGapTexels를 맞출 것.");
+                DrawRerollButton(button, RerollButtonScale, mouse, interactable);
             }
 
+            // 빌드 줄은 카드보다 먼저 그린다 — 화면 아래에서 올라오는 카드가 그 위를 지나가므로 카드가 앞에 보여야 한다.
             // 툴팁은 하나만, 다 그린 뒤 맨 마지막에. 멎기 전에는 카드처럼 호버에 반응하지 않는다.
             string tipTitle = null;
             Rect tipAnchor = default;
             tipFacts.Clear();
             tipNotes.Clear();
-            int stripX = centerX - BuildGridPainter.Width(stripScale) / 2;
-            int stripY = belowCards + stripGap;
-            BuildGridPainter.DrawTitle(skin, rewardKind == RewardKind.Weapon ? BuildGridPainter.WeaponTitle(weapons) : BuildGridPainter.RelicTitle(stats), stripX, stripY);
-            stripY += titleH;
-            if (rewardKind == RewardKind.Weapon)
+            int stripY = cardsY + cardSize.y + stripGap;
+            BuildGridPainter.DrawTitle(skin, BuildGridPainter.WeaponTitle(weapons), startX, stripY);
+            int slot = BuildGridPainter.DrawWeaponRow(skin, weapons, startX, stripY + rowTitleH, stripScale, mouse, out var weaponTile);
+            stripY += rowH + sectionGap;
+            BuildGridPainter.DrawTitle(skin, BuildGridPainter.RelicTitle(stats), startX, stripY);
+            var relic = BuildGridPainter.DrawRelicGrid(skin, stats, startX, stripY + rowTitleH, stripScale, 1, mouse, out var relicTile);
+            if (interactable && slot >= 0)
             {
-                int slot = BuildGridPainter.DrawWeaponRow(skin, weapons, stripX, stripY, stripScale, mouse, out var tileRect);
-                if (interactable && slot >= 0)
-                {
-                    var w = weapons.Slots[slot];
-                    tipTitle = ItemInfoText.WeaponTitle(w.Data);
-                    tipAnchor = tileRect;
-                    ItemInfoText.WeaponFacts(w.Data, w.Level, stats, tipFacts);
-                    ItemInfoText.WeaponNotes(w.Data, tipNotes);
-                }
+                var w = weapons.Slots[slot];
+                tipTitle = ItemInfoText.WeaponTitle(w.Data);
+                tipAnchor = weaponTile;
+                ItemInfoText.WeaponFacts(w.Data, w.Level, stats, tipFacts);
+                ItemInfoText.WeaponNotes(w.Data, tipNotes);
             }
-            else
+            else if (interactable && relic != null)
             {
-                var relic = BuildGridPainter.DrawRelicGrid(skin, stats, stripX, stripY, stripScale, 1, mouse, out var tileRect);
-                if (interactable && relic != null)
-                {
-                    tipTitle = ItemInfoText.RelicTitle(relic);
-                    tipAnchor = tileRect;
-                    ItemInfoText.RelicFacts(relic, stats.CountOf(relic), tipFacts);
-                    ItemInfoText.RelicNotes(relic, tipNotes);
-                }
+                tipTitle = ItemInfoText.RelicTitle(relic);
+                tipAnchor = relicTile;
+                ItemInfoText.RelicFacts(relic, stats.CountOf(relic), tipFacts);
+                ItemInfoText.RelicNotes(relic, tipNotes);
             }
 
             for (int i = 0; i < currentCards.Length; i++)
@@ -378,20 +384,36 @@ namespace PickShoot
             }
         }
 
-        void DrawRerollButton(Rect button, string text, int lineH, int textScale, Vector2 mouse, bool interactable)
+        // scale은 버튼의 판·글자 배율. 띠의 숫자는 타일 배지와 같이 글자 배율이다.
+        void DrawRerollButton(Rect button, int scale, Vector2 mouse, bool interactable)
         {
-            // 할 수 있는 리롤이 없으면(0) 어둡게 남겨 둔다 — 카드 묶음이 움직이지 않고, 리롤이 있다는 것도 읽힌다.
             bool affordable = RerollAffordable;
             bool enabled = interactable && affordable;
             bool hovered = enabled && button.Contains(mouse);
-            var drawn = button;
-            if (hovered) drawn.y -= HoverLiftTexels * textScale;
-            GUI.color = affordable ? Color.white : DisabledTint;
-            PixelGui.DrawNineSlice(skin.PanelGrey, drawn, skin.TileSize, textScale);
-            PixelGui.DrawTextCentered(skin.FontPlain, text, (int)button.center.x, (int)drawn.y + ((int)button.height - lineH) / 2, textScale);
-            GUI.color = Color.white;
+            // 할 수 있는 리롤이 없으면(0) 판·띠·글자를 어둡게 — 카드 묶음이 움직이지 않고, 리롤이 있다는 것도 읽힌다.
+            var tint = affordable ? Color.white : DisabledTint;
+            GUI.color = tint;
+            // 호버 표시는 카드와 같이 테두리를 바깥으로 넓히기(UpgradeCardPainter.HoverOutlineTexels) — 버튼보다 한 텍셀 큰 흰 판 모양을 먼저 깐다. 선택 테두리(판보다
+            // 작은 배율 3이라 외곽선에 2px 틈)·안쪽 흰 외곽선(띠 폭이 상태마다 달라짐)·비정수 배율 키우기(텍셀이 갈려 깨져 보임)·들림을 거쳤다 (2026-10-08).
             if (hovered)
-                PixelGui.DrawNineSlice(skin.SelectionFrame, drawn, skin.TileSize, textScale);
+            {
+                int o = UpgradeCardPainter.HoverOutlineTexels * scale;
+                PixelGui.FillPlateShape(new Rect(button.x - o, button.y - o, button.width + 2 * o, button.height + 2 * o), scale, Color.white);
+            }
+            // 흰 선을 버튼 영역 가득 깔고 그 안쪽에 타일과 같은 그리기 (ItemTilePainter.Draw의 그림 자리에 글자): 판, 띠 위 칸의 가운데에 글자, 아래쪽 띠에 횟수.
+            int line = RerollWhiteLineTexels * scale;
+            PixelGui.FillPlateShape(button, scale, Color.white * tint);
+            var plate = new Rect(button.x + line, button.y + line, button.width - 2 * line, button.height - 2 * line);
+            PixelGui.DrawWeaponPlate(skin, plate, scale, tint);
+            int inset = ItemTilePainter.BadgeInsetTexels * scale;
+            int areaH = (int)plate.height - 2 * inset - ItemTilePainter.BadgeHeight(skin);
+            // 글자 줄 상자를 칸 가운데에 — 일반 글꼴은 글리프 상자가 줄 상자 가운데(위아래 capTop)라 획도 가운데다. 획이 칸을 넘으면 예외.
+            if (skin.FontPlain.capHeight * RerollLabelScale > areaH)
+                throw new System.Exception($"[PickShoot] UpgradeManager: 리롤 글자 획 {skin.FontPlain.capHeight * RerollLabelScale}px가 띠 위 칸 {areaH}px를 넘음. RerollLabelScale을 낮출 것.");
+            int lineH = skin.FontPlain.lineHeight * RerollLabelScale;
+            PixelGui.DrawTextCentered(skin.FontPlain, RerollLabel, (int)plate.center.x, (int)plate.y + inset + (areaH - lineH) / 2, RerollLabelScale);
+            ItemTilePainter.DrawBadge(skin, plate, scale, RerollsLeft.ToString(), tint);
+            GUI.color = Color.white;
             if (enabled && GUI.Button(button, GUIContent.none, GUIStyle.none))
                 Reroll();
         }
@@ -417,11 +439,6 @@ namespace PickShoot
         float EnterTotalSeconds(int cardCount)
         {
             return (cardCount - 1) * enterStaggerSeconds + enterTravelSeconds + enterWobbleSeconds;
-        }
-
-        static int CeilToMultiple(int value, int multiple)
-        {
-            return ((value + multiple - 1) / multiple) * multiple;
         }
     }
 }

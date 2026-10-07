@@ -16,11 +16,12 @@ namespace PickShoot
     // (BuildGridPainter. 처음엔 어두운 판으로 12칸을 채웠다가 같은 날 뺐다).
     // HUD는 이 타일을 쓰지 않는다 — HUD 배율(2)에서는 글자 배율이 타일 배율과 같아 배지가 타일 높이의 40%를 차지해 총을 덮고, 정사각 판은 한쪽 6자루 때
     // 줄 묶음을 화면 높이의 2/3까지 올린다 (목업 Recordings/hud_mockup_2026-10-06.png, 글자 배율 1은 720p에서 획이 빠져 제외).
+    // 보상 화면의 리롤 버튼(UpgradeManager)도 같은 판·띠로 그린다 — 그림 자리에 글자 `R`, 띠에 남은 횟수 (2026-10-08). 그래서 띠 그리기와 치수는 공개다.
     public static class ItemTilePainter
     {
         public const int SizeTexels = 28;
         // 타일 아래 변 → 배지 띠 (타일 배율 텍셀). 판 테두리 두께와 같아 띠가 테두리에 붙는다.
-        const int BadgeInsetTexels = 2;
+        public const int BadgeInsetTexels = 2;
         // 배지 글자(글리프 상자) 위아래의 띠 여백 (글자 배율 텍셀).
         const int BadgePadTexels = 1;
         // 글자를 띠 안에서 아래로 내리는 양 (글자 배율 텍셀). 띠와 아래 테두리가 같은 색이라 한 덩이로 보여, 띠 가운데에 두면 글자가 높아 보인다 (2026-10-06).
@@ -33,7 +34,7 @@ namespace PickShoot
         }
 
         // 배지 띠의 높이 (캔버스 픽셀): 대문자·숫자 글리프 상자 높이 + 위아래 여백.
-        static int BadgeHeight(PixelUiSkin skin)
+        public static int BadgeHeight(PixelUiSkin skin)
         {
             int ts = PixelGui.TextScale;
             return skin.FontPlain.capHeight * ts + 2 * BadgePadTexels * ts;
@@ -56,7 +57,14 @@ namespace PickShoot
             if (badge != null) DrawBadge(skin, tile, scale, badge);
         }
 
-        static void DrawBadge(PixelUiSkin skin, Rect tile, int scale, string text)
+        // tile은 판의 영역(어느 크기든), scale은 판의 배율. 띠는 판 아래 테두리 바로 위에 판의 폭으로.
+        public static void DrawBadge(PixelUiSkin skin, Rect tile, int scale, string text)
+        {
+            DrawBadge(skin, tile, scale, text, Color.white);
+        }
+
+        // tint는 띠 색에 곱한다 (판과 같이 어둡게 보일 때 — PixelGui.DrawWeaponPlate의 tint). 글자는 호출자가 GUI.color로 맞춘다.
+        public static void DrawBadge(PixelUiSkin skin, Rect tile, int scale, string text, Color tint)
         {
             var font = skin.FontPlain;
             int ts = PixelGui.TextScale;
@@ -66,7 +74,7 @@ namespace PickShoot
             // 띠는 아래 테두리 바로 위에서 타일 좌우 끝까지 (양옆 테두리 위를 덮지만 같은 색). 글자는 띠 가로 가운데 — 타일보다 넓은 문구(글자 배율 타일에
             // X10 이상)는 양쪽으로 고르게 나온다.
             int by = (int)tile.yMax - inset - bh;
-            PixelGui.FillRect(new Rect(tile.x, by, tile.width, bh), skin.WeaponPlateOutline);
+            PixelGui.FillRect(new Rect(tile.x, by, tile.width, bh), skin.WeaponPlateOutline * tint);
             // 글자 줄의 위쪽은 띠 안쪽 여백에서 글리프 상자 위 여백(capTop)만큼 위(상자가 띠 높이에 꼭 맞는 자리)에서 BadgeTextDropTexels만큼 아래.
             PixelGui.DrawTextCentered(font, text, (int)tile.center.x, by + pad - font.capTop * ts + BadgeTextDropTexels * ts, ts);
         }
