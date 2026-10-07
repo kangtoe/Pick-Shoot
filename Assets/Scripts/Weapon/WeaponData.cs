@@ -22,8 +22,8 @@ namespace PickShoot
         // 점사 안의 사격 간격(초). burstCount가 1이면 쓰지 않는다.
         [SerializeField, Min(0f)] float burstInterval = 0.07f;
         [SerializeField] int damage = 10;
-        // 레벨업 한 번마다 공격력에 곱하는 배율 (누적). 표준 1.5. 1이면 공격력이 레벨로 오르지 않는다 (Weapons §3).
-        [SerializeField, Min(1f)] float levelDamageMultiplier = 1.5f;
+        // 레벨업 한 번마다 공격력에 더하는 수 (누적). 표준은 기본 공격력과 같은 값 — Lv.n의 공격력 = 기본 × n. 0이면 공격력이 레벨로 오르지 않는다 (Weapons §3).
+        [SerializeField, Min(0)] int levelDamageAdd = 10;
         [SerializeField] float knockbackForce = 6f;
         [SerializeField, Min(0), FormerlySerializedAs("maxEnemyHits")] int maxBounces = 0;
         [SerializeField, Min(0)] int penetration = 0;
@@ -58,7 +58,7 @@ namespace PickShoot
         public int BurstCount => burstCount;
         public float BurstInterval => burstInterval;
         public int Damage => damage;
-        public float LevelDamageMultiplier => levelDamageMultiplier;
+        public int LevelDamageAdd => levelDamageAdd;
         public float KnockbackForce => knockbackForce;
         public int MaxBounces => maxBounces;
         public int Penetration => penetration;

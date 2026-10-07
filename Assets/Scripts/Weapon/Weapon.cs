@@ -32,13 +32,13 @@ namespace PickShoot
         public float EffectiveCooldown => data.Cooldown;
 
         // 레벨별 수치 공식. 업그레이드 카드가 "다음 레벨" 값을 미리 보여줄 때도 같은 식을 쓴다.
-        // 피해 = 자산 값 × 레벨 배율^(레벨−1) × 플레이어 전역 배율. 셋을 곱한 뒤 한 번만 반올림한다 — 레벨 값을 먼저 반올림하고 다시 곱하면
-        // 정수 피해에서 작은 배율이 두 번 깎인다. 그래도 피해 5~10인 무기는 +10%가 반올림에 묻히기 쉽다 (Relics §2, 튜닝 대상).
+        // 피해 = (자산 값 + 레벨 가산 × (레벨−1)) × 플레이어 전역 배율 — 레벨 증가는 고정 가산이라 레벨당 오르는 폭이 늘 같다 (2026-10-07, 그전까지는 ×1.5 누적 곱셈).
+        // 전역 배율까지 곱한 뒤 한 번만 반올림한다. 그래도 피해 5~10인 무기는 +10%가 반올림에 묻히기 쉽다 (Relics §2, 튜닝 대상).
         public static int DamageAtLevel(WeaponData data, int level, float globalMultiplier)
         {
             if (globalMultiplier <= 0f)
                 throw new System.Exception($"[PickShoot] Weapon.DamageAtLevel: 전역 피해 배율이 0 이하 ({globalMultiplier}).");
-            return Mathf.Max(1, Mathf.RoundToInt(data.Damage * Mathf.Pow(data.LevelDamageMultiplier, level - 1) * globalMultiplier));
+            return Mathf.Max(1, Mathf.RoundToInt((data.Damage + data.LevelDamageAdd * (level - 1)) * globalMultiplier));
         }
 
         public static int MaxAmmoAtLevel(WeaponData data, int level)
@@ -78,8 +78,8 @@ namespace PickShoot
                 throw new System.Exception($"[PickShoot] WeaponData '{data.DisplayName}'는 당기는 폭발(explosionPullsInward)인데 explosionRadius가 0. 폭발 탄환이어야 함.");
             if (data.BurstCount > 1 && data.BurstInterval <= 0f)
                 throw new System.Exception($"[PickShoot] WeaponData '{data.DisplayName}'는 점사({data.BurstCount})인데 burstInterval이 0 이하 ({data.BurstInterval}). 점사 간격은 양수여야 함.");
-            if (data.LevelDamageMultiplier < 1f)
-                throw new System.Exception($"[PickShoot] WeaponData '{data.DisplayName}'의 levelDamageMultiplier가 1 미만 ({data.LevelDamageMultiplier}). 레벨업으로 공격력이 줄 수는 없음 (Weapons §3).");
+            if (data.LevelDamageAdd < 0)
+                throw new System.Exception($"[PickShoot] WeaponData '{data.DisplayName}'의 levelDamageAdd가 음수 ({data.LevelDamageAdd}). 레벨업으로 공격력이 줄 수는 없음 (Weapons §3).");
             if (data.LevelMaxAmmoAdd < 0)
                 throw new System.Exception($"[PickShoot] WeaponData '{data.DisplayName}'의 levelMaxAmmoAdd가 음수 ({data.LevelMaxAmmoAdd}). 0(고정 탄창) 이상이어야 함 (Weapons §3).");
             this.data = data;

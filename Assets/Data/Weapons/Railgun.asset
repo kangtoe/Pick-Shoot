@@ -23,7 +23,7 @@ MonoBehaviour:
   burstCount: 1
   burstInterval: 0.07
   damage: 40
-  levelDamageMultiplier: 1.5
+  levelDamageAdd: 40
   knockbackForce: 10
   maxBounces: 0
   penetration: 99

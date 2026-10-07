@@ -21,7 +21,7 @@ MonoBehaviour:
   projectilesPerShot: 1
   spreadAngleDegrees: 0
   damage: 10
-  levelDamageMultiplier: 1.5
+  levelDamageAdd: 10
   knockbackForce: 6
   maxBounces: 0
   penetration: 0
