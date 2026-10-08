@@ -6,13 +6,13 @@ namespace PickShoot
     // 업그레이드 카드 한 장의 IMGUI 그리기 (Kenney Interface 시트 기반 픽셀 UI).
     // 레이아웃은 텍셀 단위로 정의하고 scale(패널·아이콘)과 textScale(글자)을 곱해 픽셀로 바꾼다.
     // 카드 크기는 타일 단위로 고정이며 내용에 맞춰 늘리지 않는다 — 내용이 카드를 넘치면 예외로 알린다.
-    // 카드는 위에서부터 한 줄씩 가운데 맞춤으로 쌓는다 (2026-10-09): 종류 제목(일반 글꼴 배율 3 — 획득 `NEW`·레벨업 `LV UP`, 유물도 `NEW`) → 이름(아웃라인 글꼴
+    // 카드는 위에서부터 한 줄씩 가운데 맞춤으로 쌓는다 (2026-10-09): 종류 제목(일반 글꼴 배율 3 — 획득 `NEW`·레벨업 `UPGRADE`, 유물도 `NEW`) → 이름(아웃라인 글꼴
     // 배율 2, 한 줄) → 전시 타일 → 첫 줄(무기는 레벨, 유물은 등급) → 스탯 줄 → 설명 줄. 이름을 배율 3으로 키운 안은 제목보다 커져 종류가 묻히고 타일에 붙었다
     // (Recordings/card_stacked_mockup_2026-10-09.png). 머리가 120 → 216px로 높아져 카드도 7타일에서 8타일로 키웠다.
     // 그전(2026-10-08 ~ 10-09)엔 브로타토식 가로 배치 — 왼쪽에 전시 타일, 그 오른쪽 글자 칸에 제목과 이름(200px에서 두 줄로 접기)을 두고 묶음을 가운데에 놓았다.
     // 스탯·설명 줄이 모두 가운데 맞춤이 되며 머리만 좌우로 갈린 꼴이 되어 세로로 돌렸다. 그 전에는 종류를 카드 위쪽 끝에 걸치는 배지(노란 NEW! / 카드와 같은 파란 LV UP)로
     // 적고 타일(배율 6) 밑에 이름(배율 3)을 세로로 쌓았다 — 그 배지 그리기는 일시정지 화면의 PAUSED 탭(PauseScreen.DrawBadge)에만 남았다.
-    // 종류 색은 제목 글자색으로 — `NEW`(새 무기·유물)는 XP 팝업과 같은 노랑(PixelUiSkin.HighlightText), 레벨업은 흰색.
+    // 종류 색은 제목 글자색으로 — `NEW`(새 무기·유물)는 XP 팝업과 같은 노랑(PixelUiSkin.HighlightText), `UPGRADE`는 초록(PixelUiSkin.UpgradeText).
     // 색 패널·외곽선 색 띠로 두는 안도 목업했으나 패널은 카드 안에서 버튼처럼 보였고 띠는 머리가 번잡했다 (Recordings/card_header_mockup_2026-10-08*.png).
     // 한 장이 레벨을 둘 이상 올리는 카드(아직 없다)는 제목 뒤에 글자 배율 꼬리 `(+n)`이 붙고, 제목과 꼬리를 한 덩이로 가운데에 둔다 (LevelTag, UpgradeOption.Levels).
     // 전시 칸은 일시정지·보상 화면의 빌드 격자와 같은 정사각 타일(ItemTilePainter)이고 배지는 고른 뒤의 상태(`LV1`·`LV3`·`X2`) — 레벨 줄의 "2 → 3"과 맞춘다.
@@ -59,9 +59,11 @@ namespace PickShoot
         // 이름의 아웃라인 글꼴 배율. 제목·스탯 줄과 글꼴로 가른다 — 배율 3이면 제목보다 커져 종류가 묻혔다 (2026-10-09 목업).
         // 이름은 한 줄 — 카드 안쪽 폭(368px)에 가장 긴 `ARMOR PLATE`·`MAGNET CORE`(194px)도 넉넉히 들고, 넘치면 예외. 가로 머리 때는 200px 칸에서 두 줄로 접었다.
         const int NameScale = 2;
-        // 종류 제목 — 획득 `NEW`, 레벨업 `LV UP`. 느낌표는 뺐다 (배지 때는 `NEW!`) — 글자 제목에서는 색이 새 것을 가르고, `(+n)` 앞에서 어색하다. 유물도 `NEW` — 이미 가진 유물도 하나를 새로 얻는 카드이고, 겹쳐 쌓이는 것은 배지가 말한다.
+        // 종류 제목 — 획득 `NEW`(노랑), 레벨업 `UPGRADE`(초록, PixelUiSkin.UpgradeText). 느낌표는 뺐다 (배지 때는 `NEW!`) — 글자 제목에서는 색이 종류를 가르고,
+        // `(+n)` 앞에서 어색하다. 유물도 `NEW` — 이미 가진 유물도 하나를 새로 얻는 카드이고, 겹쳐 쌓이는 것은 배지가 말한다.
+        // 레벨업은 2026-10-09까지 흰 `LV UP`이었다.
         const string NewTitle = "NEW";
-        const string LevelUpTitle = "LV UP";
+        const string LevelUpTitle = "UPGRADE";
         // 첫 줄(무기 카드)의 라벨 — 값은 "n → n+1". 슬롯 번호(`SLOT 3`)는 2026-10-07에 뺐다 — 자루를 가리키는 번호였지만 전시 그림·레벨로 충분하고,
         // 레벨 값의 `LV` 접두도 함께 걷어 값 열이 좁아졌다. 유물 카드는 이 자리가 라벨 없는 등급 이름이다 (2026-10-09. 그전엔 줄이 없었고,
         // 2026-10-07엔 보유 수 `OWNED n → n+1` 줄을 뺐다 — 고른 뒤 보유 수는 전시 배지 `X n`이 말한다).
@@ -73,7 +75,7 @@ namespace PickShoot
         // 글꼴에 있는 문자(A-Z 0-9 % + - ! ( ) / . 공백)만 써야 한다. 없는 문자는 PixelGui가 예외로 알린다.
         struct CardContent
         {
-            // 머리 제목(종류)과 그 글자색 — `NEW`만 강조색, 레벨업은 흰색. TitleTag는 제목 뒤에 작게 붙는 보너스 꼬리(`(+2)`), 없으면 null.
+            // 머리 제목(종류)과 그 글자색 — `NEW`는 노랑, `UPGRADE`는 초록. TitleTag는 제목 뒤에 작게 붙는 보너스 꼬리(`(+2)`), 없으면 null.
             public string Title;
             public string TitleTag;
             public Color TitleTint;
@@ -257,7 +259,7 @@ namespace PickShoot
                     if (option.TargetSlotIndex >= weapons.Slots.Count)
                         throw new System.Exception($"[PickShoot] UpgradeCardPainter: 레벨업 카드의 slotIndex {option.TargetSlotIndex}가 범위 밖 (현재 슬롯 {weapons.Slots.Count}개).");
                     var w = weapons.Slots[option.TargetSlotIndex];
-                    // 오르는 단계 수(UpgradeOption.Levels)는 보통 1. 둘 이상이면 제목이 `LV UP (+n)`이고 "다음" 값·배지가 그 레벨의 값.
+                    // 오르는 단계 수(UpgradeOption.Levels)는 보통 1. 둘 이상이면 제목이 `UPGRADE (+n)`이고 "다음" 값·배지가 그 레벨의 값.
                     int next = w.Level + option.Levels;
                     if (next > Weapon.MaxLevel)
                         throw new System.Exception($"[PickShoot] UpgradeCardPainter: 레벨업 카드가 '{w.Data.DisplayName}' 레벨 {w.Level}에 {option.Levels}를 더하면 최대 {Weapon.MaxLevel}을 넘음. 후보를 만들 때 걸러야 함 (UpgradeManager).");
@@ -266,7 +268,7 @@ namespace PickShoot
                     {
                         Title = LevelUpTitle,
                         TitleTag = LevelTag(option.Levels),
-                        TitleTint = Color.white,
+                        TitleTint = skin.UpgradeText,
                         ShowcaseSprite = w.Data.WeaponSprite,
                         ShowcaseBadge = ItemInfoText.WeaponBadge(next),
                         Name = w.Data.DisplayName.ToUpperInvariant(),
@@ -369,7 +371,7 @@ namespace PickShoot
             return flags.ToArray();
         }
 
-        // 제목 뒤의 보너스 꼬리. 한 장이 레벨을 둘 이상 올리는 카드(아직 없다 — 앞으로의 보너스 카드)는 `NEW (+2)`·`LV UP (+3)`처럼 올리는 수를 괄호에 붙인다.
+        // 제목 뒤의 보너스 꼬리. 한 장이 레벨을 둘 이상 올리는 카드(아직 없다 — 앞으로의 보너스 카드)는 `NEW (+2)`·`UPGRADE (+3)`처럼 올리는 수를 괄호에 붙인다.
         // 획득 카드의 수는 시작 레벨이라 1이면 레벨업의 +1과 같은 보통 카드 — 붙이지 않는다 (2026-10-08).
         static string LevelTag(int levels)
         {

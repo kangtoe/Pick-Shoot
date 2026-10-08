@@ -67,6 +67,9 @@ namespace PickShoot
         [SerializeField] Color weaponPlateOutline = new Color32(71, 50, 75, 255);
         // 강조 글자색 — 업그레이드 카드의 `NEW` 제목(새 무기·유물, UpgradeCardPainter). XP 팝업(PlayerExperience.popupColor)과 같은 노랑으로 맞춘다 (2026-10-08).
         [SerializeField] Color highlightText = new Color32(255, 184, 76, 255);
+        // 업그레이드 카드의 `UPGRADE` 제목(무기 레벨업) 글자색 — Pixel Platformer 팩의 밝은 초록. 사막 팩에는 초록이 없고 가장 가까운 민트(재생 문구색)는 청록으로
+        // 읽혔으며, 더 짙은 초록은 노란 `NEW`보다 어두워 보였다 (2026-10-09, Recordings/card_upgrade_green_mockup_2026-10-09.png).
+        [SerializeField] Color upgradeText = new Color32(127, 240, 165, 255);
 
         public int TileSize => tileSize;
         public NineSlice PanelBlue => panelBlue;
@@ -88,6 +91,7 @@ namespace PickShoot
         public Color WeaponPlateFill => weaponPlateFill;
         public Color WeaponPlateOutline => weaponPlateOutline;
         public Color HighlightText => highlightText;
+        public Color UpgradeText => upgradeText;
 
         // 누락된 참조를 필드 이름까지 지목해 예외로 알린다. 사용하는 쪽이 Awake에서 호출.
         public void Validate()
