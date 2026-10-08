@@ -18,7 +18,7 @@
 
 스킨 `Assets/Data/UI/PixelUiSkin.asset` 한 파일이 시트 조각 참조와 글꼴 지표를 전부 보관한다. 최상위 필드는 2칸 들여쓰기.
 
-- 글꼴 `fontPlain`·`fontOutlined`: `characters[i]` ↔ `glyphs[i]`(스프라이트 참조). `glyphLeft`·`glyphWidth`는 타일 안에서 실제 획이 있는 가로 구간(텍셀)이며 int 배열 hex로 저장. `lineHeight 16`·`letterSpacing 1`·`spaceWidth 5`, 대문자·숫자 상자의 세로 구간 `capTop 2`·`capHeight 12`(배지 바탕 높이가 쓴다).
+- 글꼴 `fontPlain`·`fontOutlined`: `characters[i]` ↔ `glyphs[i]`(스프라이트 참조). `glyphLeft`·`glyphWidth`는 타일 안에서 실제 획이 있는 가로 구간(텍셀)이며 int 배열 hex로 저장. `lineHeight 16`·`letterSpacing -1`·`spaceWidth 5`(2026-10-08, 그전 간격 1 — [PixelArtUI §5](../Systems/PixelArtUI.md#5-글꼴과-임시-아이콘)), 대문자·숫자 상자의 세로 구간 `capTop 2`·`capHeight 12`(배지 바탕 높이가 쓴다).
 - 글자는 `PixelGui.DrawText`와 같이: 글리프 타일에서 `(glyphLeft, 0, glyphWidth, lineHeight)`만 잘라 배율로 찍고 펜을 `glyphWidth × 배율`만큼 옮긴다. 글자 사이 `letterSpacing × 배율`, 공백은 `spaceWidth × 배율`.
 - 9-slice `panelBlue`·`panelYellow`·`panelRed`·`panelGrey`·`selectionFrame`: `tiles[0..8]` = 좌상·상·우상·좌·중·우·좌하·하·우하. 모서리는 한 장, 변·중앙은 16텍셀 타일을 **반복**한다(늘리지 않는다).
 - 단색 판(HUD 무기 판·아이템 타일)은 시트 조각이 아니라 색 필드 `weaponPlateOutline`(외곽선 2텍셀)·`weaponPlateFill`로 그린다.
@@ -41,7 +41,7 @@ for l in open('Assets/Data/UI/PixelUiSkin.asset', encoding='utf-8'):
     if m: skin[sec]['characters'] = m.group(1)
     m = re.match(r'^\s+(glyphLeft|glyphWidth): ([0-9a-f]+)', l)
     if m: skin[sec][m.group(1)] = hexints(m.group(2))
-    m = re.match(r'^\s+(lineHeight|letterSpacing|spaceWidth|capTop|capHeight): (\d+)', l)
+    m = re.match(r'^\s+(lineHeight|letterSpacing|spaceWidth|capTop|capHeight): (-?\d+)', l)
     if m: skin[sec][m.group(1)] = int(m.group(2))
 
 def measure(f, s, scale):                                        # PixelGui.MeasureText 재현
