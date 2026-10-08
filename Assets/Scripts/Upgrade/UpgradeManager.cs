@@ -64,16 +64,16 @@ namespace PickShoot
         // 남은 리롤이 없을 때 판·띠·글자에 곱하는 색. 판·띠는 단색 사각형이라 GUI.color를 타지 않아 색을 직접 곱한다 — 검은 막으로 덮었더니 직사각형 막이
         // 네 귀의 깎인 자리까지 덮어 모서리가 각져 보였다 (2026-10-08).
         static readonly Color DisabledTint = new Color(0.5f, 0.5f, 0.5f, 1f);
-        // 위 띠(제목·부제) → 카드, 카드 → 빌드 줄 (패널 텍셀), 무기 줄 → 유물 제목 (글자 텍셀, 일시정지 화면의 섹션 간격보다 좁다 — 세로가 빠듯하다).
-        // 카드 위로 솟는 배지(UpgradeCardPainter.BadgeOverhang, 32px)가 띠에 닿지 않게 카드 간격은 그보다 넓어야 한다 — 10텍셀(40px)이었다가 카드를
-        // 9타일로 낮추며 번 64px 중 32를 여기에 더해 카드를 띠에서 떼었다 (2026-10-08).
+        // 위 띠(제목·부제) → 카드, 카드 → 빌드 줄 (패널 텍셀), 무기 줄 → 유물 제목 (글자 텍셀, 일시정지 화면의 섹션 간격보다 좁다).
+        // 띠 → 카드는 10텍셀(40px)이었다가 카드 위로 솟던 배지(32px)가 띠에 닿지 않게 18(72px)로 벌렸고, 2026-10-08 카드가 종류 배지를 머리의 글자 제목으로
+        // 옮겨(UpgradeCardPainter) 카드 위 끝이 패널 변이 되며 10으로 되돌렸다.
         // 카드 → 빌드 줄은 2텍셀(8px)이었다가 6(24px)으로 — 줄이 카드에 붙어 보였고, 호버 테두리가 카드 밖으로 4px 나온다 (2026-10-08).
-        // 블록 = 띠 96 + 72 + 카드 576 + 24 + 줄 124 × 2 + 16 = 1032px — 세로 1080에서 위아래 24px 남는다.
-        const int CardGapTexels = 18;
+        // 블록 = 띠 96 + 40 + 카드 448 + 24 + 줄 124 × 2 + 16 = 872px — 세로 1080에서 위아래 104px 남는다 (카드가 9타일이던 때 1032px).
+        const int CardGapTexels = 10;
         const int StripGapTexels = 6;
         const int SectionGapTexels = 8;
         // 빌드 줄의 타일 배율. 글자 배율(2, 56px)에서는 레벨 배지 `LV5`(글자 배율 2로 64px)가 타일보다 넓어 이웃 배지와 붙고, 패널 배율(4, 112px)은 세로가
-        // 없다. 카드의 무기 이름과 같은 중간 배율 3(84px) — 배지가 양옆 10px를 남기고 들어간다.
+        // 없다. 일시정지 배지와 같은 중간 배율 3(84px) — 배지가 양옆 10px를 남기고 들어간다 (카드의 무기 이름도 3이었다가 2026-10-08 머리 가로 배치로 2).
         const int StripTileScale = 3;
 
         // 이번 카드 화면의 후보 전체(유물 화면은 유물 풀 전체, 무기 화면은 획득 + 레벨업, 순서 고정). 처음 카드도 리롤도 여기서 뽑는다.
@@ -357,7 +357,7 @@ namespace PickShoot
                 TooltipPainter.Draw(skin, canvas, tipAnchor, tipTitle, tipFacts, tipNotes);
         }
 
-        // 카드가 가리키는 것의 툴팁 — 고른 뒤의 상태. 획득 카드는 슬롯이 아직 없어 NEW·LEVEL 1, 레벨업은 그 슬롯의 다음 레벨, 유물은 보유 수 + 1.
+        // 카드가 가리키는 것의 툴팁 — 고른 뒤의 상태. 획득 카드는 슬롯이 아직 없어 시작 레벨(UpgradeOption.Levels, 보통 1), 레벨업은 그 슬롯의 오른 뒤 레벨, 유물은 보유 수 + 1.
         string CardTooltip(UpgradeOption option, List<string> facts, List<string> notes)
         {
             facts.Clear();
@@ -365,13 +365,13 @@ namespace PickShoot
             switch (option.Kind)
             {
                 case UpgradeKind.AcquireWeapon:
-                    ItemInfoText.WeaponFacts(option.AcquireData, 1, stats, facts);
+                    ItemInfoText.WeaponFacts(option.AcquireData, option.Levels, stats, facts);
                     ItemInfoText.WeaponNotes(option.AcquireData, notes);
                     return ItemInfoText.WeaponTitle(option.AcquireData);
                 case UpgradeKind.LevelUp:
                 {
                     var w = weapons.Slots[option.TargetSlotIndex];
-                    ItemInfoText.WeaponFacts(w.Data, w.Level + 1, stats, facts);
+                    ItemInfoText.WeaponFacts(w.Data, w.Level + option.Levels, stats, facts);
                     ItemInfoText.WeaponNotes(w.Data, notes);
                     return ItemInfoText.WeaponTitle(w.Data);
                 }

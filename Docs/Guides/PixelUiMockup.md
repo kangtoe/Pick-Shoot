@@ -9,7 +9,7 @@
 
 픽셀 UI는 세로 1080px(270텍셀 × 4) 기준 캔버스에 정수 배율로 배치하고 캔버스 전체를 화면 높이에 비례해 축소·확대한다(`Docs/Systems/PixelArtUI.md` §1). 목업도 같은 좌표계를 쓴다.
 
-- 캔버스 1920×1080. 배율은 패널 4·글자와 HUD 2·카드 무기 이름 3. 여백·간격·타일 수 같은 배치 상수는 해당 Painter(`GameHud`·`BuildGridPainter`·`ItemTilePainter`·`UpgradeCardPainter`·`TooltipPainter`)에서 **읽어서** 그대로 쓴다.
+- 캔버스 1920×1080. 배율은 패널 4·글자와 HUD 2·보상 화면 빌드 줄 타일과 카드 종류 제목 3. 여백·간격·타일 수 같은 배치 상수는 해당 Painter(`GameHud`·`BuildGridPainter`·`ItemTilePainter`·`UpgradeCardPainter`·`TooltipPainter`)에서 **읽어서** 그대로 쓴다.
 - 720p는 1080p 캔버스를 **2/3로 NEAREST 축소**한 것이 실제에 가장 가깝다. 배율 1 글자·1텍셀 테두리가 빠지는 문제는 여기서만 보이므로, 확인할 부분을 크롭해 실제 크기와 2배 확대 둘 다 둔다.
 - 바탕은 `ArenaTheme`의 바닥 타일(배율 4)을 깔고, 일시정지·보상 화면이면 검정 70%로 덮는다.
 - 안 이름·설명도 같은 비트맵 글꼴(일반 글꼴 배율 2)로 적는다.

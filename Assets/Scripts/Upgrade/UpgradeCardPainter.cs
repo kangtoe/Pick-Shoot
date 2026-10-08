@@ -6,59 +6,69 @@ namespace PickShoot
     // 업그레이드 카드 한 장의 IMGUI 그리기 (Kenney Interface 시트 기반 픽셀 UI).
     // 레이아웃은 텍셀 단위로 정의하고 scale(패널·아이콘)과 textScale(글자)을 곱해 픽셀로 바꾼다.
     // 카드 크기는 타일 단위로 고정이며 내용에 맞춰 늘리지 않는다 — 내용이 카드를 넘치면 예외로 알린다.
-    // 획득·레벨업 카드는 같은 패널·같은 줄 구성이고, 종류는 카드 위쪽 끝에 걸치는 배지(노란 NEW! / 카드와 같은 파란 LV UP)로만 표기한다.
-    // 전시 칸은 일시정지·보상 화면의 빌드 격자와 같은 정사각 타일(ItemTilePainter, 배율 6)이고 배지는 고른 뒤의 상태(`LV1`·`LV3`·`X2`) — 레벨 줄의 "2 → 3"과 맞춘다.
+    // 머리는 브로타토식 가로 배치 (2026-10-08): 왼쪽에 전시 타일, 그 오른쪽에 종류 제목(일반 글꼴 배율 3 — 획득 `NEW`·레벨업 `LV UP`·유물은 등급 `COMMON`)과 이름(아웃라인 글꼴,
+    // 긴 이름은 두 줄). 타일과 글자 칸 묶음은 카드 가운데에 둔다 (같은 날 왼쪽 붙임에서 — 오른쪽만 비어 보였고, 제목은 글자 배율 2에서 3으로 키웠다).
+    // 그전에는 종류를 카드 위쪽 끝에 걸치는 배지(노란 NEW! / 카드와 같은 파란 LV UP)로 적고 타일 밑에 이름을 가운데 맞춰 세로로 쌓았다 — 그 배지 그리기는 일시정지 화면의
+    // PAUSED 탭(PauseScreen.DrawBadge)에만 남았다. 종류 색은 제목 글자색으로 — 새 무기만 XP 팝업과 같은 노랑(PixelUiSkin.HighlightText), 레벨업·커먼은 흰색.
+    // 색 패널·외곽선 색 띠로 두는 안도 목업했으나 패널은 카드 안에서 버튼처럼 보였고 띠는 머리가 번잡했다 (Recordings/card_header_mockup_2026-10-08*.png).
+    // 한 장이 레벨을 둘 이상 올리는 카드(아직 없다)는 제목 뒤에 글자 배율 꼬리 `(+n)`이 붙는다 (LevelTag, UpgradeOption.Levels).
+    // 머리를 가로로 눕히며 전시 타일은 배율 6(168px)에서 일시정지 격자와 같은 4(112px)로, 이름은 배율 3에서 2로 — 글자 칸은 1080p에서 200px(NameWrapTexels)이라
+    // `BOOMERANG`(200px)까지 한 줄, 두 낱말 유물 이름은 두 줄. 머리 세로가 240 → 120px로 줄어 카드도 9타일에서 7타일로 낮췄다.
+    // 전시 칸은 일시정지·보상 화면의 빌드 격자와 같은 정사각 타일(ItemTilePainter)이고 배지는 고른 뒤의 상태(`LV1`·`LV3`·`X2`) — 레벨 줄의 "2 → 3"과 맞춘다.
     // 표에는 DMG·AMMO 뒤로 그 무기의 수치 특성(`BURST 3`·`BOUNCE 5`·`PIERCE 1`·`BLAST 2.5`, ItemInfoText.WeaponTraitStats)이 같은 줄로 이어지고,
     // 수치가 없는 특성(`AUTO RETRIEVE`·`PULLS IN`)은 표의 마지막 줄들로 — 값 없는 라벨처럼 라벨 열(왼쪽)에 일반 글꼴 (2026-10-07 표 아래 가운데 맞춤 아웃라인
     // → 같은 날 값 열 오른쪽 정렬 → 2026-10-08 라벨 열 왼쪽 정렬. 표와 결이 달라 튀던 것을 표에 붙였고, 라벨 자리가 읽는 순서에 맞다). 무기를 가르는 것이 카드에서 바로
-    // 읽히게 — 그전에는 호버 툴팁에만 있었다. 자리는 RPM 줄을 뺀 자리와 간격을 줄여 만들었고, 가장 긴 조합(특성 줄 + 수치 특성 한 줄 — 부메랑·볼텍스)에서
-    // 아래 여백이 48px 남는다 (7×9타일, 2026-10-08). 넘치면 예외.
+    // 읽히게 — 그전에는 호버 툴팁에만 있었다. 가장 긴 조합(특성 줄 + 수치 특성 한 줄 — 부메랑·볼텍스)에서 아래 여백이 80px 남는다 (7×7타일, 2026-10-08). 넘치면 예외.
     // 타일에 마우스를 올리면 격자와 같은 툴팁(TooltipPainter)이 뜬다 — 카드에 없는 탄속·넉백은 거기서 보인다 (2026-10-06).
     // 카드 호버는 테두리를 바깥으로 HoverOutlineTexels 넓히기 — 카드보다 그만큼 큰 흰 판 모양(PixelGui.FillPlateShape)을 패널 밑에 깔아 패널의 흰 바깥 선
     // 1텍셀이 2텍셀이 된다. 패널 모서리도 판처럼 1텍셀 깎여 있어 그 귀가 흰색으로 메워지고 바깥 귀만 깎인다. 리롤 버튼도 같은 값 (2026-10-08).
     // 그전엔 4텍셀 들림(띠→카드 간격 40px일 때 배지가 부제를 가림)·선택 테두리·비정수 배율 키우기(텍셀이 갈려 깨져 보이고 아래 빌드 줄 제목을 덮음)를 거쳤다.
-    // 유물 카드(Relics §2)도 같은 패널 구성이다 — 배지는 등급(회색 COMMON), 전시 칸에 유물 아이콘(배지 `X n`이 고른 뒤 보유 수), 표는 아예 없고,
+    // 유물 카드(Relics §2)도 같은 패널 구성이다 — 제목은 등급(COMMON), 전시 칸에 유물 아이콘(배지 `X n`이 고른 뒤 보유 수), 표는 아예 없고,
     // 본문 줄에 그 유물이 더하는 수정치를 `GUN DAMAGE +10%`처럼 한 줄로 적는다 (2026-10-07).
     public static class UpgradeCardPainter
     {
         const int CardWidthTiles = 7;
-        // 10에서 9로 (2026-10-08) — 표가 짧은 카드(산탄총·유물)의 아래가 비어 보였다. 줄 간격(RowGap·NameGap)을 8에서 6텍셀로 줄여 가장 긴 카드도 아래 여백 48px을 지킨다.
-        const int CardHeightTiles = 9;
+        // 10 → 9 (2026-10-08, 표가 짧은 카드의 아래가 비어 보임) → 7 (같은 날 머리 가로 배치 — 타일 밑에 두던 이름이 타일 오른쪽으로 가고 타일도 배율 6→4가 되어
+        // 머리가 240px에서 120px로, 위 여백도 배지 깊이를 빼며 80에서 40px로). 가장 긴 카드(볼텍스·부메랑)의 아래 여백 80px.
+        const int CardHeightTiles = 7;
         const int SidePaddingTexels = 10; // 좌우 여백 (패널 테두리 → 글자). 산탄총 고레벨의 "256X3" 값까지 7타일 안에 들어가는 최대치.
-        const int TopMarginTexels = 20;   // 위 여백 = 배지가 카드 안으로 들어오는 깊이(BadgeInsetTexels) + 전시까지 간격 4
+        const int TopMarginTexels = 10;   // 위 여백 — 좌우와 같다. 배지가 카드 위 끝에 걸치던 때는 배지 깊이 16 + 4였다.
         const int BottomMinTexels = 8;    // 넘침 검사용 최소 아래 여백. 실제 아래 여백은 남는 만큼.
-        const int RowGapTexels = 6;       // 전시→이름, 레벨 줄→스탯 줄 (2026-10-08 카드를 9타일로 낮추며 8에서)
-        // 이름→레벨 줄. 위쪽(전시·이름)과 아래쪽(레벨·스탯 표)을 나눈다. 본문 줄이 들어오며 12에서 8로 (2026-10-07), 카드를 낮추며 6으로 (2026-10-08).
-        const int NameGapTexels = 6;
+        const int RowGapTexels = 6;       // 머리→레벨 줄, 레벨 줄→스탯 줄 (2026-10-08 카드를 9타일로 낮추며 8에서)
         const int BodyGapTexels = 4;      // 스탯 표→본문 줄(특성·설명)
-        // 전시 타일의 배율. 28텍셀 타일 × 6 = 168px. 8이면 224px라 카드가 한 타일 자라 보상 화면 블록이 캔버스 세로를 넘친다.
-        // 전시 칸 높이는 타일 그대로다 — 3타일(192px)로 두던 여백 24px도 본문 줄에 넘겼다 (2026-10-07).
-        const int ShowcaseTileScale = 6;
+        // 머리 안: 전시 타일 → 글자 칸 (패널 텍셀), 제목 줄 → 이름 줄. 타일과 글자 칸을 합친 묶음을 카드 안쪽 폭 가운데에 둔다 — 왼쪽 여백에 붙이면 오른쪽만 비어 보였다.
+        const int HeaderGapTexels = 4;
+        const int HeaderTextGapTexels = 2;
+        // 전시 타일의 배율. 28텍셀 타일 × 4 = 112px — 일시정지 격자의 타일과 같다. 6(168px)이면 글자 칸이 184px라 제목 배율 3·이름 200px이 들어가지 않는다.
+        const int ShowcaseTileScale = 4;
         // 호버 때 테두리를 바깥으로 넓히는 두께 (패널 텍셀). 리롤 버튼(UpgradeManager)도 같은 값.
         public const int HoverOutlineTexels = 1;
-        // 무기 이름은 카드의 제목이라 글자 배율(2)보다 한 단계 큰 3 — 배너 제목(패널 배율 4)보다는 작게.
-        const int NameScale = 3;
-        // 종류 배지: 패널 한 줄, 패널 색과 문구로 구분 — 획득은 노란 NEW!, 레벨업은 카드 본체와 같은 파란 LV UP — 카드에서 이어진 탭처럼 보이고 새 무기만 튄다. 느낌표는 새 무기에만.
-        // 패널·글자 모두 이름과 같은 배율 3. 카드 위쪽 끝에 걸쳐 BadgeInsetTexels(패널 텍셀)만큼 카드 안으로 들어온다 — 배지 높이의 2/3.
-        // 문구는 짧게 — "LEVEL UP"은 배율 3에서 카드 폭의 2/3을 차지한다. 일시정지 화면의 상태 카드도 같은 배지(DrawBadge)를 쓴다.
-        const string NewBadgeText = "NEW!";
-        const string LevelUpBadgeText = "LV UP";
+        // 종류 제목의 일반 글꼴 배율 — 이름(아웃라인 배율 2)보다 한 단계 커 종류가 먼저 읽힌다 (2026-10-08, 글자 배율 2에서 키움). 보너스 꼬리 `(+n)`은 글자 배율 그대로
+        // 제목 뒤에 글리프 상자 아래 변을 맞춰 붙인다 — 배율 3이면 `LV UP (+2)`가 285px로 글자 칸을 넘는다.
+        const int TitleScale = 3;
+        // 이름의 아웃라인 글꼴 배율. 제목·표와 글꼴로 가른다 — 배율 3이면 `BOOMERANG`이 300px로 한 줄에 들지 않는다.
+        const int NameScale = 2;
+        // 이름은 이 폭(패널 텍셀, 200px)에서 낱말 단위로 접고 최대 두 줄. 글자 칸 전체(240px)로 두면 아무 이름도 접히지 않아 묶음이 왼쪽에 붙고, 200은 가장 긴 한 낱말
+        // `BOOMERANG`·`REGEN UNIT`(200px)이 한 줄에 드는 최소라 두 낱말 유물 이름(`ARMOR PLATE` 234px)만 접힌다. 한 낱말이 넘으면 PixelGui.WrapText가 예외.
+        const int NameWrapTexels = 50;
+        const int NameMaxLines = 2;
+        // 종류 제목 — 획득 `NEW`, 레벨업 `LV UP`. 느낌표는 뺐다 (배지 때는 `NEW!`) — 글자 제목에서는 색이 새 무기를 가르고, `(+n)` 앞에서 어색하다. 유물은 등급 이름.
+        const string NewTitle = "NEW";
+        const string LevelUpTitle = "LV UP";
         // 표 첫 줄(무기 카드)의 라벨 — 값은 "n → n+1". 슬롯 번호(`SLOT 3`)는 2026-10-07에 뺐다 — 자루를 가리키는 번호였지만 전시 그림·레벨로 충분하고,
         // 레벨 값의 `LV` 접두도 함께 걷어 값 열이 좁아졌다. 유물 카드는 이 줄 자체가 없다 (같은 날 `OWNED n → n+1`도 뺐다).
         const string LevelLabel = "LEVEL";
-        const int BadgeScale = 3;
-        const int BadgePaddingXTexels = 10; // 배지 패널 테두리 → 글자, 좌우 (배지 배율)
-        const int BadgePaddingYTexels = 8;  // 위아래
-        public const int BadgeInsetTexels = 16;
         // 줄이 없는 칸용 빈 묶음 (프레임마다 새로 만들지 않는다).
         static readonly string[] NoLines = new string[0];
         static readonly List<string> EmptyLines = new List<string>();
 
-        // 글꼴에 있는 문자(A-Z 0-9 % + - ! 공백)만 써야 한다. 없는 문자는 PixelGui가 예외로 알린다.
+        // 글꼴에 있는 문자(A-Z 0-9 % + - ! ( ) / . 공백)만 써야 한다. 없는 문자는 PixelGui가 예외로 알린다.
         struct CardContent
         {
-            public string Badge;
-            public PixelUiSkin.NineSlice BadgePanel;
+            // 머리 제목(종류·등급)과 그 글자색 — 새 무기만 강조색, 나머지는 흰색. TitleTag는 제목 뒤에 작게 붙는 보너스 꼬리(`(+2)`), 없으면 null.
+            public string Title;
+            public string TitleTag;
+            public Color TitleTint;
             public Sprite ShowcaseSprite;
             public string ShowcaseBadge;
             public string Name;
@@ -90,7 +100,6 @@ namespace PickShoot
             var c = Build(skin, option, weapons, stats);
             int pad = SidePaddingTexels * scale;
             int gap = RowGapTexels * scale;
-            int nameGap = NameGapTexels * scale;
             int bodyGap = BodyGapTexels * scale;
             int lineH = skin.FontPlain.lineHeight * textScale;
             int space = skin.FontPlain.spaceWidth * textScale;
@@ -99,6 +108,23 @@ namespace PickShoot
             int x0 = (int)rect.x + pad;
             int x1 = (int)rect.xMax - pad;
             int centerX = (int)rect.center.x;
+            int innerW = x1 - x0;
+
+            // 머리: 왼쪽 전시 타일, 오른쪽 글자 칸에 제목(배율 3)과 이름(최대 두 줄). 글자 칸 폭은 이름 접힘 폭이 기본이고 제목이 더 넓으면 제목 폭 — 타일 + 간격 + 글자 칸
+            // 묶음을 카드 안쪽 가운데에 둔다 (보통 양옆 20px). 머리 높이는 이름이 두 줄일 때로 고정해 표의 시작 줄이 카드마다 같다 — 타일(112px)보다 글자(120px)가 크다.
+            int showcaseH = ItemTilePainter.Size(ShowcaseTileScale);
+            int titleH = skin.FontPlain.lineHeight * TitleScale;
+            int titleW = PixelGui.MeasureText(skin.FontPlain, c.Title, TitleScale);
+            if (c.TitleTag != null) titleW += space + PixelGui.MeasureText(skin.FontPlain, c.TitleTag, textScale);
+            int nameWrapW = NameWrapTexels * scale;
+            var nameLines = PixelGui.WrapText(skin.FontOutlined, c.Name, NameScale, nameWrapW);
+            if (nameLines.Count > NameMaxLines)
+                throw new System.Exception($"[PickShoot] UpgradeCardPainter: 이름 '{c.Name}'이 {nameWrapW}px 폭에서 {nameLines.Count}줄로 접힘 — 최대 {NameMaxLines}줄. 이름을 줄이거나 NameWrapTexels를 늘릴 것.");
+            int headerTextGap = HeaderTextGapTexels * scale;
+            int headerTextW = Mathf.Max(nameWrapW, titleW);
+            int headerW = showcaseH + HeaderGapTexels * scale + headerTextW;
+            int headerTextH = titleH + headerTextGap + NameMaxLines * nameH;
+            int headerH = Mathf.Max(showcaseH, headerTextH);
 
             // 값 열은 화살표를 한 열에 맞춘다 — 다음 값은 화살표 오른쪽에 왼쪽 정렬, 현재 값은 화살표 왼쪽에 오른쪽 정렬.
             // 화살표 열은 가장 넓은 "다음" 값이 오른쪽 여백 안에 들어가는 자리. 항목 이름 열은 왼쪽 여백에 따로 맞춘다.
@@ -110,27 +136,26 @@ namespace PickShoot
             int valueTail = space + iconSize + space + nextColW;   // 현재 값 뒤: 공백·화살표·공백·다음 값 열
 
             // 크기가 고정이라 내용이 카드를 넘칠 수 있다. 넘치면 어긋난 채 그리지 않고 예외로 알린다.
-            // 항목 이름과 현재 값 사이는 최소 공백 하나.
-            int innerW = x1 - x0;
-            RequireFits(PixelGui.MeasureText(skin.FontOutlined, c.Name, NameScale), innerW, c.Name);
+            // 머리 묶음(타일 + 글자 칸)과 표·본문은 카드 안쪽 폭에. 항목 이름과 현재 값 사이는 최소 공백 하나.
+            RequireFits(headerW, innerW, $"{c.Title} / {c.Name}", "카드 안쪽(머리 묶음)");
             if (c.RowLabel != null)
                 RequireFits(PixelGui.MeasureText(skin.FontPlain, c.RowLabel, textScale) + space
                             + (c.LevelNow == null ? nextColW : PixelGui.MeasureText(skin.FontPlain, c.LevelNow, textScale) + valueTail),
-                            innerW, $"{c.RowLabel} {c.LevelNow} > {c.LevelNext}");
+                            innerW, $"{c.RowLabel} {c.LevelNow} > {c.LevelNext}", "카드 안쪽");
             for (int i = 0; i < c.StatLabels.Length; i++)
             {
                 if (c.StatNow[i] == null)
-                    RequireFits(PixelGui.MeasureText(skin.FontPlain, c.StatLabels[i], textScale) + space + nextColW, innerW, $"{c.StatLabels[i]} {c.StatNext[i]}");
+                    RequireFits(PixelGui.MeasureText(skin.FontPlain, c.StatLabels[i], textScale) + space + nextColW, innerW, $"{c.StatLabels[i]} {c.StatNext[i]}", "카드 안쪽");
                 else
                     RequireFits(PixelGui.MeasureText(skin.FontPlain, c.StatLabels[i], textScale) + space
-                                + PixelGui.MeasureText(skin.FontPlain, c.StatNow[i], textScale) + valueTail, innerW, $"{c.StatLabels[i]} {c.StatNow[i]} > {c.StatNext[i]}");
+                                + PixelGui.MeasureText(skin.FontPlain, c.StatNow[i], textScale) + valueTail, innerW, $"{c.StatLabels[i]} {c.StatNow[i]} > {c.StatNext[i]}", "카드 안쪽");
             }
 
             // 특성·본문 줄: 한 항목이 한 줄(줄 안에서 나누지 않는다 — 항목 하나가 폭을 넘으면 문구를 줄여야 한다), 설명은 단어 단위로 접는다.
             foreach (var line in c.TraitLines)
-                RequireFits(PixelGui.MeasureText(skin.FontPlain, line, textScale), innerW, line);
+                RequireFits(PixelGui.MeasureText(skin.FontPlain, line, textScale), innerW, line, "카드 안쪽");
             foreach (var line in c.BodyLines)
-                RequireFits(PixelGui.MeasureText(skin.FontPlain, line, textScale), innerW, line);
+                RequireFits(PixelGui.MeasureText(skin.FontPlain, line, textScale), innerW, line, "카드 안쪽");
             var noteLines = string.IsNullOrEmpty(c.Note)
                 ? EmptyLines
                 : PixelGui.WrapText(skin.FontPlain, c.Note, textScale, innerW);
@@ -138,13 +163,12 @@ namespace PickShoot
 
             int topMargin = TopMarginTexels * scale;
             int bottomMin = BottomMinTexels * scale;
-            int showcaseH = ItemTilePainter.Size(ShowcaseTileScale);
-            int contentH = showcaseH + gap + nameH + nameGap + (c.StatLabels.Length + c.TraitLines.Length) * lineH;
+            int contentH = headerH + gap + (c.StatLabels.Length + c.TraitLines.Length) * lineH;
             if (c.RowLabel != null) contentH += lineH + gap;
             if (bodyLines > 0) contentH += bodyGap + bodyLines * lineH;
             int innerH = (int)rect.height - topMargin - bottomMin;
             if (contentH > innerH)
-                throw new System.Exception($"[PickShoot] UpgradeCardPainter: 카드 내용 높이 {contentH}px가 카드 안쪽 높이 {innerH}px(위 여백 {topMargin}·아래 최소 여백 {bottomMin} 제외)를 넘음 (본문 {bodyLines}줄). 본문 문구를 줄이거나 간격을 줄일 것 — 카드를 키우면 보상 화면 블록이 캔버스 세로를 넘친다 (UpgradeManager).");
+                throw new System.Exception($"[PickShoot] UpgradeCardPainter: 카드 내용 높이 {contentH}px가 카드 안쪽 높이 {innerH}px(위 여백 {topMargin}·아래 최소 여백 {bottomMin} 제외)를 넘음 (본문 {bodyLines}줄). 본문 문구를 줄이거나 간격을 줄일 것 — 카드를 키우려면 보상 화면 블록(UpgradeManager)이 캔버스 세로에 드는지 볼 것.");
 
             // 호버면 카드보다 한 텍셀 큰 흰 판 모양을 먼저 깔아 테두리를 바깥으로 넓힌다.
             if (hovered)
@@ -152,19 +176,36 @@ namespace PickShoot
                 int o = HoverOutlineTexels * scale;
                 PixelGui.FillPlateShape(new Rect(rect.x - o, rect.y - o, rect.width + 2 * o, rect.height + 2 * o), scale, Color.white);
             }
-            // 획득·레벨업 카드는 같은 패널(일시정지 배너와 같은 파란 패널).
+            // 획득·레벨업·유물 카드는 같은 패널(일시정지 배너와 같은 파란 패널).
             PixelGui.DrawNineSlice(skin.PanelBlue, rect, skin.TileSize, scale);
 
-            // 위 여백은 고정(배지 자리), 남는 공간은 아래 여백. 획득·레벨업 카드의 내용 위치가 같다.
+            // 위 여백은 고정, 남는 공간은 아래 여백. 어떤 종류든 내용 위치가 같다.
             int y = (int)rect.y + topMargin;
 
-            // 전시: 빌드 격자와 같은 정사각 타일 — 그림과 고른 뒤의 상태 배지.
-            var showcaseTile = new Rect(centerX - showcaseH / 2, y, showcaseH, showcaseH);
-            ItemTilePainter.Draw(skin, c.ShowcaseSprite, c.ShowcaseBadge, (int)showcaseTile.x, (int)showcaseTile.y, ShowcaseTileScale);
-            y += showcaseH + gap;
-
-            PixelGui.DrawTextCentered(skin.FontOutlined, c.Name, centerX, y, NameScale);
-            y += nameH + nameGap;
+            // 머리 — 묶음을 가운데에 놓고, 타일(그림과 고른 뒤의 상태 배지)과 글자 칸은 위 변을 맞춘다. 이름이 한 줄이면 둘째 줄 자리는 비워 둔다 (제목 자리가 카드마다 같게).
+            int headerX = x0 + (innerW - headerW) / 2;
+            int headerTextX = headerX + showcaseH + HeaderGapTexels * scale;
+            var showcaseTile = new Rect(headerX, y, showcaseH, showcaseH);
+            ItemTilePainter.Draw(skin, c.ShowcaseSprite, c.ShowcaseBadge, headerX, y, ShowcaseTileScale);
+            // 제목 글자색은 GUI.color로 곱한다 — 글리프의 흰 획이 그 색이 되고 어두운 상자도 함께 어두워진다 (XP 팝업과 같은 방식). 꼬리도 같은 색.
+            var prevColor = GUI.color;
+            GUI.color = prevColor * c.TitleTint;
+            PixelGui.DrawText(skin.FontPlain, c.Title, headerTextX, y, TitleScale);
+            if (c.TitleTag != null)
+            {
+                // 꼬리는 글자 배율 — 글리프 상자의 아래 변을 제목에 맞춘다 (상자 아래 변 = 줄 위 y + (capTop + capHeight) × 배율).
+                int tagX = headerTextX + PixelGui.MeasureText(skin.FontPlain, c.Title, TitleScale) + space;
+                int tagY = y + (skin.FontPlain.capTop + skin.FontPlain.capHeight) * (TitleScale - textScale);
+                PixelGui.DrawText(skin.FontPlain, c.TitleTag, tagX, tagY, textScale);
+            }
+            GUI.color = prevColor;
+            int nameY = y + titleH + headerTextGap;
+            foreach (var line in nameLines)
+            {
+                PixelGui.DrawText(skin.FontOutlined, line, headerTextX, nameY, NameScale);
+                nameY += nameH;
+            }
+            y += headerH + gap;
 
             if (c.RowLabel != null)
             {
@@ -201,44 +242,14 @@ namespace PickShoot
                 y += lineH;
             }
 
-            // 배지는 카드 테두리 위에 얹히므로 맨 마지막에 그린다.
-            DrawBadge(skin, rect, scale, c.Badge, c.BadgePanel);
             return showcaseTile;
         }
 
-        // 배지가 카드 위쪽 끝 위로 솟는 높이 (기준 캔버스 픽셀). 카드를 포함한 묶음의 높이를 잴 때 쓴다.
-        public static int BadgeOverhang(PixelUiSkin skin, int scale)
+        // area는 그 문구가 들어가야 하는 칸의 이름 (예외 문구용).
+        static void RequireFits(int width, int maxWidth, string what, string area)
         {
-            return BadgeHeight(skin) - BadgeInsetTexels * scale;
-        }
-
-        static int BadgeHeight(PixelUiSkin skin)
-        {
-            return (skin.FontPlain.lineHeight + 2 * BadgePaddingYTexels) * BadgeScale;
-        }
-
-        // card는 배지를 얹을 카드의 영역(캔버스 픽셀), scale은 그 카드의 패널 배율. 배지는 카드 위쪽 끝 가운데에 걸친다.
-        public static void DrawBadge(PixelUiSkin skin, Rect card, int scale, string text, PixelUiSkin.NineSlice panel)
-        {
-            int badgeTile = skin.TileSize * BadgeScale;
-            int padX = BadgePaddingXTexels * BadgeScale;
-            int lineH = skin.FontPlain.lineHeight * BadgeScale;
-            // 폭은 타일 배수로 올리지 않는다 — 올리면 문구에 따라 글자 양옆 여백이 들쭉날쭉해진다. 9-slice는 부분 타일을 지원하고
-            // 모서리 2개(타일 2개)보다는 넓어야 한다.
-            int w = Mathf.Max(2 * badgeTile, PixelGui.MeasureText(skin.FontPlain, text, BadgeScale) + 2 * padX);
-            int h = BadgeHeight(skin);
-            if (w > (int)card.width)
-                throw new System.Exception($"[PickShoot] UpgradeCardPainter: 배지 '{text}'의 폭 {w}px가 카드 폭 {(int)card.width}px를 넘음. 문구를 줄이거나 BadgeScale을 낮출 것.");
-            int centerX = (int)card.center.x;
-            var badge = new Rect(centerX - w / 2, (int)card.y + BadgeInsetTexels * scale - h, w, h);
-            PixelGui.DrawNineSlice(panel, badge, skin.TileSize, BadgeScale);
-            PixelGui.DrawTextCentered(skin.FontPlain, text, centerX, (int)badge.y + (h - lineH) / 2, BadgeScale);
-        }
-
-        static void RequireFits(int width, int innerW, string what)
-        {
-            if (width > innerW)
-                throw new System.Exception($"[PickShoot] UpgradeCardPainter: 카드 내용 '{what}'의 폭 {width}px가 카드 안쪽 폭 {innerW}px를 넘음. 카드 크기는 고정이라 내용에 맞춰 늘지 않는다 — CardWidthTiles를 늘리거나 문구를 줄일 것.");
+            if (width > maxWidth)
+                throw new System.Exception($"[PickShoot] UpgradeCardPainter: 카드 내용 '{what}'의 폭 {width}px가 {area} 폭 {maxWidth}px를 넘음. 카드 크기는 고정이라 내용에 맞춰 늘지 않는다 — CardWidthTiles를 늘리거나 문구를 줄일 것.");
         }
 
         static CardContent Build(PixelUiSkin skin, UpgradeOption option, PlayerWeapons weapons, PlayerStats stats)
@@ -248,17 +259,20 @@ namespace PickShoot
                 case UpgradeKind.AcquireWeapon:
                 {
                     var d = option.AcquireData;
-                    var acquired = BuildWeaponStats(d, 0, 1, stats.DamageMultiplier);
+                    // 시작 레벨(UpgradeOption.Levels)은 보통 1. 둘 이상이면 제목이 `NEW (+n)`이고 표·배지도 그 레벨의 값.
+                    int start = option.Levels;
+                    var acquired = BuildWeaponStats(d, 0, start, stats.DamageMultiplier);
                     return new CardContent
                     {
-                        Badge = NewBadgeText,
-                        BadgePanel = skin.PanelYellow,
+                        Title = NewTitle,
+                        TitleTag = LevelTag(start),
+                        TitleTint = skin.HighlightText,
                         ShowcaseSprite = d.WeaponSprite,
-                        ShowcaseBadge = ItemInfoText.WeaponBadge(1),
+                        ShowcaseBadge = ItemInfoText.WeaponBadge(start),
                         Name = d.DisplayName.ToUpperInvariant(),
                         RowLabel = LevelLabel,
                         LevelNow = null,
-                        LevelNext = "1",
+                        LevelNext = start.ToString(),
                         StatLabels = acquired.Labels,
                         StatNow = acquired.Now,
                         StatNext = acquired.Next,
@@ -273,17 +287,22 @@ namespace PickShoot
                     if (option.TargetSlotIndex >= weapons.Slots.Count)
                         throw new System.Exception($"[PickShoot] UpgradeCardPainter: 레벨업 카드의 slotIndex {option.TargetSlotIndex}가 범위 밖 (현재 슬롯 {weapons.Slots.Count}개).");
                     var w = weapons.Slots[option.TargetSlotIndex];
-                    var levelled = BuildWeaponStats(w.Data, w.Level, w.Level + 1, stats.DamageMultiplier);
+                    // 오르는 단계 수(UpgradeOption.Levels)는 보통 1. 둘 이상이면 제목이 `LV UP (+n)`이고 "다음" 열·배지가 그 레벨의 값.
+                    int next = w.Level + option.Levels;
+                    if (next > Weapon.MaxLevel)
+                        throw new System.Exception($"[PickShoot] UpgradeCardPainter: 레벨업 카드가 '{w.Data.DisplayName}' 레벨 {w.Level}에 {option.Levels}를 더하면 최대 {Weapon.MaxLevel}을 넘음. 후보를 만들 때 걸러야 함 (UpgradeManager).");
+                    var levelled = BuildWeaponStats(w.Data, w.Level, next, stats.DamageMultiplier);
                     return new CardContent
                     {
-                        Badge = LevelUpBadgeText,
-                        BadgePanel = skin.PanelBlue,
+                        Title = LevelUpTitle,
+                        TitleTag = LevelTag(option.Levels),
+                        TitleTint = Color.white,
                         ShowcaseSprite = w.Data.WeaponSprite,
-                        ShowcaseBadge = ItemInfoText.WeaponBadge(w.Level + 1),
+                        ShowcaseBadge = ItemInfoText.WeaponBadge(next),
                         Name = w.Data.DisplayName.ToUpperInvariant(),
                         RowLabel = LevelLabel,
                         LevelNow = w.Level.ToString(),
-                        LevelNext = (w.Level + 1).ToString(),
+                        LevelNext = next.ToString(),
                         StatLabels = levelled.Labels,
                         StatNow = levelled.Now,
                         StatNext = levelled.Next,
@@ -312,8 +331,9 @@ namespace PickShoot
                     int owned = stats.CountOf(d);
                     return new CardContent
                     {
-                        Badge = d.Grade.ToString().ToUpperInvariant(),
-                        BadgePanel = GradeBadgePanel(skin, d.Grade),
+                        Title = d.Grade.ToString().ToUpperInvariant(),
+                        TitleTag = null,
+                        TitleTint = GradeTitleTint(d.Grade),
                         ShowcaseSprite = d.Icon,
                         ShowcaseBadge = ItemInfoText.RelicBadge(owned + 1),
                         Name = d.DisplayName.ToUpperInvariant(),
@@ -377,14 +397,21 @@ namespace PickShoot
             return flags.ToArray();
         }
 
-        // 등급 배지의 패널 (Relics §1). 커먼은 회색 — 무기 카드의 노란 NEW!·파란 LV UP과 겹치지 않는다. 레어·유니크는 그 단계에서 정한다 (Relics §5).
-        static PixelUiSkin.NineSlice GradeBadgePanel(PixelUiSkin skin, RelicGrade grade)
+        // 제목 뒤의 보너스 꼬리. 한 장이 레벨을 둘 이상 올리는 카드(아직 없다 — 앞으로의 보너스 카드)는 `NEW (+2)`·`LV UP (+3)`처럼 올리는 수를 괄호에 붙인다.
+        // 획득 카드의 수는 시작 레벨이라 1이면 레벨업의 +1과 같은 보통 카드 — 붙이지 않는다 (2026-10-08).
+        static string LevelTag(int levels)
+        {
+            return levels >= 2 ? $"(+{levels})" : null;
+        }
+
+        // 등급 제목의 글자색 (Relics §1). 커먼은 흰색 — 배지 시절(2026-10-08까지)엔 회색 패널로 무기 카드의 노란 NEW!·파란 LV UP과 갈랐다. 레어·유니크는 그 단계에서 정한다 (Relics §5).
+        static Color GradeTitleTint(RelicGrade grade)
         {
             switch (grade)
             {
-                case RelicGrade.Common: return skin.PanelGrey;
+                case RelicGrade.Common: return Color.white;
                 default:
-                    throw new System.Exception($"[PickShoot] UpgradeCardPainter: 등급 {grade}의 배지 패널이 아직 정해지지 않음 (Relics §5 3·4단계).");
+                    throw new System.Exception($"[PickShoot] UpgradeCardPainter: 등급 {grade}의 제목 글자색이 아직 정해지지 않음 (Relics §5 3·4단계).");
             }
         }
 

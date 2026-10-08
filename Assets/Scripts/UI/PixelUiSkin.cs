@@ -65,6 +65,8 @@ namespace PickShoot
         // 무기 스프라이트 밑의 작은 판(HUD 무기 줄·빌드 띠, PixelGui.DrawWeaponPlate) 색: 시트 외곽선 색 테두리 + 회색 패널 바탕색 (DEVELOPMENT §2).
         [SerializeField] Color weaponPlateFill = new Color32(153, 154, 196, 255);
         [SerializeField] Color weaponPlateOutline = new Color32(71, 50, 75, 255);
+        // 강조 글자색 — 업그레이드 카드의 `NEW` 제목(새 무기만 튀게, UpgradeCardPainter). XP 팝업(PlayerExperience.popupColor)과 같은 노랑으로 맞춘다 (2026-10-08).
+        [SerializeField] Color highlightText = new Color32(255, 184, 76, 255);
 
         public int TileSize => tileSize;
         public NineSlice PanelBlue => panelBlue;
@@ -85,6 +87,7 @@ namespace PickShoot
         public Sprite IconSkull => iconSkull;
         public Color WeaponPlateFill => weaponPlateFill;
         public Color WeaponPlateOutline => weaponPlateOutline;
+        public Color HighlightText => highlightText;
 
         // 누락된 참조를 필드 이름까지 지목해 예외로 알린다. 사용하는 쪽이 Awake에서 호출.
         public void Validate()

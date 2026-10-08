@@ -5,7 +5,7 @@ using UnityEngine.InputSystem;
 namespace PickShoot
 {
     // ESC로 게임을 멈추고 화면을 어둡게 덮는 일시정지 화면. PixelUiSkin(Kenney Interface 시트)으로 OnGUI에 그린다.
-    // 구성은 업그레이드 카드와 같은 결의 상태 카드 한 장: 회색 카드(패널 배율) 위쪽 끝에 파란 "PAUSED" 배지(카드 배지와 같은 그리기, UpgradeCardPainter.DrawBadge)가
+    // 구성은 업그레이드 카드와 같은 결의 상태 카드 한 장: 회색 카드(패널 배율) 위쪽 끝에 파란 "PAUSED" 배지(카드에서 이어진 탭처럼 걸치는 패널 한 줄, DrawBadge)가
     // 걸치고, 안에는 WAVE·LEVEL·XP 표 — 라벨은 왼쪽(일반 글꼴), 값은 오른쪽(아웃라인 글꼴), 글자 배율. 줄이 카드 폭을 끝까지 쓰므로 카드 크기는 줄 수에서 정해진다.
     // 재개 안내는 카드 밖 아래. 배너 + 상자를 쌓는 데스 화면 꼴은 짧은 두 줄로는 상자가 배너와 겨루는 두 번째 덩어리로 보여 뺐다 (2026-10-02).
     // 일시정지 중엔 HUD가 숨으므로 웨이브도 여기서 보이고, 누적 경험치 총량은 여기서만 보인다 (GDD §3.3).
@@ -39,6 +39,12 @@ namespace PickShoot
         const int StripGapTexels = 8;        // 카드 아래 → 빌드 격자 (글자 텍셀)
         const int HintGapTexels = 16;        // 빌드 격자 아래 → 재개 안내 (글자 텍셀)
         const int SectionGapTexels = 12;     // 무기 줄 아래 → 유물 제목 (글자 텍셀). 제목과 그 타일 사이(BuildGridPainter, 4)보다 넓어 섹션이 갈린다.
+        // 배지: 패널 한 줄(배율 3 — 패널 4보다 작고 글자 2보다 크다), 글자도 같은 배율. 카드 위쪽 끝에 걸쳐 BadgeInsetTexels(패널 텍셀)만큼 카드 안으로 들어온다 — 배지 높이의 2/3.
+        // 2026-10-08까지 업그레이드 카드의 종류 배지(노란 NEW!·파란 LV UP)와 같은 그리기였다 — 카드가 종류를 머리의 글자 제목으로 옮기며(UpgradeCardPainter) 여기만 남았다.
+        const int BadgeScale = 3;
+        const int BadgePaddingXTexels = 10; // 배지 패널 테두리 → 글자, 좌우 (배지 배율)
+        const int BadgePaddingYTexels = 8;  // 위아래
+        const int BadgeInsetTexels = 16;
 
         bool paused;
         float prevTimeScale;
@@ -127,10 +133,10 @@ namespace PickShoot
             int rowGap = RowGapTexels * textScale;
             int tableH = RowLabels.Length * lineH + (RowLabels.Length - 1) * rowGap;
             // 카드 높이 = 배지가 들어온 깊이 + 표 + 위아래 최소 여백, 타일 배수로 올림. 배지가 위로 솟은 만큼까지 묶음에 넣어 세로 중앙에 놓는다.
-            int inset = UpgradeCardPainter.BadgeInsetTexels * scale;
+            int inset = BadgeInsetTexels * scale;
             int cardW = CardWidthTiles * tile;
             int cardH = CeilToMultiple(inset + tableH + 2 * TablePaddingTexels * scale, tile);
-            int overhang = UpgradeCardPainter.BadgeOverhang(skin, scale);
+            int overhang = BadgeOverhang(skin, scale);
             int stripGap = StripGapTexels * textScale;
             int gridScale = scale;
             BuildGridPainter.RequireFits(gridScale, canvas.Width);
@@ -149,7 +155,7 @@ namespace PickShoot
 
             var card = new Rect(centerX - cardW / 2, (canvas.Height - blockH) / 2 + overhang, cardW, cardH);
             PixelGui.DrawNineSlice(skin.PanelGrey, card, skin.TileSize, scale);
-            UpgradeCardPainter.DrawBadge(skin, card, scale, Title, skin.PanelBlue);
+            DrawBadge(skin, card, scale, Title, skin.PanelBlue);
 
             // 표는 배지 아래 남은 높이의 세로 가운데. 라벨은 왼쪽 정렬, 값은 오른쪽 정렬.
             int sidePad = SidePaddingTexels * scale;
@@ -204,6 +210,35 @@ namespace PickShoot
                 case 2: return experience.Total.ToString();
                 default: throw new System.Exception($"[PickShoot] PauseScreen: 표에 없는 줄 {row}.");
             }
+        }
+
+        // 배지가 카드 위쪽 끝 위로 솟는 높이 (기준 캔버스 픽셀). 카드를 포함한 묶음의 높이를 잴 때 쓴다.
+        static int BadgeOverhang(PixelUiSkin skin, int scale)
+        {
+            return BadgeHeight(skin) - BadgeInsetTexels * scale;
+        }
+
+        static int BadgeHeight(PixelUiSkin skin)
+        {
+            return (skin.FontPlain.lineHeight + 2 * BadgePaddingYTexels) * BadgeScale;
+        }
+
+        // card는 배지를 얹을 카드의 영역(캔버스 픽셀), scale은 그 카드의 패널 배율. 배지는 카드 위쪽 끝 가운데에 걸친다 — 카드 테두리 위에 얹히므로 카드 패널 뒤에 그린다.
+        static void DrawBadge(PixelUiSkin skin, Rect card, int scale, string text, PixelUiSkin.NineSlice panel)
+        {
+            int badgeTile = skin.TileSize * BadgeScale;
+            int padX = BadgePaddingXTexels * BadgeScale;
+            int lineH = skin.FontPlain.lineHeight * BadgeScale;
+            // 폭은 타일 배수로 올리지 않는다 — 올리면 문구에 따라 글자 양옆 여백이 들쭉날쭉해진다. 9-slice는 부분 타일을 지원하고
+            // 모서리 2개(타일 2개)보다는 넓어야 한다.
+            int w = Mathf.Max(2 * badgeTile, PixelGui.MeasureText(skin.FontPlain, text, BadgeScale) + 2 * padX);
+            int h = BadgeHeight(skin);
+            if (w > (int)card.width)
+                throw new System.Exception($"[PickShoot] PauseScreen: 배지 '{text}'의 폭 {w}px가 카드 폭 {(int)card.width}px를 넘음. 문구를 줄이거나 BadgeScale을 낮출 것.");
+            int centerX = (int)card.center.x;
+            var badge = new Rect(centerX - w / 2, (int)card.y + BadgeInsetTexels * scale - h, w, h);
+            PixelGui.DrawNineSlice(panel, badge, skin.TileSize, BadgeScale);
+            PixelGui.DrawTextCentered(skin.FontPlain, text, centerX, (int)badge.y + (h - lineH) / 2, BadgeScale);
         }
 
         static int CeilToMultiple(int value, int multiple)
