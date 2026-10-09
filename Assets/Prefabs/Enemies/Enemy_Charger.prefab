@@ -171,7 +171,7 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: e959abd2d12d4b4ba0b71a77d3f3ecc2, type: 3}
-  m_Name:
+  m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PickShoot.EnemyCharger
   data: {fileID: 11400000, guid: 0a9c530860d440f69b20907efa46bbc1, type: 2}
   knockbackDamping: 20
@@ -202,11 +202,12 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: a5812aadff8add94692ece58759ccc3e, type: 3}
-  m_Name:
+  m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PickShoot.EnemyHealth
   data: {fileID: 11400000, guid: 0a9c530860d440f69b20907efa46bbc1, type: 2}
   flashDuration: 0.08
   flashMaterial: {fileID: 2100000, guid: d0efb76df47e47da91e1c5f2aef5f3bf, type: 2}
+  damageNumberColor: {r: 1, g: 1, b: 1, a: 1}
   deathEffectPrefab: {fileID: 5670591326354318199, guid: 621b869db3a9bdc42b153ed8e123f1ab, type: 3}
   hitClip: {fileID: 8300000, guid: 0b892b20090e74f4e9bdbd2239bd8d59, type: 3}
   deathClip: {fileID: 8300000, guid: ea87281d6691b8340a8a02116df30d6f, type: 3}
@@ -220,7 +221,7 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: a43c715f32644acf8ae6b906ace5e729, type: 3}
-  m_Name:
+  m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PickShoot.SpriteWalkCycle
   frames:
   - {fileID: 1840049520019230479, guid: 0d43f266f11dd8c43927b7935aefa50e, type: 3}
@@ -237,9 +238,10 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 8b2e82dabd3040fa83872bfc8dc6aaed, type: 3}
-  m_Name:
+  m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PickShoot.EnemyAttackWarning
   marker: {fileID: 6035329135907493899}
+  sideOffsetTexels: 12
 --- !u!1 &8870961503011469214
 GameObject:
   m_ObjectHideFlags: 0
