@@ -28,8 +28,8 @@ MonoBehaviour:
   maxBounces: 0
   penetration: 0
   explosionRadius: 0
-  visualColor: {r: 0.95, g: 0.5, b: 0.8, a: 1}
-  weaponSprite: {fileID: 4044960238834004323, guid: 4f2ba46ac711e1e4698a9d155c120788, type: 3}
+  visualColor: {r: 1, g: 0.43137255, b: 0.76862745, a: 1}
+  weaponSprite: {fileID: -5144625683338467999, guid: 97adf27adbc24045b068db1d3bf1aacd, type: 3}
   shootClip: {fileID: 8300000, guid: 603ea3135504c1d4cb9b9b25c6109b31, type: 3}
   explosionClip: {fileID: 0}
   muzzleOffset: 0.6
