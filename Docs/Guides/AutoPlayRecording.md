@@ -59,5 +59,9 @@ Game view 크기 복원은 공개 API가 없어 reflection: `UnityEditor.GameVie
 | Game view 크기가 커스텀 항목으로 남음 | 복원 reflection 실패 → 드롭다운에서 되돌리고 커스텀 항목 제거 |
 | 로그에 `loaded. isPlaying=False`가 세션 도중 섞임 | AssetImportWorker 프로세스가 같은 로그에 쓰는 것 → 무시 |
 | 씬 파일을 외부(스크립트)에서 고친 뒤 리프레시가 멈춤 | 열린 씬이 바뀌면 "The open scene(s) have been modified externally" 모달이 뜬다 → 다이얼로그의 `Reload` 버튼에 `PostMessage(WM_COMMAND)`를 보내 누른다(포커스 불필요). 처음부터 포커스 없이 리프레시하려면 폴링 스크립트에 요청 파일 → `AssetDatabase.Refresh()` 명령을 넣어 둔다 |
+| 폴링은 도는데 게임 시간이 안 흐름(`FixedUpdate`·`Update` 멈춤) | Player 설정 `runInBackground: 0`이면 에디터가 포커스를 잃을 때 플레이 루프가 멈춘다 → 세션 중에만 `Application.runInBackground = true`(런타임 값, 프로젝트 설정은 그대로)로 켜고 종료 때 복원 |
+| `ScreenCapture`가 파일을 안 남김 | Game view가 그려지지 않는 상태(에디터 백그라운드) → 카메라를 직접 렌더: `RenderPipeline.SubmitRenderRequest(cam, new RenderPipeline.StandardRequest { destination = rt })` → `ReadPixels`. IMGUI HUD는 빠진다 |
+| 셋업 스크립트의 `SerializedObject.FindProperty`가 null (6000.3) | 직렬화 이름이 YAML 키와 다르다: Physics2D 반발 임계값은 `m_BounceThreshold`(옛 키 `m_VelocityThreshold`), TimeManager `Fixed Timestep`은 유리수 구조체(`.m_Count`, 초당 틱 `.m_Rate.m_Numerator`/`m_Denominator`) → `GetIterator()`로 속성 경로를 덤프해 확인 |
+| 셋업이 만든 SO 참조가 씬에 null로 저장됨 | `CreateInstance`+`CreateAsset` 뒤 `EditorSceneManager.OpenScene(…, Single)`을 하면 그 전의 C# 참조가 끊긴다 → 씬을 연 뒤 `LoadAssetAtPath`로 다시 읽어 연결 |
 
 Claude Code로 운용할 때: "예외 없이 멈춤"이면 코드보다 먼저 창 가려짐을 의심하고, `System.Drawing.Graphics.CopyFromScreen`으로 실제 화면을 캡처해 확인하는 것이 가장 빠르다.
