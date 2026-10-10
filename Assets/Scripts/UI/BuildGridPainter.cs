@@ -98,7 +98,7 @@ namespace PickShoot
             {
                 int tx = x + i * pitch;
                 var w = slots[i];
-                ItemTilePainter.Draw(skin, w.Data.WeaponSprite, ItemInfoText.WeaponBadge(w.Level), tx, y, scale);
+                ItemTilePainter.Draw(skin, w.Data.WeaponSprite, ItemInfoText.WeaponBadge(w.Level), ItemInfoText.ModMark(w.Mod), tx, y, scale);
                 var r = TileRect(skin, tx, y, scale);
                 if (r.Contains(mouse))
                 {

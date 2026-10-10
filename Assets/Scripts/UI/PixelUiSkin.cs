@@ -70,6 +70,9 @@ namespace PickShoot
         // 업그레이드 카드의 `UPGRADE` 제목(무기 레벨업) 글자색 — Pixel Platformer 팩의 밝은 초록. 사막 팩에는 초록이 없고 가장 가까운 민트(재생 문구색)는 청록으로
         // 읽혔으며, 더 짙은 초록은 노란 `NEW`보다 어두워 보였다 (2026-10-09, Recordings/card_upgrade_green_mockup_2026-10-09.png).
         [SerializeField] Color upgradeText = new Color32(127, 240, 165, 255);
+        // 개조 카드의 `MOD` 제목과 빌드 타일 배지의 개조 머리글자(`LV5H`의 `H`) 글자색 — Pixel Platformer 팩의 분홍. 노란 `NEW`·초록 `UPGRADE`·파란 카드
+        // 패널과 가장 잘 갈렸다. 청록은 다음으로 읽혔고, 살구색은 `NEW`와, 라벤더는 패널과 묻혔다 (2026-10-10, Recordings/mod_card_color_mockup_2026-10-10.png).
+        [SerializeField] Color modText = new Color32(255, 154, 186, 255);
 
         public int TileSize => tileSize;
         public NineSlice PanelBlue => panelBlue;
@@ -92,6 +95,7 @@ namespace PickShoot
         public Color WeaponPlateOutline => weaponPlateOutline;
         public Color HighlightText => highlightText;
         public Color UpgradeText => upgradeText;
+        public Color ModText => modText;
 
         // 누락된 참조를 필드 이름까지 지목해 예외로 알린다. 사용하는 쪽이 Awake에서 호출.
         public void Validate()

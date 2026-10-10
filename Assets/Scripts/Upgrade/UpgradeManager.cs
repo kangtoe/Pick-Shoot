@@ -7,8 +7,10 @@ namespace PickShoot
     // 웨이브 클리어 보상의 종류 (GDD §3.4). 한 화면은 한 종류만.
     public enum RewardKind { Relic, Weapon }
 
-    // 웨이브 클리어 시 3장 카드를 제시하고 선택을 대기한다. 보상은 유물 화면과 무기 화면(획득/강화 혼합)이 웨이브마다 교대한다 — 홀수 웨이브 클리어는
-    // 유물, 짝수는 무기 (GDD §3.4). 한 화면에 섞지 않는다. 무기 개조(Relics §5 2단계)가 들어오면 다섯 주기로 바뀐다.
+    // 웨이브 클리어 시 3장 카드를 제시하고 선택을 대기한다. 보상은 유물 화면과 무기 화면(획득·레벨업·개조 혼합)이 웨이브마다 교대한다 — 홀수 웨이브 클리어는
+    // 유물, 짝수는 무기 (GDD §3.4). 한 화면에 섞지 않는다. 개조는 전용 화면 없이 무기 화면의 세 번째 종류다 (Mods §3, 2026-10-09 — 그전 계획은 다섯 주기).
+    // 무기 화면은 카드 한 장마다 종류(획득·레벨업·개조)를 먼저 뽑고 그 안에서 대상을 고른다 (Draw) — 모든 후보를 한 줄에 두면 개조 후보(자루 수 × 개조 수)가
+    // 화면을 채운다.
     // 게임 흐름 제어를 위해 Time.timeScale=0로 일시정지, 선택 시 원복. WaveManager가 코루틴으로 호출.
     // 카드는 IMGUI 위에 PixelUiSkin(Kenney Interface 시트)으로 그린다. 글꼴이 A-Z 0-9만 있어 UI 문구는 영문 대문자.
     // 배치 (2026-10-07): 제목 `WAVE N CLEAR`(아웃라인 글꼴, 패널 배율)와 그 아래 부제가 카드 묶음의 왼쪽 끝 위에, 리롤 버튼이 오른쪽 끝 위에 — 둘이 한 띠를 이루고
@@ -28,7 +30,13 @@ namespace PickShoot
         // 유물 화면의 후보 (Relics §2)와 획득한 유물이 쌓이는 곳. 커먼 유물은 반복 획득이 가능하므로 보유 여부와 무관하게 풀 전체가 후보다.
         [SerializeField] PlayerStats stats;
         [SerializeField] List<RelicData> relicPool = new List<RelicData>();
+        // 개조 카드의 후보 (Mods §2, Assets/Data/Mods). 무기 화면에서 개조가 없는 자루 × 이 풀의 개조가 후보다.
+        [SerializeField] List<ModData> modPool = new List<ModData>();
         [SerializeField] int cardsToShow = 3;
+        // 무기 화면에서 카드 한 장의 종류를 뽑는 가중치 (Mods §3). 처음엔 1:1:1, 튜닝 대상. 후보가 없는 종류는 뽑지 않는다.
+        [SerializeField, Min(0f)] float acquireWeight = 1f;
+        [SerializeField, Min(0f)] float levelUpWeight = 1f;
+        [SerializeField, Min(0f)] float modWeight = 1f;
         [SerializeField] PlayerExperience experience;
         [SerializeField] AudioClip selectClip;
         [SerializeField] AudioClip rerollClip;
@@ -76,7 +84,8 @@ namespace PickShoot
         // 없다. 일시정지 배지와 같은 중간 배율 3(84px) — 배지가 양옆 10px를 남기고 들어간다 (카드의 무기 이름도 3이었다가 2026-10-08 머리 가로 배치로 2).
         const int StripTileScale = 3;
 
-        // 이번 카드 화면의 후보 전체(유물 화면은 유물 풀 전체, 무기 화면은 획득 + 레벨업, 순서 고정). 처음 카드도 리롤도 여기서 뽑는다.
+        // 이번 카드 화면의 후보 전체(유물 화면은 유물 풀 전체, 무기 화면은 획득 + 레벨업 + 개조, 순서 고정). 처음 카드도 리롤도 여기서 뽑는다.
+        static readonly UpgradeKind[] Kinds = (UpgradeKind[])System.Enum.GetValues(typeof(UpgradeKind));
         List<UpgradeOption> candidates;
         UpgradeOption[] currentCards;
         int clearedWave;
@@ -126,6 +135,21 @@ namespace PickShoot
                 if (relicPool[i].Modifiers.IsZero)
                     throw new System.Exception($"[PickShoot] UpgradeManager.relicPool[{i}] '{relicPool[i].DisplayName}'의 수정치가 전부 0 — 효과 없는 유물.");
             }
+            if (modPool.Count == 0)
+                throw new System.Exception("[PickShoot] UpgradeManager.modPool이 비어있음. 최소 1종의 ModData 필요 (개조 카드 후보, Assets/Data/Mods).");
+            var marks = new Dictionary<string, ModData>();
+            for (int i = 0; i < modPool.Count; i++)
+            {
+                if (modPool[i] == null)
+                    throw new System.Exception($"[PickShoot] UpgradeManager.modPool[{i}]가 null.");
+                modPool[i].Validate();
+                // 빌드 타일 배지의 머리글자(`LV5H`)로 개조를 가르므로 겹치면 안 된다 (Mods §4.2).
+                if (marks.TryGetValue(modPool[i].BadgeMark, out var other))
+                    throw new System.Exception($"[PickShoot] UpgradeManager.modPool: '{other.DisplayName}'와 '{modPool[i].DisplayName}'의 머리글자 '{modPool[i].BadgeMark}'가 겹침. 타일 배지에서 구분되지 않는다.");
+                marks.Add(modPool[i].BadgeMark, modPool[i]);
+            }
+            if (acquireWeight <= 0f || levelUpWeight <= 0f || modWeight <= 0f)
+                throw new System.Exception($"[PickShoot] UpgradeManager: 카드 종류 가중치는 양수여야 함 (획득 {acquireWeight}·레벨업 {levelUpWeight}·개조 {modWeight}). 종류를 빼려면 후보를 만들지 않는 쪽으로.");
             if (skin == null)
                 throw new System.Exception("[PickShoot] UpgradeManager.skin 미할당. PixelUiSkin 자산(Assets/Data/UI) 필요.");
             skin.Validate();
@@ -180,10 +204,19 @@ namespace PickShoot
                             result.Add(UpgradeOption.Acquire(d));
                     }
 
-                    // 최대 레벨(Weapon.MaxLevel) 자루는 레벨업 후보에서 뺀다. 슬롯이 가득 차고 전부 최대 레벨이면 후보가 없어 카드 화면을 건너뛴다.
+                    // 최대 레벨(Weapon.MaxLevel) 자루는 레벨업 후보에서 뺀다.
                     for (int i = 0; i < weapons.Slots.Count; i++)
                         if (!weapons.Slots[i].IsMaxLevel)
                             result.Add(UpgradeOption.LevelUpSlot(i));
+
+                    // 개조는 개조가 없는 자루 × 개조 풀 전체 (지금 무기·개조 조합은 모두 유효, Mods §2.5). 개조가 붙은 자루는 레벨업 후보로만 남는다.
+                    // 슬롯이 가득 차고 모든 자루가 최대 레벨이며 개조됐으면 후보가 없어 카드 화면을 건너뛴다.
+                    for (int i = 0; i < weapons.Slots.Count; i++)
+                    {
+                        if (weapons.Slots[i].Mod != null) continue;
+                        foreach (var m in modPool)
+                            result.Add(UpgradeOption.ModSlot(i, m));
+                    }
                     return result;
 
                 default:
@@ -191,22 +224,68 @@ namespace PickShoot
             }
         }
 
-        // pool을 섞어 앞에서 cardsToShow장을 뽑는다.
+        // pool에서 cardsToShow장을 뽑는다. 한 장마다 종류를 먼저 뽑고(KindWeight 가중, 후보가 남은 종류만) 그 종류의 후보 중 하나를 균등하게 고른다 —
+        // 개조면 자루와 개조가 함께 정해진다 (Mods §3). 뽑힌 후보는 빠지므로 같은 카드는 두 번 나오지 않고, 종류의 후보가 다 빠지면 그 종류는 더 뽑지 않는다.
+        // 유물 화면은 종류가 하나라 풀에서 균등하게 뽑는 것과 같다.
         UpgradeOption[] Draw(List<UpgradeOption> pool)
         {
-            var order = new List<UpgradeOption>(pool);
-
-            // Fisher-Yates
-            for (int i = order.Count - 1; i > 0; i--)
-            {
-                int j = Random.Range(0, i + 1);
-                (order[i], order[j]) = (order[j], order[i]);
-            }
-
-            int take = Mathf.Min(cardsToShow, order.Count);
+            var remaining = new List<UpgradeOption>(pool);
+            int take = Mathf.Min(cardsToShow, remaining.Count);
             var result = new UpgradeOption[take];
-            for (int i = 0; i < take; i++) result[i] = order[i];
+            var ofKind = new List<UpgradeOption>();
+            for (int i = 0; i < take; i++)
+            {
+                var kind = DrawKind(remaining);
+                ofKind.Clear();
+                foreach (var o in remaining)
+                    if (o.Kind == kind) ofKind.Add(o);
+                var pick = ofKind[Random.Range(0, ofKind.Count)];
+                remaining.Remove(pick);
+                result[i] = pick;
+            }
             return result;
+        }
+
+        // 후보가 남은 종류 중 하나를 가중치로 뽑는다. remaining은 비어 있지 않아야 한다.
+        UpgradeKind DrawKind(List<UpgradeOption> remaining)
+        {
+            float total = 0f;
+            foreach (var k in Kinds)
+                if (HasKind(remaining, k)) total += KindWeight(k);
+            if (total <= 0f)
+                throw new System.Exception("[PickShoot] UpgradeManager.DrawKind: 남은 후보가 없음. 호출자가 뽑을 장 수를 후보 수 이하로 맞춰야 함.");
+            float r = Random.value * total;
+            UpgradeKind last = Kinds[0];
+            foreach (var k in Kinds)
+            {
+                if (!HasKind(remaining, k)) continue;
+                last = k;
+                r -= KindWeight(k);
+                if (r < 0f) return k;
+            }
+            // Random.value가 1이면 끝까지 남는다 — 마지막 종류.
+            return last;
+        }
+
+        static bool HasKind(List<UpgradeOption> options, UpgradeKind kind)
+        {
+            foreach (var o in options)
+                if (o.Kind == kind) return true;
+            return false;
+        }
+
+        // 카드 종류의 가중치. 유물 화면은 유물 한 종류뿐이라 값이 뜻을 갖지 않는다.
+        float KindWeight(UpgradeKind kind)
+        {
+            switch (kind)
+            {
+                case UpgradeKind.AcquireWeapon: return acquireWeight;
+                case UpgradeKind.LevelUp: return levelUpWeight;
+                case UpgradeKind.Mod: return modWeight;
+                case UpgradeKind.Relic: return 1f;
+                default:
+                    throw new System.Exception($"[PickShoot] UpgradeManager.KindWeight: 알 수 없는 Kind {kind}");
+            }
         }
 
         void Select(int index)
@@ -218,7 +297,7 @@ namespace PickShoot
 
         // 지금 보이는 카드 중 무작위 한 장을 뺀 후보에서 다시 뽑는다 — 한 장은 반드시 바뀌고, 나머지는 독립 추첨이라 되돌아올 수
         // 있다. 보이는 카드를 전부 빼면 후보가 6장 이하인 초반에는 결과가 정해져 뽑기가 아니게 되기 때문 (Weapons §3). 후보에 같은
-        // 카드는 둘 없으므로 동등성으로 빼면 정확하다.
+        // 카드는 둘 없으므로 동등성으로 빼면 정확하다. 뺀 카드가 그 종류의 마지막 후보였으면 그 종류는 이번 리롤에서 뽑히지 않는다 (Mods §3).
         void Reroll()
         {
             if (!RerollAffordable)
@@ -260,7 +339,7 @@ namespace PickShoot
             int blockRight = startX + totalW;
 
             string title = $"WAVE {clearedWave} CLEAR";
-            // 부제가 이 화면의 종류를 알린다 — 유물 화면은 RELIC, 무기 화면은 획득·레벨업이 섞이므로 CARD.
+            // 부제가 이 화면의 종류를 알린다 — 유물 화면은 RELIC, 무기 화면은 획득·레벨업·개조가 섞이므로 CARD.
             string subtitle = rewardKind == RewardKind.Relic ? "CHOOSE A RELIC" : "CHOOSE A CARD";
             // 제목은 패널 없이 아웃라인 글꼴 패널 배율, 부제는 바로 아래 글자 배율 — 둘을 합친 것이 위 띠의 높이(96px)다.
             int titleH = skin.FontOutlined.lineHeight * scale;
@@ -322,8 +401,8 @@ namespace PickShoot
                 var w = weapons.Slots[slot];
                 tipTitle = ItemInfoText.WeaponTitle(w.Data);
                 tipAnchor = weaponTile;
-                ItemInfoText.WeaponFacts(w.Data, w.Level, stats, tipFacts);
-                ItemInfoText.WeaponNotes(w.Data, tipNotes);
+                ItemInfoText.WeaponFacts(w.Data, w.Mod, w.Level, stats, tipFacts);
+                ItemInfoText.WeaponNotes(w.Data, w.Mod, tipNotes);
             }
             else if (interactable && relic != null)
             {
@@ -357,7 +436,8 @@ namespace PickShoot
                 TooltipPainter.Draw(skin, canvas, tipAnchor, tipTitle, tipFacts, tipNotes);
         }
 
-        // 카드가 가리키는 것의 툴팁 — 고른 뒤의 상태. 획득 카드는 슬롯이 아직 없어 시작 레벨(UpgradeOption.Levels, 보통 1), 레벨업은 그 슬롯의 오른 뒤 레벨, 유물은 보유 수 + 1.
+        // 카드가 가리키는 것의 툴팁 — 고른 뒤의 상태. 획득 카드는 슬롯이 아직 없어 시작 레벨(UpgradeOption.Levels, 보통 1), 레벨업은 그 슬롯의 오른 뒤 레벨,
+        // 개조는 그 슬롯에 개조가 붙은 뒤, 유물은 보유 수 + 1.
         string CardTooltip(UpgradeOption option, List<string> facts, List<string> notes)
         {
             facts.Clear();
@@ -365,14 +445,21 @@ namespace PickShoot
             switch (option.Kind)
             {
                 case UpgradeKind.AcquireWeapon:
-                    ItemInfoText.WeaponFacts(option.AcquireData, option.Levels, stats, facts);
-                    ItemInfoText.WeaponNotes(option.AcquireData, notes);
+                    ItemInfoText.WeaponFacts(option.AcquireData, null, option.Levels, stats, facts);
+                    ItemInfoText.WeaponNotes(option.AcquireData, null, notes);
                     return ItemInfoText.WeaponTitle(option.AcquireData);
                 case UpgradeKind.LevelUp:
                 {
                     var w = weapons.Slots[option.TargetSlotIndex];
-                    ItemInfoText.WeaponFacts(w.Data, w.Level + option.Levels, stats, facts);
-                    ItemInfoText.WeaponNotes(w.Data, notes);
+                    ItemInfoText.WeaponFacts(w.Data, w.Mod, w.Level + option.Levels, stats, facts);
+                    ItemInfoText.WeaponNotes(w.Data, w.Mod, notes);
+                    return ItemInfoText.WeaponTitle(w.Data);
+                }
+                case UpgradeKind.Mod:
+                {
+                    var w = weapons.Slots[option.TargetSlotIndex];
+                    ItemInfoText.WeaponFacts(w.Data, option.ModData, w.Level, stats, facts);
+                    ItemInfoText.WeaponNotes(w.Data, option.ModData, notes);
                     return ItemInfoText.WeaponTitle(w.Data);
                 }
                 case UpgradeKind.Relic:

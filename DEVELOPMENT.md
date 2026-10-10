@@ -18,7 +18,7 @@
 Unity 프로젝트라면 어디서나 같은 방침(에디터 작업 자동화, 에디터 없는 사전 검증, 데이터·네임스페이스·사운드 구조, 폴더·솔루션 이름, 픽셀아트 임포트, IMGUI 픽셀 UI의 함정)은 [Docs/Guides/UnityPrinciples.md](Docs/Guides/UnityPrinciples.md)에 두고 다른 Unity 프로젝트에 복사해 쓴다. 이 절에는 **이 프로젝트에서만 정해지는 값과 결정**만 둔다.
 
 1. **네임스페이스** — 프로젝트 전체 단일 `PickShoot`.
-2. **데이터 위치** — ScriptableObject 자산이 SSOT. `Assets/Data/Weapons`(`WeaponData`) · `Enemies`(`EnemyData`와 타입별 파생 `ChargerData` 등) · `Relics`(`RelicData`) · `UI`(`PixelUiSkin`) · `Arena`(`ArenaTheme`).
+2. **데이터 위치** — ScriptableObject 자산이 SSOT. `Assets/Data/Weapons`(`WeaponData`) · `Enemies`(`EnemyData`와 타입별 파생 `ChargerData` 등) · `Relics`(`RelicData`) · `Mods`(`ModData`) · `UI`(`PixelUiSkin`) · `Arena`(`ArenaTheme`).
 3. **효과음** — 클립은 그것을 쓰는 시스템의 직렬화 필드(`WeaponData`·프리팹·씬 컴포넌트)가 보관하고, 재생은 `SoundPlayer` 한 곳을 통해서만 한다.
 4. **에디터 도구** — 장기 보존하는 플레이 모드 디버그 도구는 `Assets/Editor`의 `DebugToolsWindow` 한 창(메뉴 `PickShoot/Debug Tools`)에 모은다. 플레이 영상 자동 녹화 도구(`Assets/Editor/PlayRecorder.cs`·`PickShootPlayDriver.cs`, 메뉴 `PickShoot/Record Play`)는 예외로 보존한다 — 2026-09-29 아트 전면 교체 전후를 같은 봇·해상도·길이로 찍어 비교하기 위해서이며, 비교가 끝나면 삭제 여부를 정한다. 산출물(영상·목업 PNG)은 `Recordings/`(git 무시)에 날짜와 HEAD 짧은 해시를 파일명에 넣어 남긴다. 절차는 [AutoPlayRecording](Docs/Guides/AutoPlayRecording.md), 픽셀 UI 목업은 [PixelUiMockup](Docs/Guides/PixelUiMockup.md).
 5. **아트·픽셀 UI** — 기준 캔버스(세로 270텍셀)와 배율, `PixelUiSkin`·`PixelGui` 조각, 아이템 타일과 배지, 글꼴, 월드 아트, 스프라이트 팩 외곽선 규칙은 모두 [Docs/Systems/PixelArtUI.md](Docs/Systems/PixelArtUI.md).

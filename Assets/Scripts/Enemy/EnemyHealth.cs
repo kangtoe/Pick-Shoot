@@ -27,6 +27,8 @@ namespace PickShoot
         public Material BodyMaterial => originalMaterial;
         // 몸이 닿은 플레이어가 입는 피해. PlayerHealth가 접촉 충돌에서 읽는다 (Enemies §1).
         public int ContactDamage => data.ContactDamage;
+        // HP가 다해 이번 프레임 끝에 파괴될 적. 유도 탄환(Bullet)이 표적에서 뺀다.
+        public bool IsDead => current <= 0;
 
         int current;
         float flashUntil;

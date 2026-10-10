@@ -186,8 +186,8 @@ namespace PickShoot
                 var w = weapons.Slots[slot];
                 tipFacts.Clear();
                 tipNotes.Clear();
-                ItemInfoText.WeaponFacts(w.Data, w.Level, stats, tipFacts);
-                ItemInfoText.WeaponNotes(w.Data, tipNotes);
+                ItemInfoText.WeaponFacts(w.Data, w.Mod, w.Level, stats, tipFacts);
+                ItemInfoText.WeaponNotes(w.Data, w.Mod, tipNotes);
                 TooltipPainter.Draw(skin, canvas, weaponTile, ItemInfoText.WeaponTitle(w.Data), tipFacts, tipNotes);
             }
             else if (relic != null)

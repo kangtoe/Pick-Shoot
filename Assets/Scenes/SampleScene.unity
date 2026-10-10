@@ -1088,7 +1088,15 @@ MonoBehaviour:
   - {fileID: 11400000, guid: a074b1c82a3a4e6fa9c51f8610fda84c, type: 2}
   - {fileID: 11400000, guid: b17cc81330e1414fa43c54c8532baf4e, type: 2}
   - {fileID: 11400000, guid: f4f2d62e844d4cc6bd84252cc715c678, type: 2}
+  modPool:
+  - {fileID: 11400000, guid: aac6ebd760f64e6d80b811b36b7d2b3a, type: 2}
+  - {fileID: 11400000, guid: 8cf745e1eecd4846b0e439367067202a, type: 2}
+  - {fileID: 11400000, guid: 694114a1fa5540a7b881b011bf8e8ee6, type: 2}
+  - {fileID: 11400000, guid: 20e1d8fb26834bbabb7bbf93353c0366, type: 2}
   cardsToShow: 3
+  acquireWeight: 1
+  levelUpWeight: 1
+  modWeight: 1
   experience: {fileID: 1698421210}
   selectClip: {fileID: 8300000, guid: 460e5219f0f84004790b551e7a638e25, type: 3}
   rerollClip: {fileID: 8300000, guid: be6acc78056b18742bf774689a87c295, type: 3}

@@ -24,8 +24,13 @@ namespace PickShoot
     // 수치가 없는 특성(`AUTO RETRIEVE`·`PULLS IN`)은 표 아래 본문 줄 — 유물 카드의 효과 줄과 같이 가운데 맞춤 일반 글꼴로, 카드의 설명 줄이 모두 같은 꼴이다
     // (2026-10-07 표 아래 가운데 맞춤 아웃라인 → 같은 날 값 열 오른쪽 정렬 → 2026-10-08 라벨 열 왼쪽 정렬 → 2026-10-09 다시 가운데. 처음 가운데 둔 때는 글꼴이
     // 아웃라인이라 표와 결이 달라 튀었다 — 지금은 표와 같은 일반 글꼴이고 표와 본문 간격으로 떨어진다, Recordings/card_center_desc_mockup_2026-10-09.png).
-    // 무기를 가르는 것이 카드에서 바로 읽히게 — 그전에는 호버 툴팁에만 있었다. 가장 긴 조합(특성 줄 + 수치 특성 한 줄 — 부메랑·볼텍스)에서 아래 여백이 32px —
-    // 최소 여백과 같아 줄이 하나 더 늘면 넘친다 (7×8타일 세로 쌓기, 2026-10-09. 7×7 가로 머리일 때 64px). 넘치면 예외.
+    // 무기를 가르는 것이 카드에서 바로 읽히게 — 그전에는 호버 툴팁에만 있었다. 가장 긴 조합(특성 줄 + 수치 특성 한 줄 — 저격소총·라이플·런처 × 유도 개조의
+    // 레벨업 카드)에서 아래 여백이 32px — 최소 여백과 같아 줄이 하나 더 늘면 넘친다 (7×8타일 세로 쌓기, 2026-10-09. 7×7 가로 머리일 때 64px). 넘치면 예외.
+    // 개조된 자루의 레벨업 카드는 개조를 합친 특성 수치(`PIERCE 3`)를 보이고, 수치로 못 적는 개조(유도, 폭발 탄환이 아닌 무기의 폭발)는 특성 줄에 개조 이름
+    // (`HOMING`·`EXPLOSIVE`)을 `PULLS IN`과 같은 꼴로 적는다 (Mods §4.2).
+    // 개조 카드(Mods §4.1)도 같은 틀이다 — 제목 `MOD`(분홍, PixelUiSkin.ModText), 이름·전시 타일은 대상 자루의 것(배지는 붙인 뒤의 `LV5H`), 첫 줄 자리에
+    // 라벨 없는 개조 이름(`HOMING`), 스탯 줄은 개조가 바꾸는 수치 특성만 `PIERCE 1 → 3`처럼 — DMG·AMMO는 바뀌지 않아 적지 않는다
+    // (2026-10-10, Recordings/mod_card_color_mockup_2026-10-10.png).
     // 타일에 마우스를 올리면 격자와 같은 툴팁(TooltipPainter)이 뜬다 — 카드에 없는 탄속·넉백은 거기서 보인다 (2026-10-06).
     // 카드 호버는 테두리를 바깥으로 HoverOutlineTexels 넓히기 — 카드보다 그만큼 큰 흰 판 모양(PixelGui.FillPlateShape)을 패널 밑에 깔아 패널의 흰 바깥 선
     // 1텍셀이 2텍셀이 된다. 패널 모서리도 판처럼 1텍셀 깎여 있어 그 귀가 흰색으로 메워지고 바깥 귀만 깎인다. 리롤 버튼도 같은 값 (2026-10-08).
@@ -64,6 +69,7 @@ namespace PickShoot
         // 레벨업은 2026-10-09까지 흰 `LV UP`이었다.
         const string NewTitle = "NEW";
         const string LevelUpTitle = "UPGRADE";
+        const string ModTitle = "MOD";
         // 첫 줄(무기 카드)의 라벨 — 값은 "n → n+1". 슬롯 번호(`SLOT 3`)는 2026-10-07에 뺐다 — 자루를 가리키는 번호였지만 전시 그림·레벨로 충분하고,
         // 레벨 값의 `LV` 접두도 함께 걷어 값 열이 좁아졌다. 유물 카드는 이 자리가 라벨 없는 등급 이름이다 (2026-10-09. 그전엔 줄이 없었고,
         // 2026-10-07엔 보유 수 `OWNED n → n+1` 줄을 뺐다 — 고른 뒤 보유 수는 전시 배지 `X n`이 말한다).
@@ -81,6 +87,8 @@ namespace PickShoot
             public Color TitleTint;
             public Sprite ShowcaseSprite;
             public string ShowcaseBadge;
+            // 배지 뒤에 개조 색으로 붙는 개조 머리글자 (`LV5H`의 `H`). 개조가 없으면 null.
+            public string ShowcaseModMark;
             public string Name;
             // 전시 타일 밑 첫 줄 — 모든 카드에 있다. 무기는 레벨(`LEVEL 2 -> 3`), 유물은 등급(`COMMON` — RowLabel이 null이면 라벨 없이 값만).
             // RowNow는 스탯 줄과 같은 규칙 — null이면 비교 없이 값 하나 (획득 카드·유물). RowTint는 값의 글자색 — 등급 색(Relics §5), 무기는 흰색.
@@ -188,7 +196,7 @@ namespace PickShoot
             y += nameH + nameShowcaseGap;
             int showcaseX = centerX - showcaseH / 2;
             var showcaseTile = new Rect(showcaseX, y, showcaseH, showcaseH);
-            ItemTilePainter.Draw(skin, c.ShowcaseSprite, c.ShowcaseBadge, showcaseX, y, ShowcaseTileScale);
+            ItemTilePainter.Draw(skin, c.ShowcaseSprite, c.ShowcaseBadge, c.ShowcaseModMark, showcaseX, y, ShowcaseTileScale);
             y += showcaseH + gap;
 
             DrawRow(skin, c.RowLabel, c.RowNow, c.RowNext, c.RowTint, centerX, y, iconSize, space, textScale);
@@ -233,7 +241,7 @@ namespace PickShoot
                     var d = option.AcquireData;
                     // 시작 레벨(UpgradeOption.Levels)은 보통 1. 둘 이상이면 제목이 `NEW (+n)`이고 표·배지도 그 레벨의 값.
                     int start = option.Levels;
-                    var acquired = BuildWeaponStats(d, 0, start, stats.DamageMultiplier);
+                    var acquired = BuildWeaponStats(d, null, 0, start, stats.DamageMultiplier);
                     return new CardContent
                     {
                         Title = NewTitle,
@@ -249,7 +257,7 @@ namespace PickShoot
                         StatLabels = acquired.Labels,
                         StatNow = acquired.Now,
                         StatNext = acquired.Next,
-                        BodyLines = WeaponFlags(d),
+                        BodyLines = WeaponFlags(d, null),
                         Note = d.Description,
                     };
                 }
@@ -263,7 +271,7 @@ namespace PickShoot
                     int next = w.Level + option.Levels;
                     if (next > Weapon.MaxLevel)
                         throw new System.Exception($"[PickShoot] UpgradeCardPainter: 레벨업 카드가 '{w.Data.DisplayName}' 레벨 {w.Level}에 {option.Levels}를 더하면 최대 {Weapon.MaxLevel}을 넘음. 후보를 만들 때 걸러야 함 (UpgradeManager).");
-                    var levelled = BuildWeaponStats(w.Data, w.Level, next, stats.DamageMultiplier);
+                    var levelled = BuildWeaponStats(w.Data, w.Mod, w.Level, next, stats.DamageMultiplier);
                     return new CardContent
                     {
                         Title = LevelUpTitle,
@@ -271,6 +279,7 @@ namespace PickShoot
                         TitleTint = skin.UpgradeText,
                         ShowcaseSprite = w.Data.WeaponSprite,
                         ShowcaseBadge = ItemInfoText.WeaponBadge(next),
+                        ShowcaseModMark = ItemInfoText.ModMark(w.Mod),
                         Name = w.Data.DisplayName.ToUpperInvariant(),
                         RowLabel = LevelLabel,
                         RowNow = w.Level.ToString(),
@@ -279,8 +288,39 @@ namespace PickShoot
                         StatLabels = levelled.Labels,
                         StatNow = levelled.Now,
                         StatNext = levelled.Next,
-                        BodyLines = WeaponFlags(w.Data),
+                        BodyLines = WeaponFlags(w.Data, w.Mod),
                         Note = w.Data.Description,
+                    };
+                }
+
+                case UpgradeKind.Mod:
+                {
+                    if (option.TargetSlotIndex >= weapons.Slots.Count)
+                        throw new System.Exception($"[PickShoot] UpgradeCardPainter: 개조 카드의 slotIndex {option.TargetSlotIndex}가 범위 밖 (현재 슬롯 {weapons.Slots.Count}개).");
+                    var w = weapons.Slots[option.TargetSlotIndex];
+                    var m = option.ModData;
+                    if (w.Mod != null)
+                        throw new System.Exception($"[PickShoot] UpgradeCardPainter: 개조 카드가 이미 '{w.Mod.DisplayName}'가 붙은 '{w.Data.DisplayName}'를 가리킴. 후보를 만들 때 걸러야 함 (UpgradeManager).");
+                    var modded = BuildModStats(w.Data, m, w.Level);
+                    return new CardContent
+                    {
+                        Title = ModTitle,
+                        TitleTag = null,
+                        TitleTint = skin.ModText,
+                        ShowcaseSprite = w.Data.WeaponSprite,
+                        // 개조 카드가 가리키는 것은 자루다 — 그 자루의 그림과 붙인 뒤의 배지 (Mods §4.1).
+                        ShowcaseBadge = ItemInfoText.WeaponBadge(w.Level),
+                        ShowcaseModMark = m.BadgeMark,
+                        Name = w.Data.DisplayName.ToUpperInvariant(),
+                        RowLabel = null,
+                        RowNow = null,
+                        RowNext = m.UiName,
+                        RowTint = Color.white,
+                        StatLabels = modded.Labels,
+                        StatNow = modded.Now,
+                        StatNext = modded.Next,
+                        BodyLines = NoLines,
+                        Note = m.Description,
                     };
                 }
 
@@ -335,11 +375,11 @@ namespace PickShoot
             public string[] Next;
         }
 
-        // 무기 카드의 표 — DMG·AMMO 뒤에 그 무기의 수치 특성(점사·튕김·관통·폭발)이 같은 줄로 이어진다 (ItemInfoText.WeaponTraitStats).
+        // 무기 카드의 표 — DMG·AMMO 뒤에 그 무기의 수치 특성(점사·튕김·관통·폭발, 개조를 합친 값)이 같은 줄로 이어진다 (ItemInfoText.WeaponTraitStats).
         // nowLevel이 0이면 획득 카드다 — 아직 없는 자루라 비교할 "현재"가 없고, 모든 줄이 값 하나다 (2026-10-07. 그전에는 "현재" 열에 `-`를 두어
         // 획득·레벨업 카드의 줄 구성을 맞췄는데, 읽는 사람에게는 뜻 없는 열이었다).
         // 레벨업 카드에서도 레벨로 바뀌지 않는 특성은 값 하나다 — 같은 수를 화살표 양쪽에 두면 그것도 오르는 값으로 읽힌다.
-        static StatRows BuildWeaponStats(WeaponData data, int nowLevel, int nextLevel, float damageMultiplier)
+        static StatRows BuildWeaponStats(WeaponData data, ModData mod, int nowLevel, int nextLevel, float damageMultiplier)
         {
             var labels = new List<string>(ItemInfoText.WeaponStatLabels);
             var next = new List<string>(ItemInfoText.WeaponStatValues(data, nextLevel, damageMultiplier));
@@ -349,10 +389,10 @@ namespace PickShoot
 
             var traitLabels = new List<string>();
             var traitValues = new List<string>();
-            ItemInfoText.WeaponTraitStats(data, nextLevel, traitLabels, traitValues);
+            ItemInfoText.WeaponTraitStats(data, mod, nextLevel, traitLabels, traitValues);
             var nowLabels = new List<string>();
             var nowValues = new List<string>();
-            if (nowLevel > 0) ItemInfoText.WeaponTraitStats(data, nowLevel, nowLabels, nowValues);
+            if (nowLevel > 0) ItemInfoText.WeaponTraitStats(data, mod, nowLevel, nowLabels, nowValues);
             for (int i = 0; i < traitLabels.Count; i++)
             {
                 labels.Add(traitLabels[i]);
@@ -363,11 +403,39 @@ namespace PickShoot
             return new StatRows { Labels = labels.ToArray(), Now = now.ToArray(), Next = next.ToArray() };
         }
 
-        // 수치가 없는 특성 — 표에 둘 값이 없어 표 아래 본문 줄(가운데 맞춤)이 된다 (자동 회수·당기는 폭발).
-        static string[] WeaponFlags(WeaponData data)
+        // 개조 카드의 표 — 개조가 바꾸는 수치 특성만 "개조 전 → 개조 뒤" (Mods §4.1). 개조 전에 없던 특성(튕김 0인 무기의 BOUNCE)은 현재 값이 0이다.
+        // 수치를 바꾸지 않는 개조(유도, 폭발 탄환이 아닌 무기의 폭발)는 줄이 없다 — 첫 줄의 개조 이름이 말한다.
+        static StatRows BuildModStats(WeaponData data, ModData mod, int level)
+        {
+            var beforeLabels = new List<string>();
+            var beforeValues = new List<string>();
+            ItemInfoText.WeaponTraitStats(data, null, level, beforeLabels, beforeValues);
+            var afterLabels = new List<string>();
+            var afterValues = new List<string>();
+            ItemInfoText.WeaponTraitStats(data, mod, level, afterLabels, afterValues);
+
+            var labels = new List<string>();
+            var now = new List<string>();
+            var next = new List<string>();
+            for (int i = 0; i < afterLabels.Count; i++)
+            {
+                int j = beforeLabels.IndexOf(afterLabels[i]);
+                string before = j >= 0 ? beforeValues[j] : "0";
+                if (before == afterValues[i]) continue;
+                labels.Add(afterLabels[i]);
+                now.Add(before);
+                next.Add(afterValues[i]);
+            }
+            return new StatRows { Labels = labels.ToArray(), Now = now.ToArray(), Next = next.ToArray() };
+        }
+
+        // 수치가 없는 특성 — 표에 둘 값이 없어 표 아래 본문 줄(가운데 맞춤)이 된다 (자동 회수·당기는 폭발). 수치로 못 적는 개조(유도·추가 폭발)는
+        // 그 뒤에 개조 이름 한 줄 (Mods §4.2). mod는 그 자루의 개조, 없으면 null.
+        static string[] WeaponFlags(WeaponData data, ModData mod)
         {
             var flags = new List<string>();
             ItemInfoText.WeaponTraitFlags(data, flags);
+            if (mod != null && mod.AddsBehavior(data)) flags.Add(mod.UiName);
             return flags.ToArray();
         }
 

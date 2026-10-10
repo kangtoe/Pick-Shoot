@@ -8,6 +8,8 @@ namespace PickShoot
     // 쿨다운은 레벨과 무관한 무기 특성이라 오르지 않는다 (Weapons §3).
     // 새로 획득한 자루는 항상 Lv.1로 시작하고 MaxLevel까지 오른다 (Weapons §3).
     // 피해에는 플레이어 전역 배율(PlayerStats의 공격력, 유물 — Relics §2)이 곱해진다. Weapon은 플레이어를 모르므로 발사 때 호출자(PlayerWeapons)가 넘긴다.
+    // 개조(ModData, Mods §1)는 자루당 하나, 붙으면 런이 끝날 때까지 그대로다. 새 자루는 개조 없이 들어오고, 레벨업해도 유지된다.
+    // 개조가 더하는 수치(튕김·관통·폭발 반경)는 ...With 함수가 자산 값에 얹어 계산한다 — 카드가 붙인 뒤의 값을 미리 보일 때도 같은 식을 쓴다.
     public class Weapon
     {
         // 레벨 상한. 한 자리 수로 묶어 HUD·카드의 레벨 표기가 늘 "LV n" 한 자리이고, 최대 탄약(HUD 탄창 줄 길이)도 이 안에 머문다.
@@ -19,8 +21,11 @@ namespace PickShoot
         float nextReadyTime;
         // 시작한 점사에서 아직 쏘지 않은 사격 수. 0이면 점사 중이 아니다 (Weapons §8).
         int burstShotsLeft;
+        ModData mod;
 
         public WeaponData Data => data;
+        // 붙은 개조. 없으면 null.
+        public ModData Mod => mod;
         public int Level => level;
         public bool IsMaxLevel => level >= MaxLevel;
         public int CurrentAmmo => currentAmmo;
@@ -59,6 +64,25 @@ namespace PickShoot
         public static int BulletsPerShotAtLevel(WeaponData data, int level)
         {
             return Mathf.Min(data.ProjectilesPerShot, MaxAmmoAtLevel(data, level));
+        }
+
+        // 개조가 더한 튕김 횟수·관통 (Mods §2.3·§2.4). mod가 null이면 자산 값.
+        public static int BouncesWith(WeaponData data, ModData mod)
+        {
+            return data.MaxBounces + (mod != null ? mod.BounceAdd : 0);
+        }
+
+        public static int PenetrationWith(WeaponData data, ModData mod)
+        {
+            return data.Penetration + (mod != null ? mod.PenetrationAdd : 0);
+        }
+
+        // 폭발 탄환 무기의 폭발 반경 — 폭발 개조는 반경에 배율을 곱한다 (Mods §2.1, 런처 2 → 3). 폭발 탄환이 아닌 무기는 0 그대로다
+        // (그쪽의 폭발 개조는 반경이 아니라 적중마다의 추가 폭발이다).
+        public static float ExplosionRadiusWith(WeaponData data, ModData mod)
+        {
+            if (data.ExplosionRadius <= 0f || mod == null) return data.ExplosionRadius;
+            return data.ExplosionRadius * mod.ExplosionRadiusMultiplier;
         }
 
         public Weapon(WeaponData data)
@@ -138,7 +162,7 @@ namespace PickShoot
                 if (shooterCollider != null)
                     Physics2D.IgnoreCollision(shooterCollider, bulletCol, true);
 
-                bullet.Launch(dir * data.BulletSpeed, this, damage, data.KnockbackForce, data.MaxBounces, data.Penetration, data.ExplosionRadius);
+                bullet.Launch(dir * data.BulletSpeed, this, damage, data.KnockbackForce, BouncesWith(data, mod), PenetrationWith(data, mod), ExplosionRadiusWith(data, mod), mod);
             }
         }
 
@@ -148,6 +172,17 @@ namespace PickShoot
             if (currentAmmo >= MaxAmmo) return false;
             currentAmmo++;
             return true;
+        }
+
+        // 개조를 붙인다 (Mods §1). 자루당 하나라 이미 붙은 자루에는 붙일 수 없다 — 호출자(개조 카드 후보·디버그 버튼)가 Mod를 먼저 확인해야 한다.
+        // 이미 쏜 탄환은 발사 때의 개조 그대로 난다 (Bullet.Launch).
+        public void AttachMod(ModData newMod)
+        {
+            if (newMod == null)
+                throw new System.Exception($"[PickShoot] Weapon.AttachMod: '{data.DisplayName}'에 붙일 개조가 null.");
+            if (mod != null)
+                throw new System.Exception($"[PickShoot] Weapon.AttachMod: '{data.DisplayName}'에 이미 개조 '{mod.DisplayName}'가 붙어 있음 (자루당 하나, Mods §1). 호출자가 Mod를 먼저 확인해야 함.");
+            mod = newMod;
         }
 
         // 자루 단위 레벨업 (GDD §7.3). 최대 탄약 상승분만큼 현재 탄약도 함께 충전한다 — 탄창 가산이 0인 고정 탄창은 오르지 않으므로 충전도 없다.

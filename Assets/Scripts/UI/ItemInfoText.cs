@@ -16,6 +16,12 @@ namespace PickShoot
             return "LV" + level;
         }
 
+        // 개조된 자루의 배지 머리글자 — 레벨 배지 뒤에 개조 색으로 붙는다 (`LV5H`, ItemTilePainter). 개조가 없으면 null.
+        public static string ModMark(ModData mod)
+        {
+            return mod != null ? mod.BadgeMark : null;
+        }
+
         public static string RelicBadge(int count)
         {
             return "X" + count;
@@ -39,11 +45,13 @@ namespace PickShoot
             return d.DisplayName.ToUpperInvariant();
         }
 
-        // 무기 한 자루의 사실 항목 — 레벨, 2 스탯, 탄속·넉백, 그리고 특성(수치 특성 + 깃발 특성).
+        // 무기 한 자루의 사실 항목 — 레벨, 개조(`MOD HOMING`), 2 스탯, 탄속·넉백, 그리고 특성(수치 특성 + 깃발 특성).
         // 슬롯 번호는 적지 않는다 (2026-10-07) — 자루를 가리키는 데 쓰였지만 카드·타일의 그림과 레벨로 충분하고, 줄만 차지했다.
-        public static void WeaponFacts(WeaponData d, int level, PlayerStats stats, List<string> facts)
+        // mod는 그 자루의 개조(없으면 null) — 개조가 더한 수치는 특성 항목에 합친 값(`PIERCE 3`)으로 들어간다 (Mods §4.2).
+        public static void WeaponFacts(WeaponData d, ModData mod, int level, PlayerStats stats, List<string> facts)
         {
             facts.Add($"LEVEL {level}");
+            if (mod != null) facts.Add($"MOD {mod.UiName}");
             var values = WeaponStatValues(d, level, stats.DamageMultiplier);
             for (int i = 0; i < values.Length; i++)
                 facts.Add($"{WeaponStatLabels[i]} {values[i]}");
@@ -51,7 +59,7 @@ namespace PickShoot
             facts.Add($"KNOCKBACK {Num(d.KnockbackForce)}");
             var traitLabels = new List<string>();
             var traitValues = new List<string>();
-            WeaponTraitStats(d, level, traitLabels, traitValues);
+            WeaponTraitStats(d, mod, level, traitLabels, traitValues);
             for (int i = 0; i < traitLabels.Count; i++)
                 facts.Add($"{traitLabels[i]} {traitValues[i]}");
             WeaponTraitFlags(d, facts);
@@ -61,13 +69,17 @@ namespace PickShoot
         // 카드에서는 DMG·AMMO와 같은 표의 줄이고(2026-10-07 — 결국 같은 성격의 수치라 따로 둘 이유가 없다), 툴팁에서는 `PIERCE 1` 항목이다.
         // 적지 않는 것 — 산탄의 발수·각도(DMG의 `8X5`가 이미 말한다), 고정 탄창(`AMMO 1 -> 1`이 이미 말한다). 전부 2026-10-07에 뺐다.
         // 레벨에 따라 바뀌는 것은 점사 수뿐이다 (탄창이 빌 때까지 쏘는 블래스터) — 카드는 그 줄만 "현재 → 다음"으로 보인다.
-        public static void WeaponTraitStats(WeaponData d, int level, List<string> labels, List<string> values)
+        // 개조(mod, 없으면 null)가 더한 튕김·관통·폭발 반경은 자산 값과 합친 값이다 — 따로 적지 않는다 (Mods §1).
+        public static void WeaponTraitStats(WeaponData d, ModData mod, int level, List<string> labels, List<string> values)
         {
             int burst = Weapon.ShotsPerTriggerAtLevel(d, level);
             if (burst > 1) { labels.Add("BURST"); values.Add(burst.ToString()); }
-            if (d.MaxBounces > 0) { labels.Add("BOUNCE"); values.Add(d.MaxBounces.ToString()); }
-            if (d.Penetration > 0) { labels.Add("PIERCE"); values.Add(d.Penetration.ToString()); }
-            if (d.ExplosionRadius > 0f) { labels.Add("BLAST"); values.Add(Num(d.ExplosionRadius)); }
+            int bounces = Weapon.BouncesWith(d, mod);
+            if (bounces > 0) { labels.Add("BOUNCE"); values.Add(bounces.ToString()); }
+            int pierce = Weapon.PenetrationWith(d, mod);
+            if (pierce > 0) { labels.Add("PIERCE"); values.Add(pierce.ToString()); }
+            float blast = Weapon.ExplosionRadiusWith(d, mod);
+            if (blast > 0f) { labels.Add("BLAST"); values.Add(Num(blast)); }
         }
 
         // 수치가 없는 특성 — 표에 둘 값이 없어 카드에서는 표 아래 한 줄, 툴팁에서는 항목 하나가 된다.
@@ -77,9 +89,10 @@ namespace PickShoot
             if (d.AutoRetrieve) flags.Add("AUTO RETRIEVE");
         }
 
-        public static void WeaponNotes(WeaponData d, List<string> notes)
+        public static void WeaponNotes(WeaponData d, ModData mod, List<string> notes)
         {
             if (!string.IsNullOrEmpty(d.Description)) notes.Add(d.Description);
+            if (mod != null && !string.IsNullOrEmpty(mod.Description)) notes.Add(mod.Description);
         }
 
         public static string RelicTitle(RelicData d)

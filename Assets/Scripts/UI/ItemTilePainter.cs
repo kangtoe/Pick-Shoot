@@ -12,6 +12,8 @@ namespace PickShoot
     // 하단 가운데 라벨 → 띠 순으로 목업으로 비교해 골랐다 (2026-10-06, Recordings/tile_badge_*_mockup_2026-10-06.png). 배율 3 타일(보상 화면 줄, 84px)에서는
     // 띠(28px)를 뺀 칸이 44px라 키 큰 총(14텍셀 = 42px)이 꼭 들어간다. 글자 배율 타일(56px)은 쓰지 않는다 — 띠가 안쪽 높이의 절반이고 배지 `LV5`(글자 배율 2로
     // 64px)가 타일보다 넓어 이웃과 붙는다 (처음엔 보상 화면 줄이 그 크기였다).
+    // 개조된 자루는 레벨 배지 뒤에 개조 머리글자를 붙인다 — `LV5H`, 머리글자만 `MOD` 제목과 같은 색(PixelUiSkin.ModText)으로 레벨과 가른다 (Mods §4.2, 2026-10-10).
+    // 하이픈을 넣은 `LV5-E`는 배율 3 타일(84px)을 넘치고, 귀퉁이 배지는 그림을 덮는다. 붙여 쓴 꼴이 74px로 든다 (Recordings/mod_card_color_mockup_2026-10-10.png).
     // 유물 1개도 `X1`을 보인다 — 배지가 빠진 타일이 섞이면 줄이 고르지 않다. 빈 무기 슬롯 타일은 없다 — 남은 슬롯 수는 줄 제목의 `(7/12)`가 말한다
     // (BuildGridPainter. 처음엔 어두운 판으로 12칸을 채웠다가 같은 날 뺐다).
     // HUD는 이 타일을 쓰지 않는다 — HUD 배율(2)에서는 글자 배율이 타일 배율과 같아 배지가 타일 높이의 40%를 차지해 총을 덮고, 정사각 판은 한쪽 6자루 때
@@ -43,6 +45,12 @@ namespace PickShoot
         // (x, y)는 타일 좌상단 (캔버스 픽셀). badge가 null이면 배지 없음.
         public static void Draw(PixelUiSkin skin, Sprite icon, string badge, int x, int y, int scale)
         {
+            Draw(skin, icon, badge, null, x, y, scale);
+        }
+
+        // modMark는 배지 뒤에 개조 색으로 붙는 개조 머리글자 (`LV5H`의 `H`). null이면 붙이지 않는다.
+        public static void Draw(PixelUiSkin skin, Sprite icon, string badge, string modMark, int x, int y, int scale)
+        {
             if (icon == null)
                 throw new System.Exception("[PickShoot] ItemTilePainter.Draw: icon이 null. 타일은 무기 한 자루·유물 한 종류를 보이는 칸이라 그림이 있어야 함.");
             int size = Size(scale);
@@ -54,7 +62,9 @@ namespace PickShoot
             int inset = BadgeInsetTexels * scale;
             int areaH = badge != null ? size - 2 * inset - BadgeHeight(skin) : size - 2 * inset;
             PixelGui.DrawSprite(icon, new Rect(x + (size - iw) / 2, y + inset + (areaH - ih) / 2, iw, ih));
-            if (badge != null) DrawBadge(skin, tile, scale, badge);
+            if (badge != null) DrawBadge(skin, tile, scale, badge, modMark, Color.white);
+            else if (modMark != null)
+                throw new System.Exception($"[PickShoot] ItemTilePainter.Draw: 배지 없이 개조 머리글자 '{modMark}'만 있음. 머리글자는 레벨 배지 뒤에 붙는다.");
         }
 
         // tile은 판의 영역(어느 크기든), scale은 판의 배율. 띠는 판 아래 테두리 바로 위에 판의 폭으로.
@@ -66,6 +76,12 @@ namespace PickShoot
         // tint는 띠 색에 곱한다 (판과 같이 어둡게 보일 때 — PixelGui.DrawWeaponPlate의 tint). 글자는 호출자가 GUI.color로 맞춘다.
         public static void DrawBadge(PixelUiSkin skin, Rect tile, int scale, string text, Color tint)
         {
+            DrawBadge(skin, tile, scale, text, null, tint);
+        }
+
+        // modMark는 text 뒤에 글자 간격 하나를 두고 개조 색(PixelUiSkin.ModText)으로 붙는다. 둘을 한 덩이로 띠 가운데에 둔다.
+        public static void DrawBadge(PixelUiSkin skin, Rect tile, int scale, string text, string modMark, Color tint)
+        {
             var font = skin.FontPlain;
             int ts = PixelGui.TextScale;
             int pad = BadgePadTexels * ts;
@@ -76,7 +92,18 @@ namespace PickShoot
             int by = (int)tile.yMax - inset - bh;
             PixelGui.FillRect(new Rect(tile.x, by, tile.width, bh), skin.WeaponPlateOutline * tint);
             // 글자 줄의 위쪽은 띠 안쪽 여백에서 글리프 상자 위 여백(capTop)만큼 위(상자가 띠 높이에 꼭 맞는 자리)에서 BadgeTextDropTexels만큼 아래.
-            PixelGui.DrawTextCentered(font, text, (int)tile.center.x, by + pad - font.capTop * ts + BadgeTextDropTexels * ts, ts);
+            int ty = by + pad - font.capTop * ts + BadgeTextDropTexels * ts;
+            if (modMark == null)
+            {
+                PixelGui.DrawTextCentered(font, text, (int)tile.center.x, ty, ts);
+                return;
+            }
+            int tx = (int)tile.center.x - PixelGui.MeasureText(font, text + modMark, ts) / 2;
+            PixelGui.DrawText(font, text, tx, ty, ts);
+            var prevColor = GUI.color;
+            GUI.color = prevColor * skin.ModText;
+            PixelGui.DrawText(font, modMark, tx + PixelGui.MeasureText(font, text, ts) + font.letterSpacing * ts, ty, ts);
+            GUI.color = prevColor;
         }
     }
 }

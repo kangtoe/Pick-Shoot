@@ -7,7 +7,7 @@ namespace PickShoot
     // 플레이 모드 디버그 도구 창 (메뉴 PickShoot/Debug Tools). 장기 보존 도구 (DEVELOPMENT §2.1).
     // 씬 참조 없이 플레이 중인 오브젝트를 찾아 조작하므로 씬·프리팹을 건드리지 않고, 빌드에도 들어가지 않는다.
     // 현재 제공: 진행 중인 웨이브 즉시 클리어 / 적 종류를 골라 즉시 스폰 / 무기 종류를 골라 추가 / 마지막 무기 버리기 / 자루별 레벨업 / 경험치 더하기(레벨 업·리롤 적립 시험용)
-    //   / 유물 종류를 골라 획득 + 보유 유물·스탯 총계 표시 (Relics §2).
+    //   / 자루와 개조를 골라 바로 붙이기 (Mods §6) / 유물 종류를 골라 획득 + 보유 유물·스탯 총계 표시 (Relics §2).
     public class DebugToolsWindow : EditorWindow
     {
         // 드롭다운 옆 실행 버튼(Spawn/Add) 너비. 드롭다운이 남는 폭을 다 차지한다.
@@ -29,6 +29,11 @@ namespace PickShoot
         RelicData[] relicAssets = new RelicData[0];
         string[] relicNames = new string[0];
         int selectedRelic;
+        // 프로젝트의 모든 ModData 자산. 개조 풀(UpgradeManager.modPool)에 아직 없는 개조도 시험할 수 있게 자산 DB에서 직접 찾는다.
+        ModData[] modAssets = new ModData[0];
+        string[] modNames = new string[0];
+        int selectedMod;
+        int selectedModSlot;
 
         [MenuItem("PickShoot/Debug Tools")]
         static void Open()
@@ -41,6 +46,7 @@ namespace PickShoot
             RefreshWeaponAssets();
             RefreshEnemyPrefabs();
             RefreshRelicAssets();
+            RefreshModAssets();
         }
 
         void OnProjectChange()
@@ -48,6 +54,24 @@ namespace PickShoot
             RefreshWeaponAssets();
             RefreshEnemyPrefabs();
             RefreshRelicAssets();
+            RefreshModAssets();
+        }
+
+        void RefreshModAssets()
+        {
+            var guids = AssetDatabase.FindAssets("t:ModData");
+            modAssets = new ModData[guids.Length];
+            for (int i = 0; i < guids.Length; i++)
+            {
+                string path = AssetDatabase.GUIDToAssetPath(guids[i]);
+                modAssets[i] = AssetDatabase.LoadAssetAtPath<ModData>(path);
+                if (modAssets[i] == null)
+                    throw new System.Exception($"[PickShoot] DebugToolsWindow: ModData 자산 로드 실패: {path}");
+            }
+            modNames = new string[modAssets.Length];
+            for (int i = 0; i < modAssets.Length; i++)
+                modNames[i] = modAssets[i].DisplayName;
+            selectedMod = ClampSelection(selectedMod, modAssets.Length);
         }
 
         void RefreshRelicAssets()
@@ -155,6 +179,8 @@ namespace PickShoot
             DrawAddWeapon(weapons);
             DrawSeparator();
             DrawWeapons(weapons);
+            DrawSeparator();
+            DrawAttachMod(weapons);
 
             var stats = weapons.GetComponent<PlayerStats>();
             if (stats == null)
@@ -262,7 +288,8 @@ namespace PickShoot
                 var w = slots[i];
                 using (new EditorGUILayout.HorizontalScope())
                 {
-                    EditorGUILayout.LabelField($"{i + 1}. {w.Data.DisplayName}   Lv {w.Level}   {w.CurrentAmmo}/{w.MaxAmmo}");
+                    string mod = w.Mod != null ? $"   {w.Mod.DisplayName}" : "";
+                    EditorGUILayout.LabelField($"{i + 1}. {w.Data.DisplayName}   Lv {w.Level}   {w.CurrentAmmo}/{w.MaxAmmo}{mod}");
                     // 자루 단위 레벨업 (Weapons §3). 카드 없이 즉시 올려 탄창 확대·HUD 핍 배치를 확인한다. 최대 레벨(Weapon.MaxLevel)이면 잠근다.
                     using (new EditorGUI.DisabledScope(w.IsMaxLevel))
                     {
@@ -277,6 +304,39 @@ namespace PickShoot
             {
                 if (GUILayout.Button("Remove Last"))
                     weapons.RemoveLastWeapon();
+            }
+        }
+
+        // 드롭다운에서 자루와 개조를 고르고 Attach — 카드 없이 곧바로 붙인다 (Mods §6). 자루당 하나라 이미 개조된 자루면 잠근다.
+        // 웨이브 중에 붙이면 이미 쏜 탄환은 그대로이고 다음 사격부터 바뀐다 (Mods §1).
+        void DrawAttachMod(PlayerWeapons weapons)
+        {
+            GUILayout.Label("Attach Mod", EditorStyles.boldLabel);
+            if (modAssets.Length == 0)
+            {
+                EditorGUILayout.HelpBox("프로젝트에 ModData 자산이 없습니다 (검색: t:ModData).", MessageType.Error);
+                return;
+            }
+
+            var slots = weapons.Slots;
+            var slotNames = new string[slots.Count];
+            for (int i = 0; i < slots.Count; i++)
+                slotNames[i] = $"{i + 1}. {slots[i].Data.DisplayName}" + (slots[i].Mod != null ? $" ({slots[i].Mod.DisplayName})" : "");
+            selectedModSlot = ClampSelection(selectedModSlot, slots.Count);
+
+            using (new EditorGUILayout.HorizontalScope())
+            {
+                selectedModSlot = EditorGUILayout.Popup(selectedModSlot, slotNames);
+                selectedMod = EditorGUILayout.Popup(selectedMod, modNames);
+                var target = slots[selectedModSlot];
+                using (new EditorGUI.DisabledScope(target.Mod != null))
+                {
+                    if (GUILayout.Button("Attach", GUILayout.Width(ActionButtonWidth)))
+                    {
+                        modAssets[selectedMod].Validate();
+                        target.AttachMod(modAssets[selectedMod]);
+                    }
+                }
             }
         }
 
