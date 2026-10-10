@@ -29,8 +29,16 @@ namespace PickShoot
     // 개조된 자루의 레벨업 카드는 개조를 합친 특성 수치(`PIERCE 3`)를 보이고, 수치로 못 적는 개조(유도, 폭발 탄환이 아닌 무기의 폭발)는 특성 줄에 개조 이름
     // (`HOMING`·`EXPLOSIVE`)을 `PULLS IN`과 같은 꼴로 적는다 (Mods §4.2).
     // 개조 카드(Mods §4.1)도 같은 틀이다 — 제목 `MOD`(분홍, PixelUiSkin.ModText), 이름·전시 타일은 대상 자루의 것(배지는 붙인 뒤의 `LV5H`), 첫 줄 자리에
-    // 라벨 없는 개조 이름(`HOMING`), 스탯 줄은 개조가 바꾸는 수치 특성만 `PIERCE 1 → 3`처럼 — DMG·AMMO는 바뀌지 않아 적지 않는다
-    // (2026-10-10, Recordings/mod_card_color_mockup_2026-10-10.png).
+    // 라벨 없는 `+개조 이름`(`+HOMING`, 제목과 같은 분홍). 스탯 줄은 레벨업 카드처럼 DMG·AMMO와 특성을 모두 적고, 개조가 바꾸는 줄만 화살표 — 오르는 줄
+    // `PIERCE 1 → 3`, 없던 속성이 붙는 줄 `BOUNCE - → 3`(튕김 0인 무기의 도탄. 0 → 3은 오르는 것이 아니라 속성이 붙는 것이라 없음 `-`에서). 줄 순서는 다른 카드와
+    // 같은 특성 순서다 (2026-10-11). 레벨업·개조 카드는 같은 대상의 전후 비교라 "이 카드가 바꾸는 줄에만 화살표"가 같은 규칙이다.
+    // 처음엔 바뀌는 줄만 적어 카드 아래가 비었다(Recordings/mod_card_rows_mockup_2026-10-10.png). 새 속성을 화살표 없는 초록 값으로 맨 끝에 두는 안은 획득 카드의
+    // 값과 같은 꼴이라 원래 있던 값으로 읽힐 여지가 있었다 (card_new_trait_mockup_2026-10-10.png·card_new_trait_dash_mockup_2026-10-11.png).
+    // 고르면 얻는 값은 `UPGRADE`와 같은 초록(PixelUiSkin.UpgradeText)으로 칠한다 (2026-10-11) — 레벨업·개조 카드의 화살표 뒤 다음 값, 획득 카드의 모든 값,
+    // 유물 카드의 수정치 값. 라벨·현재 값·화살표·바뀌지 않는 값은 흰색이고, 이미 가진 개조(레벨업 카드의 `HOMING` 줄)도 흰색이다.
+    // 획득 카드의 줄 전체(라벨까지)를 칠하는 안은 무거웠고, `NEW`의 노랑으로 칠하는 안은 얻는 것의 색이 둘로 갈렸다. 획득 카드에도 `-` → 값을 쓰는 안은 모든 줄에
+    // 화살표가 붙어 아무것도 가리키지 않았다 — 2026-10-07에 `-` 열을 뺀 이유와 같다. 개조 이름은 노랑 → 초록 `+` → 초록 → 분홍 `+`를 거쳤다
+    // (card_green_values·card_gain_green_final·card_kind_color_mockup_2026-10-10.png, card_new_weapon_dash_mockup_2026-10-11.png).
     // 타일에 마우스를 올리면 격자와 같은 툴팁(TooltipPainter)이 뜬다 — 카드에 없는 탄속·넉백은 거기서 보인다 (2026-10-06).
     // 카드 호버는 테두리를 바깥으로 HoverOutlineTexels 넓히기 — 카드보다 그만큼 큰 흰 판 모양(PixelGui.FillPlateShape)을 패널 밑에 깔아 패널의 흰 바깥 선
     // 1텍셀이 2텍셀이 된다. 패널 모서리도 판처럼 1텍셀 깎여 있어 그 귀가 흰색으로 메워지고 바깥 귀만 깎인다. 리롤 버튼도 같은 값 (2026-10-08).
@@ -44,7 +52,8 @@ namespace PickShoot
     {
         const int CardWidthTiles = 7;
         // 10 → 9 (2026-10-08, 표가 짧은 카드의 아래가 비어 보임) → 7 (같은 날 머리 가로 배치 — 타일 밑에 두던 이름이 타일 오른쪽으로 가고 타일도 배율 6→4가 되어
-        // 머리가 240px에서 120px로, 위 여백도 배지 깊이를 빼며 80에서 40px로) → 8 (2026-10-09 세로 쌓기 — 머리 216px). 가장 긴 카드(볼텍스·부메랑)의 아래 여백 32px.
+        // 머리가 240px에서 120px로, 위 여백도 배지 깊이를 빼며 80에서 40px로) → 8 (2026-10-09 세로 쌓기 — 머리 216px). 가장 긴 카드(유도 개조된 저격소총의 레벨업)의
+        // 아래 여백 32px.
         const int CardHeightTiles = 8;
         const int SidePaddingTexels = 10; // 좌우 여백 (패널 테두리 → 글자). 열 표 시절 산탄총 고레벨의 "256X3" 값까지 7타일 안에 들어가던 최대치.
         const int TopMarginTexels = 10;   // 위 여백 — 좌우와 같다. 배지가 카드 위 끝에 걸치던 때는 배지 깊이 16 + 4였다.
@@ -76,6 +85,9 @@ namespace PickShoot
         const string LevelLabel = "LEVEL";
         // 줄이 없는 칸용 빈 묶음 (프레임마다 새로 만들지 않는다).
         static readonly string[] NoLines = new string[0];
+        static readonly Color[] NoTints = new Color[0];
+        // 개조 카드에서 개조 전에 없던 특성의 "현재" 값 — 0이 아니라 없음 (`BOUNCE - → 3`, 2026-10-11).
+        const string NoneValue = "-";
         static readonly List<string> EmptyLines = new List<string>();
 
         // 글꼴에 있는 문자(A-Z 0-9 % + - ! ( ) / . 공백)만 써야 한다. 없는 문자는 PixelGui가 예외로 알린다.
@@ -90,8 +102,9 @@ namespace PickShoot
             // 배지 뒤에 개조 색으로 붙는 개조 머리글자 (`LV5H`의 `H`). 개조가 없으면 null.
             public string ShowcaseModMark;
             public string Name;
-            // 전시 타일 밑 첫 줄 — 모든 카드에 있다. 무기는 레벨(`LEVEL 2 -> 3`), 유물은 등급(`COMMON` — RowLabel이 null이면 라벨 없이 값만).
-            // RowNow는 스탯 줄과 같은 규칙 — null이면 비교 없이 값 하나 (획득 카드·유물). RowTint는 값의 글자색 — 등급 색(Relics §5), 무기는 흰색.
+            // 전시 타일 밑 첫 줄 — 모든 카드에 있다. 무기는 레벨(`LEVEL 2 -> 3`), 유물은 등급(`COMMON` — RowLabel이 null이면 라벨 없이 값만), 개조는 `+HOMING`.
+            // RowNow는 스탯 줄과 같은 규칙 — null이면 비교 없이 값 하나 (획득 카드·유물·개조). RowTint는 다음 값(RowNext)의 글자색 — 얻는 값은 초록, 유물은 등급 색
+            // (Relics §5), 개조 이름은 개조 색.
             public string RowLabel;
             public string RowNow;
             public string RowNext;
@@ -100,8 +113,12 @@ namespace PickShoot
             // StatNow[i]가 null이면 그 줄은 값 하나 — "현재 → 다음"이 뜻 없는 줄(레벨로 바뀌지 않는 특성)이라 화살표 없이 고른 뒤의 값만 적는다.
             public string[] StatNow;
             public string[] StatNext;
+            // StatNext[i]의 글자색 — 얻는 값은 초록, 그 밖은 흰색. 라벨·현재 값·화살표는 늘 흰색.
+            public Color[] StatTints;
             // 표 아래 본문. BodyLines는 한 항목이 한 줄(가운데 맞춤 일반 글꼴 — 무기의 수치 없는 특성·유물의 수정치), Note는 단어 단위로 접는 문단.
+            // BodyValues[i]는 그 줄 뒤에 공백 하나를 두고 초록으로 붙는 얻는 값(유물 수정치 `+10%`) — null이면 줄이 흰 문구 하나다.
             public string[] BodyLines;
+            public string[] BodyValues;
             public string Note;
         }
 
@@ -150,8 +167,11 @@ namespace PickShoot
                 RequireFits(RowWidth(skin, c.StatLabels[i], c.StatNow[i], c.StatNext[i], iconSize, space, textScale), innerW, $"{c.StatLabels[i]} {c.StatNow[i]} > {c.StatNext[i]}", "카드 안쪽");
 
             // 본문 줄: 한 항목이 한 줄(줄 안에서 나누지 않는다 — 항목 하나가 폭을 넘으면 문구를 줄여야 한다), 설명은 단어 단위로 접는다.
-            foreach (var line in c.BodyLines)
+            for (int i = 0; i < c.BodyLines.Length; i++)
+            {
+                string line = BodyText(c.BodyLines[i], c.BodyValues[i]);
                 RequireFits(PixelGui.MeasureText(skin.FontPlain, line, textScale), innerW, line, "카드 안쪽");
+            }
             var noteLines = string.IsNullOrEmpty(c.Note)
                 ? EmptyLines
                 : PixelGui.WrapText(skin.FontPlain, c.Note, textScale, innerW);
@@ -204,7 +224,7 @@ namespace PickShoot
 
             for (int i = 0; i < c.StatLabels.Length; i++)
             {
-                DrawRow(skin, c.StatLabels[i], c.StatNow[i], c.StatNext[i], Color.white, centerX, y, iconSize, space, textScale);
+                DrawRow(skin, c.StatLabels[i], c.StatNow[i], c.StatNext[i], c.StatTints[i], centerX, y, iconSize, space, textScale);
                 y += lineH;
             }
 
@@ -213,7 +233,18 @@ namespace PickShoot
             if (bodyLines > 0) y += bodyGap;
             for (int i = 0; i < c.BodyLines.Length; i++)
             {
-                PixelGui.DrawTextCentered(skin.FontPlain, c.BodyLines[i], centerX, y, textScale);
+                // 값이 있으면 문구(흰색)와 값(초록)을 한 덩이로 가운데에.
+                int bx = centerX - PixelGui.MeasureText(skin.FontPlain, BodyText(c.BodyLines[i], c.BodyValues[i]), textScale) / 2;
+                PixelGui.DrawText(skin.FontPlain, c.BodyLines[i], bx, y, textScale);
+                if (c.BodyValues[i] != null)
+                {
+                    var prevBody = GUI.color;
+                    GUI.color = prevBody * skin.UpgradeText;
+                    // 한 문구로 그릴 때와 같은 자리 — 공백 뒤 글자 간격까지.
+                    int vx = bx + PixelGui.MeasureText(skin.FontPlain, c.BodyLines[i] + " ", textScale) + skin.FontPlain.letterSpacing * textScale;
+                    PixelGui.DrawText(skin.FontPlain, c.BodyValues[i], vx, y, textScale);
+                    GUI.color = prevBody;
+                }
                 y += lineH;
             }
             for (int i = 0; i < noteLines.Count; i++)
@@ -241,7 +272,8 @@ namespace PickShoot
                     var d = option.AcquireData;
                     // 시작 레벨(UpgradeOption.Levels)은 보통 1. 둘 이상이면 제목이 `NEW (+n)`이고 표·배지도 그 레벨의 값.
                     int start = option.Levels;
-                    var acquired = BuildWeaponStats(d, null, 0, start, stats.DamageMultiplier);
+                    var acquired = BuildWeaponStats(d, null, 0, start, stats.DamageMultiplier, skin.UpgradeText);
+                    var acquiredFlags = WeaponFlags(d, null);
                     return new CardContent
                     {
                         Title = NewTitle,
@@ -253,11 +285,13 @@ namespace PickShoot
                         RowLabel = LevelLabel,
                         RowNow = null,
                         RowNext = start.ToString(),
-                        RowTint = Color.white,
+                        RowTint = skin.UpgradeText,
                         StatLabels = acquired.Labels,
                         StatNow = acquired.Now,
                         StatNext = acquired.Next,
-                        BodyLines = WeaponFlags(d, null),
+                        StatTints = acquired.Tints,
+                        BodyLines = acquiredFlags,
+                        BodyValues = new string[acquiredFlags.Length],
                         Note = d.Description,
                     };
                 }
@@ -271,7 +305,8 @@ namespace PickShoot
                     int next = w.Level + option.Levels;
                     if (next > Weapon.MaxLevel)
                         throw new System.Exception($"[PickShoot] UpgradeCardPainter: 레벨업 카드가 '{w.Data.DisplayName}' 레벨 {w.Level}에 {option.Levels}를 더하면 최대 {Weapon.MaxLevel}을 넘음. 후보를 만들 때 걸러야 함 (UpgradeManager).");
-                    var levelled = BuildWeaponStats(w.Data, w.Mod, w.Level, next, stats.DamageMultiplier);
+                    var levelled = BuildWeaponStats(w.Data, w.Mod, w.Level, next, stats.DamageMultiplier, skin.UpgradeText);
+                    var levelledFlags = WeaponFlags(w.Data, w.Mod);
                     return new CardContent
                     {
                         Title = LevelUpTitle,
@@ -284,11 +319,13 @@ namespace PickShoot
                         RowLabel = LevelLabel,
                         RowNow = w.Level.ToString(),
                         RowNext = next.ToString(),
-                        RowTint = Color.white,
+                        RowTint = skin.UpgradeText,
                         StatLabels = levelled.Labels,
                         StatNow = levelled.Now,
                         StatNext = levelled.Next,
-                        BodyLines = WeaponFlags(w.Data, w.Mod),
+                        StatTints = levelled.Tints,
+                        BodyLines = levelledFlags,
+                        BodyValues = new string[levelledFlags.Length],
                         Note = w.Data.Description,
                     };
                 }
@@ -301,7 +338,9 @@ namespace PickShoot
                     var m = option.ModData;
                     if (w.Mod != null)
                         throw new System.Exception($"[PickShoot] UpgradeCardPainter: 개조 카드가 이미 '{w.Mod.DisplayName}'가 붙은 '{w.Data.DisplayName}'를 가리킴. 후보를 만들 때 걸러야 함 (UpgradeManager).");
-                    var modded = BuildModStats(w.Data, m, w.Level);
+                    var modded = BuildModStats(w.Data, m, w.Level, stats.DamageMultiplier, skin.UpgradeText);
+                    // 그 무기의 수치 없는 특성은 그대로 적는다. 개조의 이름은 첫 줄이 말하므로 특성 줄에 다시 적지 않는다.
+                    var moddedFlags = WeaponFlags(w.Data, null);
                     return new CardContent
                     {
                         Title = ModTitle,
@@ -314,12 +353,14 @@ namespace PickShoot
                         Name = w.Data.DisplayName.ToUpperInvariant(),
                         RowLabel = null,
                         RowNow = null,
-                        RowNext = m.UiName,
-                        RowTint = Color.white,
+                        RowNext = "+" + m.UiName,
+                        RowTint = skin.ModText,
                         StatLabels = modded.Labels,
                         StatNow = modded.Now,
                         StatNext = modded.Next,
-                        BodyLines = NoLines,
+                        StatTints = modded.Tints,
+                        BodyLines = moddedFlags,
+                        BodyValues = new string[moddedFlags.Length],
                         Note = m.Description,
                     };
                 }
@@ -333,12 +374,15 @@ namespace PickShoot
                     // 라벨과 값을 좌우 끝으로 갈라 놓으면(표) 한 줄짜리 효과를 읽는 데 눈이 빈칸을 건너야 한다. 값은 "지금 총계 → 획득 뒤 총계"였다가
                     // 수정치 하나로 바꿨다 — 카드가 답할 것은 "이걸 고르면 무엇이 붙나"이고, 총계는 일시정지 화면이 보일 자리다 (Relics §7).
                     // 무기 카드의 수치 없는 특성 줄도 2026-10-09부터 같은 본문 줄이다 (그 사이 표의 라벨 열에 붙어 있었다).
+                    // 수정치 값(`+10%`)은 얻는 값이라 초록 (2026-10-11).
                     var effects = new List<string>();
+                    var effectValues = new List<string>();
                     foreach (var s in PlayerStatModifiers.Stats)
                     {
                         int v = d.Modifiers.Get(s);
                         if (v == 0) continue;
-                        effects.Add($"{PlayerStatModifiers.Label(s)} {PlayerStatModifiers.FormatSigned(s, v)}");
+                        effects.Add(PlayerStatModifiers.Label(s));
+                        effectValues.Add(PlayerStatModifiers.FormatSigned(s, v));
                     }
                     int owned = stats.CountOf(d);
                     return new CardContent
@@ -357,7 +401,9 @@ namespace PickShoot
                         StatLabels = NoLines,
                         StatNow = NoLines,
                         StatNext = NoLines,
+                        StatTints = NoTints,
                         BodyLines = effects.ToArray(),
+                        BodyValues = effectValues.ToArray(),
                         // 설명 문구는 스탯 줄이 못 하는 말이 있을 때만 — 커먼 7종은 비어 있다 (Relics §2).
                         Note = d.Description,
                     };
@@ -373,13 +419,15 @@ namespace PickShoot
             public string[] Labels;
             public string[] Now;
             public string[] Next;
+            public Color[] Tints;
         }
 
         // 무기 카드의 표 — DMG·AMMO 뒤에 그 무기의 수치 특성(점사·튕김·관통·폭발, 개조를 합친 값)이 같은 줄로 이어진다 (ItemInfoText.WeaponTraitStats).
         // nowLevel이 0이면 획득 카드다 — 아직 없는 자루라 비교할 "현재"가 없고, 모든 줄이 값 하나다 (2026-10-07. 그전에는 "현재" 열에 `-`를 두어
         // 획득·레벨업 카드의 줄 구성을 맞췄는데, 읽는 사람에게는 뜻 없는 열이었다).
         // 레벨업 카드에서도 레벨로 바뀌지 않는 특성은 값 하나다 — 같은 수를 화살표 양쪽에 두면 그것도 오르는 값으로 읽힌다.
-        static StatRows BuildWeaponStats(WeaponData data, ModData mod, int nowLevel, int nextLevel, float damageMultiplier)
+        // 얻는 값은 gain 색 — 획득 카드는 모든 값, 레벨업 카드는 바뀐 줄의 다음 값.
+        static StatRows BuildWeaponStats(WeaponData data, ModData mod, int nowLevel, int nextLevel, float damageMultiplier, Color gain)
         {
             var labels = new List<string>(ItemInfoText.WeaponStatLabels);
             var next = new List<string>(ItemInfoText.WeaponStatValues(data, nextLevel, damageMultiplier));
@@ -400,33 +448,44 @@ namespace PickShoot
                 int j = nowLabels.IndexOf(traitLabels[i]);
                 now.Add(j >= 0 && nowValues[j] != traitValues[i] ? nowValues[j] : null);
             }
-            return new StatRows { Labels = labels.ToArray(), Now = now.ToArray(), Next = next.ToArray() };
+            var tints = new Color[labels.Count];
+            for (int i = 0; i < tints.Length; i++)
+                tints[i] = nowLevel == 0 || (now[i] != null && now[i] != next[i]) ? gain : Color.white;
+            return new StatRows { Labels = labels.ToArray(), Now = now.ToArray(), Next = next.ToArray(), Tints = tints };
         }
 
-        // 개조 카드의 표 — 개조가 바꾸는 수치 특성만 "개조 전 → 개조 뒤" (Mods §4.1). 개조 전에 없던 특성(튕김 0인 무기의 BOUNCE)은 현재 값이 0이다.
-        // 수치를 바꾸지 않는 개조(유도, 폭발 탄환이 아닌 무기의 폭발)는 줄이 없다 — 첫 줄의 개조 이름이 말한다.
-        static StatRows BuildModStats(WeaponData data, ModData mod, int level)
+        // 개조 카드의 표 (Mods §4.1) — 레벨업 카드처럼 DMG·AMMO와 특성을 모두 적되 레벨은 그대로라 바뀌지 않는 줄은 흰 값 하나, 개조가 바꾸는 특성만
+        // "개조 전 → 개조 뒤"(다음 값 초록). 개조 전에 없던 특성(튕김 0인 무기의 BOUNCE)은 0이 아니라 없음(NoneValue)에서 붙는다 — `BOUNCE - → 3`.
+        // 줄 순서는 다른 카드와 같은 특성 순서다. 수치를 바꾸지 않는 개조(유도, 폭발 탄환이 아닌 무기의 폭발)는 바뀌는 줄이 없다 — 첫 줄의 개조 이름이 말한다.
+        static StatRows BuildModStats(WeaponData data, ModData mod, int level, float damageMultiplier, Color gain)
         {
+            var labels = new List<string>(ItemInfoText.WeaponStatLabels);
+            var next = new List<string>(ItemInfoText.WeaponStatValues(data, level, damageMultiplier));
+            var now = new List<string>();
+            var tints = new List<Color>();
+            for (int i = 0; i < labels.Count; i++)
+            {
+                now.Add(null);
+                tints.Add(Color.white);
+            }
+
             var beforeLabels = new List<string>();
             var beforeValues = new List<string>();
             ItemInfoText.WeaponTraitStats(data, null, level, beforeLabels, beforeValues);
             var afterLabels = new List<string>();
             var afterValues = new List<string>();
             ItemInfoText.WeaponTraitStats(data, mod, level, afterLabels, afterValues);
-
-            var labels = new List<string>();
-            var now = new List<string>();
-            var next = new List<string>();
             for (int i = 0; i < afterLabels.Count; i++)
             {
                 int j = beforeLabels.IndexOf(afterLabels[i]);
-                string before = j >= 0 ? beforeValues[j] : "0";
-                if (before == afterValues[i]) continue;
+                string before = j >= 0 ? beforeValues[j] : NoneValue;
+                bool changed = before != afterValues[i];
                 labels.Add(afterLabels[i]);
-                now.Add(before);
+                now.Add(changed ? before : null);
                 next.Add(afterValues[i]);
+                tints.Add(changed ? gain : Color.white);
             }
-            return new StatRows { Labels = labels.ToArray(), Now = now.ToArray(), Next = next.ToArray() };
+            return new StatRows { Labels = labels.ToArray(), Now = now.ToArray(), Next = next.ToArray(), Tints = tints.ToArray() };
         }
 
         // 수치가 없는 특성 — 표에 둘 값이 없어 표 아래 본문 줄(가운데 맞춤)이 된다 (자동 회수·당기는 폭발). 수치로 못 적는 개조(유도·추가 폭발)는
@@ -467,8 +526,14 @@ namespace PickShoot
             return w;
         }
 
-        // 스탯 줄 한 줄을 centerX 가운데에. 값(현재·화살표·다음)은 valueTint로 곱한다 — 유물 등급 줄의 등급 색. 라벨은 흰색.
-        static void DrawRow(PixelUiSkin skin, string label, string now, string next, Color valueTint, int centerX, int y, int iconSize, int space, int textScale)
+        // 본문 한 줄의 문구 — 값이 있으면 공백 하나 뒤에 붙는다 (폭 재기와 그리기가 같은 문구를 쓴다).
+        static string BodyText(string line, string value)
+        {
+            return value != null ? line + " " + value : line;
+        }
+
+        // 스탯 줄 한 줄을 centerX 가운데에. 다음 값만 nextTint로 곱한다 — 얻는 값의 초록·유물 등급 색·개조 이름의 개조 색. 라벨·현재 값·화살표는 흰색.
+        static void DrawRow(PixelUiSkin skin, string label, string now, string next, Color nextTint, int centerX, int y, int iconSize, int space, int textScale)
         {
             int x = centerX - RowWidth(skin, label, now, next, iconSize, space, textScale) / 2;
             if (label != null)
@@ -476,8 +541,6 @@ namespace PickShoot
                 PixelGui.DrawText(skin.FontPlain, label, x, y, textScale);
                 x += PixelGui.MeasureText(skin.FontPlain, label, textScale) + space;
             }
-            var prevColor = GUI.color;
-            GUI.color = prevColor * valueTint;
             if (now != null)
             {
                 PixelGui.DrawText(skin.FontPlain, now, x, y, textScale);
@@ -486,6 +549,8 @@ namespace PickShoot
                 PixelGui.DrawSpriteRotated(skin.IconArrowUp, new Rect(x, y, iconSize, iconSize), 90f);
                 x += iconSize + space;
             }
+            var prevColor = GUI.color;
+            GUI.color = prevColor * nextTint;
             PixelGui.DrawText(skin.FontPlain, next, x, y, textScale);
             GUI.color = prevColor;
         }
