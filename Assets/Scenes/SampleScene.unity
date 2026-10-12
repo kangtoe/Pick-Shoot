@@ -375,8 +375,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 582844c375c9b9740841041602609608, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PickShoot.PlayerWeapons
-  startingWeapons:
-  - {fileID: 11400000, guid: 5d504b5a584fe1f45a2d1fc8867d4291, type: 2}
   ringRadius: 1
   ringRadiusPerExtraWeapon: 0.04
   arcBaseDegrees: 30

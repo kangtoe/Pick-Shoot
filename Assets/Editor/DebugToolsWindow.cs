@@ -319,6 +319,12 @@ namespace PickShoot
             }
 
             var slots = weapons.Slots;
+            // 시작 무기를 고르기 전에는 자루가 없다 (Weapons §2).
+            if (slots.Count == 0)
+            {
+                EditorGUILayout.HelpBox("자루가 없습니다 (시작 무기 고르기 전).", MessageType.Info);
+                return;
+            }
             var slotNames = new string[slots.Count];
             for (int i = 0; i < slots.Count; i++)
                 slotNames[i] = $"{i + 1}. {slots[i].Data.DisplayName}" + (slots[i].Mod != null ? $" ({slots[i].Mod.DisplayName})" : "");

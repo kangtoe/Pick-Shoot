@@ -6,6 +6,8 @@ using UnityEngine.Rendering;
 namespace PickShoot
 {
     // 플레이어의 다중 무기 슬롯 관리자. 사격 입력 처리. 슬롯·탄약 표시는 GameHud가 Slots를 읽어 그린다.
+    // 처음엔 자루가 없다 — 러닝 시작 화면(UpgradeManager.PresentStartAndWait)에서 고른 무기가 첫 자루로 들어온다 (Weapons §2, 2026-10-12).
+    // 그전엔 씬에 지정한 시작 무기(권총)를 Awake에서 들었다.
     // 각 자루는 사격 버튼을 누르는 동안 제 쿨다운이 준비되는 즉시 쏜다 — 다른 자루를 기다리지 않으므로 한 프레임에 여럿이 쏠 수 있고,
     // 버튼을 누르는 순간 준비된 자루가 모두 쏘는 일제사격이 된다 (Weapons §1). 점사는 버튼을 놓아도 끝까지 나간다 (Weapons §8).
     // 각 무기는 플레이어를 중심으로 하는 원형 링 위에 균등 분포로 배치되며,
@@ -21,7 +23,6 @@ namespace PickShoot
     {
         public const int MaxSlots = 12;
 
-        [SerializeField] List<WeaponData> startingWeapons = new List<WeaponData>();
         [SerializeField] float ringRadius = 1.0f;
         [SerializeField, Min(0f)] float ringRadiusPerExtraWeapon = 0.04f;
         [SerializeField] float arcBaseDegrees = 30f;
@@ -78,10 +79,6 @@ namespace PickShoot
             stats = GetComponent<PlayerStats>();
             if (stats == null)
                 throw new System.Exception("[PickShoot] PlayerWeapons는 같은 GameObject의 PlayerStats를 요구합니다 (전역 피해 배율 출처).");
-            if (startingWeapons.Count == 0)
-                throw new System.Exception("[PickShoot] PlayerWeapons.startingWeapons가 비어 있음. 최소 1자루의 WeaponData가 필요합니다.");
-            if (startingWeapons.Count > MaxSlots)
-                throw new System.Exception($"[PickShoot] PlayerWeapons.startingWeapons가 최대 슬롯({MaxSlots})을 초과.");
             if (muzzleFlashPrefab == null)
                 throw new System.Exception("[PickShoot] PlayerWeapons.muzzleFlashPrefab 미할당. 씬의 PlayerWeapons에 MuzzleFlash 프리팹(컴포넌트 참조) 필요.");
 
@@ -90,15 +87,6 @@ namespace PickShoot
             ringPivot.gameObject.AddComponent<SortingGroup>().sortingOrder = weaponSortingOrder;
             currentRingAngleDeg = aiming.AimAngleDeg;
             ringPivot.rotation = Quaternion.Euler(0f, 0f, currentRingAngleDeg);
-
-            for (int i = 0; i < startingWeapons.Count; i++)
-            {
-                var data = startingWeapons[i];
-                if (data == null)
-                    throw new System.Exception($"[PickShoot] PlayerWeapons.startingWeapons[{i}]가 null.");
-                AddSlot(data);
-            }
-            RearrangeRing();
         }
 
         // 새 슬롯에 무기 추가. 같은 종류라도 별도 자루로 추가 (GDD §7.3).

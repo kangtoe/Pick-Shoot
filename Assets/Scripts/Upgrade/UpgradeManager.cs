@@ -24,6 +24,10 @@ namespace PickShoot
     // 카드는 (다시) 뽑힐 때마다 화면 아래 밖에서 차례로 튀어 올라 스프링처럼 흔들리며 멎는다 — 멎기 전에는 카드도 버튼도 입력을 받지 않는다.
     // 빌드 줄의 타일에 마우스를 올리면 그 자루·유물의 보기 카드(UpgradeCardPainter.DrawOwnedWeapon·DrawOwnedRelic)가 뜬다 — 카드·버튼을 다 그린 뒤 맨 마지막에
     // (2026-10-12. 그전 2026-10-06부터는 툴팁이었고 카드 전시 칸에도 떴다 — 카드가 다 담게 되어 전시 칸 호버는 걷었다).
+    // 러닝 시작의 무기 고르기(PresentStartAndWait, Weapons §2, 2026-10-12)도 여기서 맡는다 — 획득 풀의 모든 무기가 후보인 첫 무기 보상이고, 고르기·멈춤·IsActive를
+    // 카드 화면과 같이 써서 HUD 숨김·커서·ESC 차단·녹화 봇(PickShootPlayDriver)이 그대로 따른다. 브로타토의 무기 선택처럼 제목 아래 풀의 무기를 누르는 타일 한 줄로
+    // 늘어놓고, 그 아래 초점 무기(마지막으로 마우스를 올린 타일, 처음엔 첫 무기)의 획득 카드를 둔다. 타일이나 카드를 누르면 그 무기로 첫 웨이브를 시작한다.
+    // 카드 세 장 꼴은 6종이 한 화면에 들지 않는다 (7타일 카드 여섯 장이면 2.9천 px).
     public class UpgradeManager : MonoBehaviour
     {
         [SerializeField] PlayerWeapons weapons;
@@ -86,6 +90,14 @@ namespace PickShoot
         // 없다. 일시정지 배지와 같은 중간 배율 3(84px) — 배지가 양옆 10px를 남기고 들어간다 (카드의 무기 이름도 3이었다가 2026-10-08 머리 가로 배치로 2).
         const int StripTileScale = 3;
 
+        // 시작 화면 (PresentStartAndWait). 제목은 보상 화면 제목과 같은 아웃라인 글꼴 패널 배율.
+        const string StartTitle = "CHOOSE A WEAPON";
+        // 무기 타일은 일시정지 격자·카드 전시 칸과 같은 패널 배율 타일(112px)에 리롤 버튼처럼 바깥 흰 선 1텍셀을 두른 누르는 타일(120px) — 인벤토리 타일과 가른다.
+        // 초점 타일은 카드 호버처럼 흰 테두리가 바깥으로 1텍셀 더 넓다. 타일 사이는 초점 테두리가 이웃 흰 선에 닿지 않게 6텍셀(24px).
+        const int StartTileScale = PixelGui.PanelScale;
+        const int StartTileLineTexels = 1;
+        const int StartTileGapTexels = 6;
+
         // 이번 카드 화면의 후보 전체(유물 화면은 유물 풀 전체, 무기 화면은 획득 + 레벨업 + 개조, 순서 고정). 처음 카드도 리롤도 여기서 뽑는다.
         static readonly UpgradeKind[] Kinds = (UpgradeKind[])System.Enum.GetValues(typeof(UpgradeKind));
         List<UpgradeOption> candidates;
@@ -98,6 +110,10 @@ namespace PickShoot
         float cardsShownAt;
         bool active;
         bool selected;
+        // 시작 화면인가. currentCards가 풀의 모든 무기의 획득 카드이고 OnGUI가 시작 화면 배치로 그린다.
+        bool startPick;
+        // 시작 화면에서 카드로 보이는 무기의 currentCards 인덱스 — 마지막으로 마우스를 올린 타일.
+        int startFocus;
 
         public bool IsActive => active;
 
@@ -113,13 +129,13 @@ namespace PickShoot
             if (weapons == null)
                 throw new System.Exception("[PickShoot] UpgradeManager.weapons 미할당.");
             if (weaponPool.Count == 0)
-                throw new System.Exception("[PickShoot] UpgradeManager.weaponPool이 비어있음. 최소 1종의 WeaponData 필요 (획득 카드 후보).");
+                throw new System.Exception("[PickShoot] UpgradeManager.weaponPool이 비어있음. 최소 1종의 WeaponData 필요 (시작 무기·획득 카드 후보).");
             for (int i = 0; i < weaponPool.Count; i++)
             {
                 if (weaponPool[i] == null)
                     throw new System.Exception($"[PickShoot] UpgradeManager.weaponPool[{i}]가 null.");
                 if (weaponPool[i].WeaponSprite == null)
-                    throw new System.Exception($"[PickShoot] UpgradeManager.weaponPool[{i}] '{weaponPool[i].DisplayName}'에 WeaponSprite 미할당. 획득 카드 전시용 sprite 필요.");
+                    throw new System.Exception($"[PickShoot] UpgradeManager.weaponPool[{i}] '{weaponPool[i].DisplayName}'에 WeaponSprite 미할당. 시작 화면 타일·획득 카드 전시용 sprite 필요.");
             }
             if (stats == null)
                 throw new System.Exception("[PickShoot] UpgradeManager.stats 미할당. 플레이어의 PlayerStats 참조 필요 (유물 획득·카드의 스탯 총계).");
@@ -172,8 +188,28 @@ namespace PickShoot
             candidates = BuildCandidates(rewardKind);
             if (candidates.Count == 0) yield break;
             currentCards = Draw(candidates);
-            cardsShownAt = Time.unscaledTime;
+            yield return WaitForSelection();
+        }
 
+        // 러닝 시작의 무기 고르기 (Weapons §2). 획득 풀의 모든 무기가 후보이고 고른 무기가 Lv.1 첫 자루로 든다 — 획득 카드를 고르는 것과 같다.
+        // 고르기 전에는 자루가 없다 (PlayerWeapons). 첫 웨이브 전에 WaveManager가 부른다.
+        public IEnumerator PresentStartAndWait()
+        {
+            if (weapons.Slots.Count != 0)
+                throw new System.Exception($"[PickShoot] UpgradeManager.PresentStartAndWait: 이미 자루가 {weapons.Slots.Count}개 있음. 시작 무기는 빈 링의 첫 자루로 든다.");
+            currentCards = new UpgradeOption[weaponPool.Count];
+            for (int i = 0; i < weaponPool.Count; i++)
+                currentCards[i] = UpgradeOption.Acquire(weaponPool[i]);
+            startFocus = 0;
+            startPick = true;
+            yield return WaitForSelection();
+            startPick = false;
+        }
+
+        // currentCards 중 하나를 고를 때까지 게임을 멈춘다 (Time.timeScale 0). 카드 화면과 시작 화면이 같이 쓴다.
+        IEnumerator WaitForSelection()
+        {
+            cardsShownAt = Time.unscaledTime;
             active = true;
             selected = false;
             float prevScale = Time.timeScale;
@@ -328,6 +364,12 @@ namespace PickShoot
             // 클릭 판정(GUI.Button)도 캔버스 좌표로 하므로 Repaint뿐 아니라 모든 이벤트에서 캔버스를 연다.
             using var canvas = PixelGui.BeginCanvas();
 
+            if (startPick)
+            {
+                DrawStartPick(canvas);
+                return;
+            }
+
             // 카드 크기는 고정 (UpgradeCardPainter). 어떤 조합이 나와도 세 장이 같은 크기·자리에 놓인다.
             var cardSize = UpgradeCardPainter.CardSize(skin, scale);
             int gap = tile;   // 카드 사이
@@ -413,6 +455,70 @@ namespace PickShoot
                 else if (relic != null)
                     UpgradeCardPainter.DrawOwnedRelic(skin, canvas, relic, stats.CountOf(relic), relicTile);
             }
+        }
+
+        // 시작 화면 — 제목, 무기 타일 한 줄, 초점 무기의 획득 카드를 한 열로 화면 가운데에. 타일에 마우스를 올리면 그 무기가 초점이 되고, 타일이나 카드를 누르면 고른다.
+        // 등장 연출은 없다 — 러닝이 시작하는 화면이라 처음부터 누를 수 있다.
+        void DrawStartPick(PixelGui.CanvasScope canvas)
+        {
+            int scale = PixelGui.PanelScale;
+            int textScale = PixelGui.TextScale;
+            var cardSize = UpgradeCardPainter.CardSize(skin, scale);
+            int line = StartTileLineTexels * StartTileScale;
+            int buttonSize = ItemTilePainter.Size(StartTileScale) + 2 * line;
+            int tileGap = StartTileGapTexels * StartTileScale;
+            int n = currentCards.Length;
+            int rowW = n * buttonSize + (n - 1) * tileGap;
+            if (rowW > canvas.Width)
+                throw new System.Exception($"[PickShoot] UpgradeManager: 시작 화면 무기 타일 줄 {rowW}px({n}종)가 캔버스 폭 {canvas.Width}px를 넘음. 줄을 접는 방식을 정할 것.");
+            int titleH = skin.FontOutlined.lineHeight * scale;
+            int gap = CardGapTexels * scale;
+            int blockH = titleH + gap + buttonSize + gap + cardSize.y;
+            if (blockH > canvas.Height)
+                throw new System.Exception($"[PickShoot] UpgradeManager: 시작 화면 블록 높이 {blockH}px가 캔버스 {canvas.Height}px를 넘음. 간격을 줄일 것.");
+
+            int centerX = canvas.Width / 2;
+            int y = (canvas.Height - blockH) / 2;
+            PixelGui.DrawTextCentered(skin.FontOutlined, StartTitle, centerX, y, scale);
+            y += titleH + gap;
+
+            // 초점을 먼저 정하고 그린다 — 같은 이벤트에서 타일 테두리와 카드가 같은 무기를 가리킨다.
+            var mouse = Event.current.mousePosition;
+            int rowX = centerX - rowW / 2;
+            var buttons = new Rect[n];
+            for (int i = 0; i < n; i++)
+            {
+                buttons[i] = new Rect(rowX + i * (buttonSize + tileGap), y, buttonSize, buttonSize);
+                if (buttons[i].Contains(mouse)) startFocus = i;
+            }
+            for (int i = 0; i < n; i++)
+            {
+                DrawStartTile(buttons[i], currentCards[i].AcquireData.WeaponSprite, i == startFocus, line);
+                if (GUI.Button(buttons[i], GUIContent.none, GUIStyle.none))
+                {
+                    Select(i);
+                    return;
+                }
+            }
+            y += buttonSize + gap;
+
+            var card = new Rect(centerX - cardSize.x / 2, y, cardSize.x, cardSize.y);
+            UpgradeCardPainter.Draw(skin, currentCards[startFocus], weapons, stats, card, scale, textScale, card.Contains(mouse));
+            if (GUI.Button(card, GUIContent.none, GUIStyle.none))
+                Select(startFocus);
+        }
+
+        // 시작 화면의 무기 타일 — 리롤 버튼과 같이 누르는 것임을 바깥 흰 선으로 보인다: button 가득 흰 판 모양, 그 안쪽에 아이템 타일(배지 없음 — 이름은 카드가 말한다).
+        // 초점이면 카드 호버처럼 흰 판 모양을 한 텍셀 더 크게 먼저 깐다.
+        void DrawStartTile(Rect button, Sprite sprite, bool focused, int line)
+        {
+            if (focused)
+            {
+                int o = UpgradeCardPainter.HoverOutlineTexels * StartTileScale;
+                PixelGui.FillPlateShape(new Rect(button.x - o, button.y - o, button.width + 2 * o, button.height + 2 * o), StartTileScale, Color.white);
+            }
+            PixelGui.FillPlateShape(button, StartTileScale, Color.white);
+            ItemTilePainter.Draw(skin, sprite, null, (int)button.x + line, (int)button.y + line, StartTileScale);
         }
 
         // scale은 버튼의 판·글자 배율. 띠의 숫자는 타일 배지와 같이 글자 배율이다.

@@ -76,6 +76,8 @@ namespace PickShoot
                 throw new System.Exception("[PickShoot] WaveManager.bossPrefab 미설정.");
             if (spawnWarningPrefab == null)
                 throw new System.Exception("[PickShoot] WaveManager.spawnWarningPrefab 미설정.");
+            if (upgradeManager == null)
+                throw new System.Exception("[PickShoot] WaveManager.upgradeManager 미설정 (시작 무기 고르기·웨이브 클리어 보상).");
             if (spawnWarningDuration <= 0f)
                 throw new System.Exception($"[PickShoot] WaveManager.spawnWarningDuration이 0 이하 ({spawnWarningDuration}).");
             if (maxSpawnDistanceFromPlayer <= minSpawnDistanceFromPlayer)
@@ -99,6 +101,9 @@ namespace PickShoot
 
         IEnumerator RunWaves()
         {
+            // 첫 웨이브 전에 시작 무기를 고른다 (Weapons §2). 고르기 전에는 자루가 없고 웨이브 번호도 오르지 않는다 (Idle).
+            yield return upgradeManager.PresentStartAndWait();
+
             while (true)
             {
                 if (!CanSpawn()) yield break;
@@ -153,8 +158,7 @@ namespace PickShoot
                 // 클리어 대기가 끝난 뒤 체력을 완충한다 (GDD §3.3). 시작 시점이 아니라 여기서 회복해야
                 // 카운트다운 동안 HUD에 이미 가득 찬 체력이 보이고, 웨이브 내 피해가 다음 웨이브로 넘어가지 않는다.
                 playerHealth.RestoreFull();
-                if (upgradeManager != null)
-                    yield return upgradeManager.PresentAndWait(currentWave);
+                yield return upgradeManager.PresentAndWait(currentWave);
             }
         }
 
