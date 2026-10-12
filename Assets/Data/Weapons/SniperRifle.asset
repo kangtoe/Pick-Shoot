@@ -10,27 +10,23 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 1f99ca3878f33fc439fa3a274bf33a48, type: 3}
-  m_Name: Rifle
+  m_Name: SniperRifle
   m_EditorClassIdentifier: Assembly-CSharp::PickShoot.WeaponData
-  displayName: Assault Rifle
+  displayName: Sniper Rifle
   bulletPrefab: {fileID: 7760557527274733243, guid: 57519a25e825ef34ba52cad75d73bf68, type: 3}
-  bulletSpeed: 18
-  cooldown: 0.6
-  maxAmmo: 9
+  bulletSpeed: 22
+  cooldown: 0.5
+  maxAmmo: 3
   levelMaxAmmoAdd: 2
   projectilesPerShot: 1
   spreadAngleDegrees: 0
-  burstCount: 3
-  burstInterval: 0.07
-  damage: 10
-  levelDamageAdd: 10
-  knockbackForce: 4
+  damage: 30
+  levelDamageAdd: 30
+  knockbackForce: 8
   maxBounces: 0
-  penetration: 0
-  explosionRadius: 0
-  visualColor: {r: 1, g: 0.54117647, b: 0.16470588, a: 1}
-  weaponSprite: {fileID: 1073593324526391681, guid: 97adf27adbc24045b068db1d3bf1aacd, type: 3}
-  shootClip: {fileID: 8300000, guid: 83a34781e2ea956448cb20ed8d23a6fd, type: 3}
-  explosionClip: {fileID: 0}
+  penetration: 1
+  visualColor: {r: 0.29019608, g: 0.48627451, b: 0.95686275, a: 1}
+  weaponSprite: {fileID: -8902789313935592447, guid: 97adf27adbc24045b068db1d3bf1aacd, type: 3}
+  shootClip: {fileID: 8300000, guid: 5ce0f9d50ceefeb459b6d0288ee2ffcf, type: 3}
   muzzleOffset: 0.8
-  recoilStrength: 1
+  recoilStrength: 1.4

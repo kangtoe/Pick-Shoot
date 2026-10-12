@@ -10,10 +10,10 @@ TextureImporter:
     second: weapons_colored_smg
   - first:
       213: -8902789313935592447
-    second: weapons_colored_sniper
+    second: weapons_colored_sniperrifle
   - first:
       213: 1073593324526391681
-    second: weapons_colored_rifle
+    second: weapons_colored_assaultrifle
   - first:
       213: 1240016118753234986
     second: weapons_colored_launcher
@@ -175,7 +175,7 @@ TextureImporter:
       edges: []
       weights: []
     - serializedVersion: 2
-      name: weapons_colored_sniper
+      name: weapons_colored_sniperrifle
       rect:
         serializedVersion: 2
         x: 48
@@ -197,7 +197,7 @@ TextureImporter:
       edges: []
       weights: []
     - serializedVersion: 2
-      name: weapons_colored_rifle
+      name: weapons_colored_assaultrifle
       rect:
         serializedVersion: 2
         x: 72
@@ -300,8 +300,8 @@ TextureImporter:
     nameFileIdTable:
       weapons_colored_pistol: -1929614260059924600
       weapons_colored_smg: -5144625683338467999
-      weapons_colored_sniper: -8902789313935592447
-      weapons_colored_rifle: 1073593324526391681
+      weapons_colored_sniperrifle: -8902789313935592447
+      weapons_colored_assaultrifle: 1073593324526391681
       weapons_colored_launcher: 1240016118753234986
       weapons_colored_shotgun: -5362439940572446781
       weapons_colored_machinegun: 2467292934387182057
