@@ -1076,6 +1076,7 @@ MonoBehaviour:
   - {fileID: 11400000, guid: 58079aef756d4ecbb86608b1608e74d4, type: 2}
   - {fileID: 11400000, guid: bdfd639950254a9abcb189e1e601ebc9, type: 2}
   - {fileID: 11400000, guid: 7d1afb50ec9741469cef071d20c26959, type: 2}
+  - {fileID: 11400000, guid: d62b0ebd8d53e731acf6479cb7712ead, type: 2}
   stats: {fileID: 142563687}
   relicPool:
   - {fileID: 11400000, guid: 09a5f6befc764e778332932c6c5ca463, type: 2}

@@ -20,6 +20,9 @@ TextureImporter:
   - first:
       213: -5362439940572446781
     second: weapons_colored_shotgun
+  - first:
+      213: 2467292934387182057
+    second: weapons_colored_machinegun
   externalObjects: {}
   serializedVersion: 13
   mipmaps:
@@ -259,6 +262,28 @@ TextureImporter:
       indices:
       edges: []
       weights: []
+    - serializedVersion: 2
+      name: weapons_colored_machinegun
+      rect:
+        serializedVersion: 2
+        x: 144
+        y: 0
+        width: 24
+        height: 24
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData:
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: f7724fe142e7a5e08501fc2054ed486a
+      internalID: 2467292934387182057
+      vertices: []
+      indices:
+      edges: []
+      weights: []
     outline: []
     customData:
     physicsShape: []
@@ -279,6 +304,7 @@ TextureImporter:
       weapons_colored_rifle: 1073593324526391681
       weapons_colored_launcher: 1240016118753234986
       weapons_colored_shotgun: -5362439940572446781
+      weapons_colored_machinegun: 2467292934387182057
   mipmapLimitGroupName: 
   pSDRemoveMatte: 0
   userData: 

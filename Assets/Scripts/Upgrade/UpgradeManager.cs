@@ -27,7 +27,7 @@ namespace PickShoot
     // 러닝 시작의 무기 고르기(PresentStartAndWait, Weapons §2, 2026-10-12)도 여기서 맡는다 — 획득 풀의 모든 무기가 후보인 첫 무기 보상이고, 고르기·멈춤·IsActive를
     // 카드 화면과 같이 써서 HUD 숨김·커서·ESC 차단·녹화 봇(PickShootPlayDriver)이 그대로 따른다. 브로타토의 무기 선택처럼 제목 아래 풀의 무기를 누르는 타일 한 줄로
     // 늘어놓고, 그 아래 초점 무기(마지막으로 마우스를 올린 타일, 처음엔 첫 무기)의 획득 카드를 둔다. 타일이나 카드를 누르면 그 무기로 첫 웨이브를 시작한다.
-    // 카드 세 장 꼴은 6종이 한 화면에 들지 않는다 (7타일 카드 여섯 장이면 2.9천 px).
+    // 카드 세 장 꼴은 풀 전체(6종 이상)가 한 화면에 들지 않는다 (7타일 카드 여섯 장이면 2.9천 px).
     public class UpgradeManager : MonoBehaviour
     {
         [SerializeField] PlayerWeapons weapons;
