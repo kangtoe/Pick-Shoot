@@ -87,7 +87,7 @@ namespace PickShoot
         const int StripGapTexels = 6;
         const int SectionGapTexels = 8;
         // 빌드 줄의 타일 배율. 글자 배율(2, 56px)에서는 레벨 배지 `LV5`(글자 배율 2로 64px)가 타일보다 넓어 이웃 배지와 붙고, 패널 배율(4, 112px)은 세로가
-        // 없다. 일시정지 배지와 같은 중간 배율 3(84px) — 배지가 양옆 10px를 남기고 들어간다 (카드의 무기 이름도 3이었다가 2026-10-08 머리 가로 배치로 2).
+        // 없다. 카드의 종류 제목과 같은 중간 배율 3(84px) — 배지가 양옆 10px를 남기고 들어간다 (카드의 무기 이름도 3이었다가 2026-10-08 머리 가로 배치로 2).
         const int StripTileScale = 3;
 
         // 시작 화면 (PresentStartAndWait). 제목은 보상 화면 제목과 같은 아웃라인 글꼴 패널 배율.

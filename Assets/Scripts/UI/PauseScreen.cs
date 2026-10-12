@@ -4,12 +4,15 @@ using UnityEngine.InputSystem;
 namespace PickShoot
 {
     // ESC로 게임을 멈추고 화면을 어둡게 덮는 일시정지 화면. PixelUiSkin(Kenney Interface 시트)으로 OnGUI에 그린다.
-    // 구성은 업그레이드 카드와 같은 결의 상태 카드 한 장: 회색 카드(패널 배율) 위쪽 끝에 파란 "PAUSED" 배지(카드에서 이어진 탭처럼 걸치는 패널 한 줄, DrawBadge)가
-    // 걸치고, 안에는 WAVE·LEVEL·XP 표 — 라벨은 왼쪽(일반 글꼴), 값은 오른쪽(아웃라인 글꼴), 글자 배율. 줄이 카드 폭을 끝까지 쓰므로 카드 크기는 줄 수에서 정해진다.
-    // 재개 안내는 카드 밖 아래. 배너 + 상자를 쌓는 데스 화면 꼴은 짧은 두 줄로는 상자가 배너와 겨루는 두 번째 덩어리로 보여 뺐다 (2026-10-02).
+    // 구성은 보상 화면(UpgradeManager)과 같은 결 (2026-10-12): 빌드 격자의 12칸 폭이 묶음의 좌우 끝이고, 그 위 띠의 왼쪽에 제목 `PAUSED`(패널 없는
+    // 아웃라인 글꼴, 패널 배율)와 부제 재개 안내(일반 글꼴, 글자 배율), 오른쪽 끝에 같은 꼴의 `WAVE N`과 `LEVEL 5   XP 230`(라벨 일반·값 아웃라인 글꼴)을 둔다.
+    // 띠 아래 160px(HeaderGapTexels — 보기 카드가 무기 줄 위에 들 자리)에 현재 빌드 격자(BuildGridPainter — 제목 `WEAPONS (7/12)` 아래 보유 무기 한 줄,
+    // 제목 `RELICS (5)` 아래 유물 격자, 패널 배율 타일).
+    // 그전(2026-10-02 ~ 10-12)엔 가운데 회색 상태 카드(위 끝에 걸친 파란 `PAUSED` 배지, WAVE·LEVEL·XP 표) 아래 격자, 맨 아래 가운데 재개 안내였다 — 카드는
+    // 화면 가운데, 격자는 12칸 폭의 왼쪽 끝이라 정렬 축이 둘로 갈려 자루가 적을 때 흩어져 보였고, 배지는 보상 화면이 2026-10-08 걷은 꼴이 여기만 남아 있었다.
+    // 버튼(RESUME·RESTART)을 더한 안, 두 열(왼쪽 상태 카드·버튼, 오른쪽 6열 격자) 안과 아이템이 적을 때·많을 때로 비교해 이 꼴을 골랐다
+    // (Recordings/pause_mockup_2026-10-12_*.png). 아이템이 적으면 띠 양 끝 사이가 빈다.
     // 일시정지 중엔 HUD가 숨으므로 웨이브도 여기서 보이고, 누적 경험치 총량은 여기서만 보인다 (GDD §3.3).
-    // 상태 카드 아래에 현재 빌드 격자(BuildGridPainter — 제목 `WEAPONS (7/12)` 아래 보유 무기 한 줄, 제목 `RELICS (5)` 아래 유물 격자, 패널 배율 타일)를 둔다
-    // (2026-10-04 두 줄 띠 → 2026-10-06 타일 격자·섹션 제목).
     // 타일에 마우스를 올리면 그 자루·유물의 보기 카드(UpgradeCardPainter.DrawOwnedWeapon·DrawOwnedRelic — 보상 화면 카드와 같은 틀의 회색 카드)가 뜬다
     // (2026-10-12, 그전엔 툴팁). 하드웨어 커서는 멈춘 동안 GameHud가 되살린다.
     // 멈춤은 업그레이드 카드와 같은 방식(Time.timeScale = 0)이라 물리·코루틴·사격이 함께 멎는다.
@@ -31,20 +34,16 @@ namespace PickShoot
         // 글꼴에 있는 문자(A-Z 0-9 % + - 공백)만 써야 한다. 없는 문자는 PixelGui가 예외로 알린다.
         const string Title = "PAUSED";
         const string Hint = "PRESS ESC TO RESUME";
-        static readonly string[] RowLabels = { "WAVE", "LEVEL", "XP" };
-        const int CardWidthTiles = 7;        // 업그레이드 카드와 같은 폭
-        const int SidePaddingTexels = 10;    // 카드 테두리 → 라벨·값 (패널 텍셀). 카드의 좌우 여백과 같다.
-        const int TablePaddingTexels = 10;   // 배지 아래 가장자리 → 첫 줄, 마지막 줄 → 카드 아래 테두리의 최소 여백 (패널 텍셀). 타일 올림의 여분은 위아래 균등.
-        const int RowGapTexels = 4;          // 줄 사이 (글자 텍셀)
-        const int StripGapTexels = 8;        // 카드 아래 → 빌드 격자 (글자 텍셀)
-        const int HintGapTexels = 16;        // 빌드 격자 아래 → 재개 안내 (글자 텍셀)
+        static readonly string[] StatLabels = { "LEVEL", "XP" };
+        const int StatPairGapSpaces = 3;     // 띠 오른쪽 아랫줄의 쌍 사이 (공백 칸 수). 라벨 → 값은 한 칸.
+        // 위 띠 → 빌드 격자 (패널 텍셀, 160px). 묶음이 세로 가운데라 간격을 벌리면 띠는 올라가고 격자는 내려간다 — 무기 줄 위에 가장 긴 보기 카드(512px,
+        // 기본 수치 특성이 있는 자루에 다른 수치 개조)가 타일과의 간격 8px를 두고 화면 위 끝에서 24px 떨어져 드는 값이다 (유물 한 줄일 때 무기 줄 y = 544).
+        // 보상 화면의 띠 → 카드(UpgradeManager.CardGapTexels)와 같은 10(40px)으로 두었더니 무기 줄이 화면 세로 가운데에 와 위아래가 476px씩이라 그 카드가
+        // 화면 위 끝에 붙어 타일 위쪽 28px를 가렸다. 묶음 전체·격자만 36px 내리는 안, 간격 112·144·192px(카드 위 여백 0·16·40px)과 비교해 골랐다 —
+        // 192px는 아무것도 띄우지 않았을 때 띠가 격자와 따로 놀았다 (Recordings/pause_shift_mockup_2026-10-12_*.png·pause_gap_mockup_2026-10-12_*.png, 2026-10-12).
+        // 보기 카드가 더 길어지면 위 여백이 그만큼 줄고, 24px를 넘으면 다시 화면 끝에 붙는다.
+        const int HeaderGapTexels = 40;
         const int SectionGapTexels = 12;     // 무기 줄 아래 → 유물 제목 (글자 텍셀). 제목과 그 타일 사이(BuildGridPainter, 4)보다 넓어 섹션이 갈린다.
-        // 배지: 패널 한 줄(배율 3 — 패널 4보다 작고 글자 2보다 크다), 글자도 같은 배율. 카드 위쪽 끝에 걸쳐 BadgeInsetTexels(패널 텍셀)만큼 카드 안으로 들어온다 — 배지 높이의 2/3.
-        // 2026-10-08까지 업그레이드 카드의 종류 배지(노란 NEW!·파란 LV UP)와 같은 그리기였다 — 카드가 종류를 머리의 글자 제목으로 옮기며(UpgradeCardPainter) 여기만 남았다.
-        const int BadgeScale = 3;
-        const int BadgePaddingXTexels = 10; // 배지 패널 테두리 → 글자, 좌우 (배지 배율)
-        const int BadgePaddingYTexels = 8;  // 위아래
-        const int BadgeInsetTexels = 16;
 
         bool paused;
         float prevTimeScale;
@@ -117,7 +116,6 @@ namespace PickShoot
 
             int scale = PixelGui.PanelScale;
             int textScale = PixelGui.TextScale;
-            int tile = skin.TileSize * scale;
             int lineH = skin.FontPlain.lineHeight * textScale;
 
             // 어둡게 덮는 막은 화면 픽셀 그대로 (캔버스를 열기 전).
@@ -127,107 +125,94 @@ namespace PickShoot
 
             using var canvas = PixelGui.BeginCanvas();
 
-            int rowGap = RowGapTexels * textScale;
-            int tableH = RowLabels.Length * lineH + (RowLabels.Length - 1) * rowGap;
-            // 카드 높이 = 배지가 들어온 깊이 + 표 + 위아래 최소 여백, 타일 배수로 올림. 배지가 위로 솟은 만큼까지 묶음에 넣어 세로 중앙에 놓는다.
-            int inset = BadgeInsetTexels * scale;
-            int cardW = CardWidthTiles * tile;
-            int cardH = CeilToMultiple(inset + tableH + 2 * TablePaddingTexels * scale, tile);
-            int overhang = BadgeOverhang(skin, scale);
-            int stripGap = StripGapTexels * textScale;
+            // 묶음의 좌우 끝은 12칸 격자의 폭 — 자루가 늘어도 띠·격자가 움직이지 않는다.
             int gridScale = scale;
             BuildGridPainter.RequireFits(gridScale, canvas.Width);
+            int blockW = BuildGridPainter.Width(gridScale);
+            int left = canvas.Width / 2 - blockW / 2;
+            int right = left + blockW;
+
+            // 위 띠 = 제목 줄(아웃라인 글꼴 패널 배율) + 부제 한 줄(글자 배율) — 보상 화면의 띠와 같은 96px.
+            int titleH = skin.FontOutlined.lineHeight * scale;
+            int headerH = titleH + lineH;
+            int headerGap = HeaderGapTexels * scale;
             int relicRows = BuildGridPainter.RelicRows(BuildGridPainter.RelicKinds(stats).Count);
             // 격자 묶음 = 제목 줄 + 무기 줄 + 섹션 간격 + 제목 줄 + 유물 격자.
-            int titleH = BuildGridPainter.TitleHeight(skin);
+            int rowTitleH = BuildGridPainter.TitleHeight(skin);
             int tileH = ItemTilePainter.Size(gridScale);
             int sectionGap = SectionGapTexels * textScale;
-            int gridH = titleH + tileH + sectionGap + titleH + BuildGridPainter.Height(skin, gridScale, relicRows);
-            int hintGap = HintGapTexels * textScale;
-            // 묶음 = 배지 돌출 + 카드 + 빌드 격자(무기 한 줄 + 유물 줄들) + 재개 안내. 세로 중앙에.
-            int blockH = overhang + cardH + stripGap + gridH + hintGap + lineH;
+            int gridH = rowTitleH + tileH + sectionGap + rowTitleH + BuildGridPainter.Height(skin, gridScale, relicRows);
+            // 묶음 = 위 띠 + 빌드 격자(무기 한 줄 + 유물 줄들). 세로 중앙에.
+            int blockH = headerH + headerGap + gridH;
             if (blockH > canvas.Height)
                 throw new System.Exception($"[PickShoot] PauseScreen: 묶음 높이 {blockH}px가 캔버스 {canvas.Height}px를 넘음 (유물 {relicRows}줄). 격자 배율을 낮추거나 줄을 줄일 것.");
-            int centerX = canvas.Width / 2;
+            int y = (canvas.Height - blockH) / 2;
 
-            var card = new Rect(centerX - cardW / 2, (canvas.Height - blockH) / 2 + overhang, cardW, cardH);
-            PixelGui.DrawNineSlice(skin.PanelGrey, card, skin.TileSize, scale);
-            DrawBadge(skin, card, scale, Title, skin.PanelBlue);
+            // 띠의 왼쪽(제목·부제)과 오른쪽(웨이브·레벨·XP)이 맞닿으면 예외. 12칸 폭(1520px)에서는 넉넉하다.
+            string wave = $"WAVE {waveManager.CurrentWave}";
+            int leftW = Mathf.Max(PixelGui.MeasureText(skin.FontOutlined, Title, scale), PixelGui.MeasureText(skin.FontPlain, Hint, textScale));
+            int rightW = Mathf.Max(PixelGui.MeasureText(skin.FontOutlined, wave, scale), StatLineWidth(textScale));
+            if (left + leftW >= right - rightW)
+                throw new System.Exception($"[PickShoot] PauseScreen: 위 띠의 왼쪽({leftW}px)과 오른쪽({rightW}px)이 묶음 폭 {blockW}px 안에서 맞닿음. 문구를 줄일 것.");
+            PixelGui.DrawText(skin.FontOutlined, Title, left, y, scale);
+            PixelGui.DrawText(skin.FontPlain, Hint, left, y + titleH, textScale);
+            PixelGui.DrawTextRight(skin.FontOutlined, wave, right, y, scale);
+            DrawStatLine(right, y + titleH, textScale);
 
-            // 표는 배지 아래 남은 높이의 세로 가운데. 라벨은 왼쪽 정렬, 값은 오른쪽 정렬.
-            int sidePad = SidePaddingTexels * scale;
-            int labelX = (int)card.x + sidePad;
-            int valueRight = (int)card.xMax - sidePad;
-            int y = (int)card.y + inset + (cardH - inset - tableH) / 2;
-            for (int i = 0; i < RowLabels.Length; i++)
-            {
-                PixelGui.DrawText(skin.FontPlain, RowLabels[i], labelX, y, textScale);
-                PixelGui.DrawTextRight(skin.FontOutlined, RowValue(i), valueRight, y, textScale);
-                y += lineH + rowGap;
-            }
-
-            int gridX = centerX - BuildGridPainter.Width(gridScale) / 2;
-            int gridY = (int)card.yMax + stripGap;
+            int gridY = y + headerH + headerGap;
             var mouse = Event.current.mousePosition;
-            BuildGridPainter.DrawTitle(skin, BuildGridPainter.WeaponTitle(weapons), gridX, gridY);
-            int weaponY = gridY + titleH;
-            int slot = BuildGridPainter.DrawWeaponRow(skin, weapons, gridX, weaponY, gridScale, mouse, out var weaponTile);
+            BuildGridPainter.DrawTitle(skin, BuildGridPainter.WeaponTitle(weapons), left, gridY);
+            int weaponY = gridY + rowTitleH;
+            int slot = BuildGridPainter.DrawWeaponRow(skin, weapons, left, weaponY, gridScale, mouse, out var weaponTile);
             int relicTitleY = weaponY + tileH + sectionGap;
-            BuildGridPainter.DrawTitle(skin, BuildGridPainter.RelicTitle(stats), gridX, relicTitleY);
-            var relic = BuildGridPainter.DrawRelicGrid(skin, stats, gridX, relicTitleY + titleH, gridScale, relicRows, mouse, out var relicTile);
-            PixelGui.DrawTextCentered(skin.FontPlain, Hint, centerX, gridY + gridH + hintGap, textScale);
+            BuildGridPainter.DrawTitle(skin, BuildGridPainter.RelicTitle(stats), left, relicTitleY);
+            var relic = BuildGridPainter.DrawRelicGrid(skin, stats, left, relicTitleY + rowTitleH, gridScale, relicRows, mouse, out var relicTile);
 
-            // 보기 카드는 다 그린 뒤 맨 마지막에 — 상태 카드·이웃 타일 위로 뜬다.
+            // 보기 카드는 다 그린 뒤 맨 마지막에 — 위 띠·이웃 타일 위로 뜬다.
             if (slot >= 0)
                 UpgradeCardPainter.DrawOwnedWeapon(skin, canvas, weapons.Slots[slot], stats, weaponTile);
             else if (relic != null)
                 UpgradeCardPainter.DrawOwnedRelic(skin, canvas, relic, stats.CountOf(relic), relicTile);
         }
 
-        // RowLabels와 같은 순서의 값.
-        string RowValue(int row)
+        // StatLabels와 같은 순서의 값.
+        string StatValue(int i)
         {
-            switch (row)
+            switch (i)
             {
-                case 0: return waveManager.CurrentWave.ToString();
-                case 1: return experience.Level.ToString();
-                case 2: return experience.Total.ToString();
-                default: throw new System.Exception($"[PickShoot] PauseScreen: 표에 없는 줄 {row}.");
+                case 0: return experience.Level.ToString();
+                case 1: return experience.Total.ToString();
+                default: throw new System.Exception($"[PickShoot] PauseScreen: 띠에 없는 항목 {i}.");
             }
         }
 
-        // 배지가 카드 위쪽 끝 위로 솟는 높이 (기준 캔버스 픽셀). 카드를 포함한 묶음의 높이를 잴 때 쓴다.
-        static int BadgeOverhang(PixelUiSkin skin, int scale)
+        // 띠 오른쪽 아랫줄 `LEVEL 5   XP 230`의 폭 (캔버스 픽셀). 라벨은 일반 글꼴, 값은 아웃라인 글꼴 — 그전 상태 카드 표와 같은 짝.
+        int StatLineWidth(int textScale)
         {
-            return BadgeHeight(skin) - BadgeInsetTexels * scale;
+            int space = skin.FontPlain.spaceWidth * textScale;
+            int w = 0;
+            for (int i = 0; i < StatLabels.Length; i++)
+            {
+                if (i > 0) w += StatPairGapSpaces * space;
+                w += PixelGui.MeasureText(skin.FontPlain, StatLabels[i], textScale) + space + PixelGui.MeasureText(skin.FontOutlined, StatValue(i), textScale);
+            }
+            return w;
         }
 
-        static int BadgeHeight(PixelUiSkin skin)
+        // rightX에 줄의 오른쪽 끝을 맞춘다.
+        void DrawStatLine(int rightX, int y, int textScale)
         {
-            return (skin.FontPlain.lineHeight + 2 * BadgePaddingYTexels) * BadgeScale;
-        }
-
-        // card는 배지를 얹을 카드의 영역(캔버스 픽셀), scale은 그 카드의 패널 배율. 배지는 카드 위쪽 끝 가운데에 걸친다 — 카드 테두리 위에 얹히므로 카드 패널 뒤에 그린다.
-        static void DrawBadge(PixelUiSkin skin, Rect card, int scale, string text, PixelUiSkin.NineSlice panel)
-        {
-            int badgeTile = skin.TileSize * BadgeScale;
-            int padX = BadgePaddingXTexels * BadgeScale;
-            int lineH = skin.FontPlain.lineHeight * BadgeScale;
-            // 폭은 타일 배수로 올리지 않는다 — 올리면 문구에 따라 글자 양옆 여백이 들쭉날쭉해진다. 9-slice는 부분 타일을 지원하고
-            // 모서리 2개(타일 2개)보다는 넓어야 한다.
-            int w = Mathf.Max(2 * badgeTile, PixelGui.MeasureText(skin.FontPlain, text, BadgeScale) + 2 * padX);
-            int h = BadgeHeight(skin);
-            if (w > (int)card.width)
-                throw new System.Exception($"[PickShoot] PauseScreen: 배지 '{text}'의 폭 {w}px가 카드 폭 {(int)card.width}px를 넘음. 문구를 줄이거나 BadgeScale을 낮출 것.");
-            int centerX = (int)card.center.x;
-            var badge = new Rect(centerX - w / 2, (int)card.y + BadgeInsetTexels * scale - h, w, h);
-            PixelGui.DrawNineSlice(panel, badge, skin.TileSize, BadgeScale);
-            PixelGui.DrawTextCentered(skin.FontPlain, text, centerX, (int)badge.y + (h - lineH) / 2, BadgeScale);
-        }
-
-        static int CeilToMultiple(int value, int multiple)
-        {
-            return ((value + multiple - 1) / multiple) * multiple;
+            int space = skin.FontPlain.spaceWidth * textScale;
+            int x = rightX - StatLineWidth(textScale);
+            for (int i = 0; i < StatLabels.Length; i++)
+            {
+                if (i > 0) x += StatPairGapSpaces * space;
+                PixelGui.DrawText(skin.FontPlain, StatLabels[i], x, y, textScale);
+                x += PixelGui.MeasureText(skin.FontPlain, StatLabels[i], textScale) + space;
+                string value = StatValue(i);
+                PixelGui.DrawText(skin.FontOutlined, value, x, y, textScale);
+                x += PixelGui.MeasureText(skin.FontOutlined, value, textScale);
+            }
         }
     }
 }

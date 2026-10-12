@@ -3,7 +3,7 @@
 `PixelGui`로 그리는 픽셀 UI(HUD·일시정지·보상 화면·카드·타일)의 배치·배율·문구를 바꿀 때, 에디터에 넣기 전에 **실제 시트 조각을 실제 규칙으로 합성한 그림**으로 안을 고르는 절차. Pick&Shoot 전용이다 — 공통 재료(시트 `.meta` 디코드, 컴파일 검사, 목업 원칙)는 `OfflineVerification.md`에 있고, 이 문서의 코드 조각은 그 문서 §3 조각 **뒤에 이어 붙여** 실행한다.
 
 - 검증: 2026-10-07 아래 조각으로 두 글꼴 44글리프 전부 디코드, 9-slice 패널과 글자 합성 확인.
-- 적용 예: 2026-10-02 일시정지 화면 세 안, 2026-10-06 아이템 타일 배지 네 안과 HUD 네 안(`Recordings/*_mockup_2026-10-06.png`), 2026-10-07 보상 화면 배치 여섯 안 — 카드·빌드 줄·리롤 버튼·제목을 전부 합성한 전체 화면(`Recordings/reward_layout_mockup_2026-10-07.png`). 결정은 `Docs/Systems/PixelArtUI.md`와 `Docs/Roadmap.md`에 적혀 있다.
+- 적용 예: 2026-10-02 일시정지 화면 세 안, 2026-10-06 아이템 타일 배지 네 안과 HUD 네 안(`Recordings/*_mockup_2026-10-06.png`), 2026-10-07 보상 화면 배치 여섯 안 — 카드·빌드 줄·리롤 버튼·제목을 전부 합성한 전체 화면(`Recordings/reward_layout_mockup_2026-10-07.png`), 2026-10-12 일시정지 화면 세 안을 아이템이 적을 때·많을 때로(`Recordings/pause_mockup_2026-10-12_overview.png` — 아이템 수에 따라 좋고 나쁨이 갈리는 배치는 양 끝을 다 그려야 보인다). 결정은 `Docs/Systems/PixelArtUI.md`와 `Docs/Roadmap.md`에 적혀 있다.
 
 ## 1. 재현 규칙
 

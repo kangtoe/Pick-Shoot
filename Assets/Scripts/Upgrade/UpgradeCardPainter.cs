@@ -11,7 +11,7 @@ namespace PickShoot
     // (Recordings/card_stacked_mockup_2026-10-09.png). 머리가 120 → 216px로 높아져 카드도 7타일에서 8타일로 키웠다.
     // 그전(2026-10-08 ~ 10-09)엔 브로타토식 가로 배치 — 왼쪽에 전시 타일, 그 오른쪽 글자 칸에 제목과 이름(200px에서 두 줄로 접기)을 두고 묶음을 가운데에 놓았다.
     // 스탯·설명 줄이 모두 가운데 맞춤이 되며 머리만 좌우로 갈린 꼴이 되어 세로로 돌렸다. 그 전에는 종류를 카드 위쪽 끝에 걸치는 배지(노란 NEW! / 카드와 같은 파란 LV UP)로
-    // 적고 타일(배율 6) 밑에 이름(배율 3)을 세로로 쌓았다 — 그 배지 그리기는 일시정지 화면의 PAUSED 탭(PauseScreen.DrawBadge)에만 남았다.
+    // 적고 타일(배율 6) 밑에 이름(배율 3)을 세로로 쌓았다 — 그 배지 그리기는 일시정지 화면의 PAUSED 탭에만 남았다가 2026-10-12 그 화면도 글자 제목으로 바꾸며 없어졌다.
     // 종류 색은 제목 글자색으로 — `NEW`(새 무기·유물)는 XP 팝업과 같은 노랑(PixelUiSkin.HighlightText), `UPGRADE`는 초록(PixelUiSkin.UpgradeText).
     // 색 패널·외곽선 색 띠로 두는 안도 목업했으나 패널은 카드 안에서 버튼처럼 보였고 띠는 머리가 번잡했다 (Recordings/card_header_mockup_2026-10-08*.png).
     // 한 장이 레벨을 둘 이상 올리는 카드(아직 없다)는 제목 뒤에 글자 배율 꼬리 `(+n)`이 붙고, 제목과 꼬리를 한 덩이로 가운데에 둔다 (LevelTag, UpgradeOption.Levels).
@@ -160,7 +160,7 @@ namespace PickShoot
                 int o = HoverOutlineTexels * scale;
                 PixelGui.FillPlateShape(new Rect(rect.x - o, rect.y - o, rect.width + 2 * o, rect.height + 2 * o), scale, Color.white);
             }
-            // 획득·레벨업·개조·유물 카드는 같은 패널(일시정지 배너와 같은 파란 패널).
+            // 획득·레벨업·개조·유물 카드는 같은 파란 패널.
             PixelGui.DrawNineSlice(skin.PanelBlue, rect, skin.TileSize, scale);
             DrawContent(skin, c, noteLines, rect, scale, textScale);
         }
@@ -224,7 +224,9 @@ namespace PickShoot
         }
 
         // 보기 카드 — 폭은 선택 카드와 같고 높이는 내용 + 위아래 여백(둘 다 위 여백 값). 자리는 타일 위 가운데, 위에 자리가 없으면 아래, 둘 다 없으면
-        // 넓은 쪽 캔버스 끝에 붙인다 — 타일을 조금 가린다 (유물이 두 줄인 일시정지 화면의 무기 줄). 좌우는 캔버스 안으로 민다.
+        // 넓은 쪽 캔버스 끝에 붙인다 — 타일을 조금 가린다. 지금 배치에서는 생기지 않는다 — 일시정지 화면은 무기 줄 위에 가장 긴 보기 카드가 들도록 띠 → 격자
+        // 간격을 벌렸다 (PauseScreen.HeaderGapTexels, 2026-10-12). 유물이 12종을 넘어 격자가 두 줄이 되면 그 무기 줄이 64px 올라가 다시 생긴다.
+        // 좌우는 캔버스 안으로 민다.
         // 이웃 타일·카드 위로 뜨므로 화면이 다른 요소를 다 그린 뒤 맨 마지막에 부른다.
         static void DrawOwned(PixelUiSkin skin, PixelGui.CanvasScope canvas, CardContent c, Rect anchor)
         {
