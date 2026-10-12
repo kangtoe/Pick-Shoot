@@ -291,7 +291,7 @@ namespace PickShoot
         }
 
         // 쏠 수 있는 무기가 없는 이유가 쿨다운이 아니라 "전 자루 탄약 0"일 때만 헛방 소리를 낸다.
-        // 버튼을 누른 채 마지막 탄을 쏘면 다음 사격 차례(globalShotInterval 뒤)에 울려 사격음과 겹치지 않는다.
+        // 버튼을 누른 채 마지막 탄을 쏘면 다음 사격 차례(globalShotInterval 뒤, 0이면 바로 다음 프레임)에 한 번 울린다.
         void PlayEmptyFeedbackIfOutOfAmmo()
         {
             if (emptySounded) return;
