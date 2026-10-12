@@ -77,11 +77,12 @@ namespace PickShoot
             return data.Penetration + (mod != null ? mod.PenetrationAdd : 0);
         }
 
-        // 폭발 탄환 무기의 폭발 반경 — 폭발 개조는 반경에 배율을 곱한다 (Mods §2.1, 런처 2 → 3). 폭발 탄환이 아닌 무기는 0 그대로다
-        // (그쪽의 폭발 개조는 반경이 아니라 적중마다의 추가 폭발이다).
+        // 개조를 얹은 폭발 반경 (Mods §2.1). 폭발 개조는 폭발 탄환이 아닌 무기에 개조의 반경을 주어 런처와 같은 폭발 탄환으로 바꾸고,
+        // 폭발 탄환 무기의 반경에는 배율을 곱한다 (런처 2 → 3). 0이면 보통 탄환.
         public static float ExplosionRadiusWith(WeaponData data, ModData mod)
         {
-            if (data.ExplosionRadius <= 0f || mod == null) return data.ExplosionRadius;
+            if (mod == null) return data.ExplosionRadius;
+            if (mod.MakesExplosive(data)) return mod.ExplosionRadius;
             return data.ExplosionRadius * mod.ExplosionRadiusMultiplier;
         }
 

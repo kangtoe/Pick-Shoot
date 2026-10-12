@@ -26,12 +26,13 @@ namespace PickShoot
     // 아웃라인이라 표와 결이 달라 튀었다 — 지금은 표와 같은 일반 글꼴이고 표와 본문 간격으로 떨어진다, Recordings/card_center_desc_mockup_2026-10-09.png).
     // 무기를 가르는 것이 카드에서 바로 읽히게 — 그전에는 호버 툴팁에만 있었다. 가장 긴 조합(특성 줄 + 수치 특성 한 줄 — 저격소총·라이플·런처 × 유도 개조의
     // 레벨업 카드)에서 아래 여백이 32px — 최소 여백과 같아 줄이 하나 더 늘면 넘친다 (7×8타일 세로 쌓기, 2026-10-09. 7×7 가로 머리일 때 64px). 넘치면 예외.
-    // 개조된 자루의 레벨업 카드는 개조를 합친 특성 수치(`PIERCE 3`)를 보이고, 수치로 못 적는 개조(유도, 폭발 탄환이 아닌 무기의 폭발)는 특성 줄에 개조 이름
-    // (`HOMING`·`EXPLOSIVE`)을 `PULLS IN`과 같은 꼴로 적는다 (Mods §4.2).
+    // 개조된 자루의 레벨업 카드는 개조를 합친 특성 수치(`PIERCE 3`·`BLAST 0.8`)를 보이고, 수치로 못 적는 개조(유도)는 특성 줄에 개조 이름(`HOMING`)을
+    // `PULLS IN`과 같은 꼴로 적는다 (Mods §4.2).
     // 개조 카드(Mods §4.1)도 같은 틀이다 — 제목 `MOD`(분홍, PixelUiSkin.ModText), 이름·전시 타일은 대상 자루의 것(배지는 붙인 뒤의 `LV5H`), 첫 줄 자리에
     // 라벨 없는 `+개조 이름`(`+HOMING`, 제목과 같은 분홍). 스탯 줄은 레벨업 카드처럼 DMG·AMMO와 특성을 모두 적고, 개조가 바꾸는 줄만 화살표 — 오르는 줄
-    // `PIERCE 1 → 3`, 없던 속성이 붙는 줄 `BOUNCE - → 3`(튕김 0인 무기의 도탄. 0 → 3은 오르는 것이 아니라 속성이 붙는 것이라 없음 `-`에서). 줄 순서는 다른 카드와
-    // 같은 특성 순서다 (2026-10-11). 레벨업·개조 카드는 같은 대상의 전후 비교라 "이 카드가 바꾸는 줄에만 화살표"가 같은 규칙이다.
+    // `PIERCE 1 → 3`, 없던 속성이 붙는 줄 `BOUNCE - → 3`·`BLAST - → 0.8`(튕김 0인 무기의 도탄, 폭발 탄환이 아닌 무기의 폭발. 0 → 3은 오르는 것이 아니라
+    // 속성이 붙는 것이라 없음 `-`에서). 줄 순서는 다른 카드와 같은 특성 순서다 (2026-10-11). 레벨업·개조 카드는 같은 대상의 전후 비교라
+    // "이 카드가 바꾸는 줄에만 화살표"가 같은 규칙이다.
     // 처음엔 바뀌는 줄만 적어 카드 아래가 비었다(Recordings/mod_card_rows_mockup_2026-10-10.png). 새 속성을 화살표 없는 초록 값으로 맨 끝에 두는 안은 획득 카드의
     // 값과 같은 꼴이라 원래 있던 값으로 읽힐 여지가 있었다 (card_new_trait_mockup_2026-10-10.png·card_new_trait_dash_mockup_2026-10-11.png).
     // 고르면 얻는 값은 `UPGRADE`와 같은 초록(PixelUiSkin.UpgradeText)으로 칠한다 (2026-10-11) — 레벨업·개조 카드의 화살표 뒤 다음 값, 획득 카드의 모든 값,
@@ -456,7 +457,7 @@ namespace PickShoot
 
         // 개조 카드의 표 (Mods §4.1) — 레벨업 카드처럼 DMG·AMMO와 특성을 모두 적되 레벨은 그대로라 바뀌지 않는 줄은 흰 값 하나, 개조가 바꾸는 특성만
         // "개조 전 → 개조 뒤"(다음 값 초록). 개조 전에 없던 특성(튕김 0인 무기의 BOUNCE)은 0이 아니라 없음(NoneValue)에서 붙는다 — `BOUNCE - → 3`.
-        // 줄 순서는 다른 카드와 같은 특성 순서다. 수치를 바꾸지 않는 개조(유도, 폭발 탄환이 아닌 무기의 폭발)는 바뀌는 줄이 없다 — 첫 줄의 개조 이름이 말한다.
+        // 줄 순서는 다른 카드와 같은 특성 순서다. 수치를 바꾸지 않는 개조(유도)는 바뀌는 줄이 없다 — 첫 줄의 개조 이름이 말한다.
         static StatRows BuildModStats(WeaponData data, ModData mod, int level, float damageMultiplier, Color gain)
         {
             var labels = new List<string>(ItemInfoText.WeaponStatLabels);
@@ -488,13 +489,13 @@ namespace PickShoot
             return new StatRows { Labels = labels.ToArray(), Now = now.ToArray(), Next = next.ToArray(), Tints = tints.ToArray() };
         }
 
-        // 수치가 없는 특성 — 표에 둘 값이 없어 표 아래 본문 줄(가운데 맞춤)이 된다 (자동 회수·당기는 폭발). 수치로 못 적는 개조(유도·추가 폭발)는
+        // 수치가 없는 특성 — 표에 둘 값이 없어 표 아래 본문 줄(가운데 맞춤)이 된다 (자동 회수·당기는 폭발). 수치로 못 적는 개조(유도)는
         // 그 뒤에 개조 이름 한 줄 (Mods §4.2). mod는 그 자루의 개조, 없으면 null.
         static string[] WeaponFlags(WeaponData data, ModData mod)
         {
             var flags = new List<string>();
             ItemInfoText.WeaponTraitFlags(data, flags);
-            if (mod != null && mod.AddsBehavior(data)) flags.Add(mod.UiName);
+            if (mod != null && mod.AddsBehavior) flags.Add(mod.UiName);
             return flags.ToArray();
         }
 

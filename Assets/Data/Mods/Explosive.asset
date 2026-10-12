@@ -16,12 +16,10 @@ MonoBehaviour:
   description: 
   bounceAdd: 0
   penetrationAdd: 0
-  hitExplosionRadius: 1
-  hitExplosionDamageFraction: 0.5
-  hitExplosionKnockbackFraction: 0.5
+  explosionRadius: 0.8
   explosionRadiusMultiplier: 1.5
-  hitExplosionClip: {fileID: 8300000, guid: d6bfb34eb0f68c44589a089867f6d496, type: 3}
-  hitExplosionVolume: 0.6
+  explosionClip: {fileID: 8300000, guid: d6bfb34eb0f68c44589a089867f6d496, type: 3}
+  explosionVolume: 0.6
   homingTurnRateDegrees: 0
   homingHalfAngleDegrees: 45
   homingRange: 5

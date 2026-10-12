@@ -45,11 +45,13 @@ namespace PickShoot
         int remainingBounces;
         int remainingPenetration;
         // 0이면 보통 탄환. 양수면 폭발 탄환 — 튕김 페이즈의 모든 접촉(적·벽·화면 가장자리)에서 접촉 지점을 중심으로 폭발한다 (Weapons §7).
+        // 폭발 개조로 폭발 탄환이 된 무기도 같다 (Mods §2.1).
         float explosionRadius;
+        // 폭발음 — 무기 자산의 것이고, 개조로 폭발 탄환이 된 무기는 자산에 없어 개조의 것이다 (Mods §2.1). 클립이 null이면 소리 없음.
+        AudioClip explosionClip;
+        float explosionVolume;
         // 발사 순간 그 자루에 붙어 있던 개조 (Mods §1). 없으면 null. 나중에 자루에 개조가 붙어도 이미 쏜 탄환은 바뀌지 않는다.
         ModData mod;
-        // 적중마다 추가 폭발하는가 (폭발 개조 × 폭발 탄환이 아닌 무기, Mods §2.1).
-        bool hitExplosion;
         // 유도 개조의 발사 시각과 쫓는 적 (Mods §2.2). 표적이 죽거나 부채꼴을 벗어나면 놓고 다시 고른다.
         float launchTime;
         EnemyHealth homingTarget;
@@ -121,7 +123,7 @@ namespace PickShoot
             enemyFilter = new ContactFilter2D { useLayerMask = true, layerMask = 1 << enemyLayerIdx, useTriggers = false };
         }
 
-        // maxBounces·penetration·explosionRadius는 개조를 얹은 값(Weapon의 ...With)이고, mod는 새 동작(추가 폭발·유도)을 위해 넘긴다.
+        // maxBounces·penetration·explosionRadius는 개조를 얹은 값(Weapon의 ...With)이고, mod는 새 동작(유도)과 개조가 만든 폭발 탄환의 폭발음을 위해 넘긴다.
         public void Launch(Vector2 velocity, Weapon owner, int damage, float knockbackForce, int maxBounces, int penetration, float explosionRadius, ModData mod)
         {
             if (owner == null)
@@ -134,9 +136,6 @@ namespace PickShoot
                 throw new System.Exception($"[PickShoot] Bullet.Launch: explosionRadius는 0 이상이어야 합니다. 전달값={explosionRadius}");
             if (explosionRadius > 0f && explosionEffectPrefab == null)
                 throw new System.Exception($"[PickShoot] Bullet.Launch: '{owner.Data.DisplayName}'는 폭발 탄환인데 Bullet 프리팹에 explosionEffectPrefab 미할당.");
-            bool modHitExplosion = mod != null && mod.HasHitExplosion(owner.Data);
-            if (modHitExplosion && explosionEffectPrefab == null)
-                throw new System.Exception($"[PickShoot] Bullet.Launch: '{owner.Data.DisplayName}'에 추가 폭발 개조 '{mod.DisplayName}'가 붙었는데 Bullet 프리팹에 explosionEffectPrefab 미할당.");
             if (owner.Data.AutoRetrieve && AutoRetrieveSettled == null)
                 throw new System.Exception($"[PickShoot] Bullet.Launch: '{owner.Data.DisplayName}'는 자동 회수 무기인데 AutoRetrieveSettled를 받는 PlayerPickup이 없음.");
             if (Launched == null)
@@ -147,8 +146,10 @@ namespace PickShoot
             remainingBounces = maxBounces;
             remainingPenetration = penetration;
             this.explosionRadius = explosionRadius;
+            bool modMadeExplosive = mod != null && mod.MakesExplosive(owner.Data);
+            explosionClip = modMadeExplosive ? mod.ExplosionClip : owner.Data.ExplosionClip;
+            explosionVolume = modMadeExplosive ? mod.ExplosionVolume : 1f;
             this.mod = mod;
-            hitExplosion = modHitExplosion;
             launchTime = Time.time;
             homingTarget = null;
 
@@ -223,7 +224,7 @@ namespace PickShoot
             // 위치는 어느 분기든 viewport 안으로 복귀시켜 재검출 방지.
             Vector3 clampedVp = new Vector3(Mathf.Clamp01(vp.x), Mathf.Clamp01(vp.y), vp.z);
             rb.position = mainCam.ViewportToWorldPoint(clampedVp);
-            if (IsExplosive) ExplodeAsWeapon(rb.position);
+            if (IsExplosive) Explode(rb.position);
             else PlayBounceSound();
 
             if (remainingBounces > 0)
@@ -275,7 +276,7 @@ namespace PickShoot
             }
 
             // 폭발 탄환은 접촉 지점에서 폭발한다. 폭발음이 튕김음을 대신한다.
-            if (IsExplosive) ExplodeAsWeapon(ContactPoint(col));
+            if (IsExplosive) Explode(ContactPoint(col));
             else PlayBounceSound();
             if (remainingBounces > 0)
             {
@@ -294,7 +295,7 @@ namespace PickShoot
             if (IsExplosive)
             {
                 // 직접 맞은 적도 폭발로만 피해를 받는다 (직격 보너스 없음). 연출도 폭발이 명중 파문을 대신한다.
-                ExplodeAsWeapon(ContactPoint(col));
+                Explode(ContactPoint(col));
             }
             else
             {
@@ -306,14 +307,6 @@ namespace PickShoot
 
                 if (hitEffectPrefab != null)
                     Instantiate(hitEffectPrefab, ContactPoint(col), Quaternion.identity);
-
-                // 폭발 개조: 평소 피해·넉백 뒤 접촉 지점에서 작은 폭발이 한 번 더 — 직접 맞은 적도 반경 안이라 함께 받는다 (Mods §2.1).
-                // 피해는 레벨·전역 배율까지 곱한 무기 피해에 비율을 곱한 뒤 반올림한다.
-                if (hitExplosion)
-                {
-                    int blastDamage = Mathf.Max(1, Mathf.RoundToInt(damage * mod.HitExplosionDamageFraction));
-                    Explode(ContactPoint(col), mod.HitExplosionRadius, blastDamage, knockbackForce * mod.HitExplosionKnockbackFraction, false, mod.HitExplosionClip, mod.HitExplosionVolume);
-                }
             }
 
             if (remainingPenetration > 0)
@@ -336,42 +329,35 @@ namespace PickShoot
             }
         }
 
-        // 폭발 탄환의 접촉 처리 — 무기의 반경·공격력·넉백·폭발음으로 터진다 (Weapons §7).
-        void ExplodeAsWeapon(Vector2 center)
+        // 폭발 탄환의 접촉 처리. center를 중심으로 반경 안의 모든 적에게 공격력만큼 피해(거리 감쇠 없음)와 중심에서 바깥으로 미는
+        // 넉백을 준다. 당기는 폭발(WeaponData.ExplosionPullsInward)은 반대로 적을 중심으로 당긴다 — 세기는 EnemyMover가 중심에서 멎도록
+        // 정한다. 플레이어와 다른 탄환은 영향받지 않는다. 폭발은 튕김·관통 카운트를 건드리지 않고, 그 뒤의 튕김·정착은
+        // 호출자가 공통 규칙대로 잇는다 (Weapons §7).
+        void Explode(Vector2 center)
         {
-            var data = ownerWeapon.Data;
-            Explode(center, explosionRadius, damage, knockbackForce, data.ExplosionPullsInward, data.ExplosionClip, 1f);
-        }
+            Instantiate(explosionEffectPrefab, center, Quaternion.identity).Play(explosionRadius);
+            if (explosionClip != null) SoundPlayer.Play(explosionClip, explosionVolume);
 
-        // center를 중심으로 반경 안의 모든 적에게 blastDamage만큼 피해(거리 감쇠 없음)와 중심에서 바깥으로 미는 넉백을 준다. 당기는 폭발
-        // (WeaponData.ExplosionPullsInward)은 반대로 적을 중심으로 당긴다 — 세기는 EnemyMover가 중심에서 멎도록 정한다. 플레이어와 다른 탄환은
-        // 영향받지 않는다. 폭발은 튕김·관통 카운트를 건드리지 않고, 그 뒤의 튕김·정착은 호출자가 공통 규칙대로 잇는다 (Weapons §7).
-        // 폭발 탄환(ExplodeAsWeapon)과 폭발 개조의 추가 폭발(Mods §2.1)이 같이 쓴다. clip이 null이면 소리 없음.
-        void Explode(Vector2 center, float radius, int blastDamage, float blastKnockback, bool pullsInward, AudioClip clip, float volume)
-        {
-            Instantiate(explosionEffectPrefab, center, Quaternion.identity).Play(radius);
-            if (clip != null) SoundPlayer.Play(clip, volume);
-
-            Physics2D.OverlapCircle(center, radius, enemyFilter, explosionHits);
+            Physics2D.OverlapCircle(center, explosionRadius, enemyFilter, explosionHits);
             foreach (var hit in explosionHits)
             {
                 var enemy = hit.GetComponent<EnemyHealth>();
                 if (enemy == null)
                     throw new System.Exception($"[PickShoot] Bullet.Explode: '{EnemyLayerName}' 레이어의 콜라이더 '{hit.name}'에 EnemyHealth 없음.");
-                enemy.TakeDamage(blastDamage);
+                enemy.TakeDamage(damage);
 
                 var movement = hit.GetComponent<EnemyMover>();
                 if (movement == null) continue;
-                if (pullsInward)
+                if (ownerWeapon.Data.ExplosionPullsInward)
                 {
-                    movement.ApplyPullToward(center, blastKnockback);
+                    movement.ApplyPullToward(center, knockbackForce);
                     continue;
                 }
                 Vector2 away = (Vector2)hit.transform.position - center;
                 // 접촉 지점이 적 중심과 겹쳐 방향이 정의되지 않으면 탄환 진행 방향으로 민다.
                 if (away.sqrMagnitude < 0.0001f) away = lastVelocity;
                 if (away.sqrMagnitude < 0.0001f) continue;
-                movement.ApplyKnockback(away.normalized * blastKnockback);
+                movement.ApplyKnockback(away.normalized * knockbackForce);
             }
         }
 
