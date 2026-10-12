@@ -181,6 +181,7 @@ MonoBehaviour:
     serializedVersion: 2
     m_Bits: 512
   dashClip: {fileID: 8300000, guid: bdcad12f2d0bdfc4ba0ac15f83be152a, type: 3}
+  dashVolume: 0.8
   afterimageSpacing: 0.5
   afterimageDuration: 0.25
   afterimageColor: {r: 0.6, g: 0.85, b: 1, a: 0.6}
@@ -341,6 +342,7 @@ MonoBehaviour:
   sweepSpeed: 30
   pickupEffectPrefab: {fileID: 3409978152904165771, guid: 30fe44d2a97fd13469dcaa92e650a055, type: 3}
   pickupClip: {fileID: 8300000, guid: 15041e66b37db8e47a3937356e8fbb2a, type: 3}
+  pickupVolume: 0.55
 --- !u!114 &142563684
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -387,6 +389,7 @@ MonoBehaviour:
   recoilAngleDegrees: 10
   recoilReturnSpeed: 18
   emptyClip: {fileID: 8300000, guid: 26a45bd3e944b1c409960c7796663673, type: 3}
+  emptyVolume: 0.7
 --- !u!114 &142563686
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1097,7 +1100,9 @@ MonoBehaviour:
   modWeight: 1
   experience: {fileID: 1698421210}
   selectClip: {fileID: 8300000, guid: 460e5219f0f84004790b551e7a638e25, type: 3}
+  selectVolume: 0.6
   rerollClip: {fileID: 8300000, guid: be6acc78056b18742bf774689a87c295, type: 3}
+  rerollVolume: 0.8
   skin: {fileID: 11400000, guid: 75b98a2d2daa9a04797ea6f248de2474, type: 2}
   dimAlpha: 0.7
   enterTravelSeconds: 0.15
@@ -1259,7 +1264,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 5a0d3c7e9b214f6a8c1e2d4b6f8a0c2e, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PickShoot.SoundPlayer
-  masterVolume: 0.8
+  masterVolume: 1
   sameClipMinInterval: 0.04
   maxVoicesPerClip: 3
   overlapVolumeFactor: 0.6

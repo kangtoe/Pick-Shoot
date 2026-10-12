@@ -9,7 +9,7 @@ namespace PickShoot
     // 클립 보관은 각 시스템(WeaponData·EnemyHealth 등)의 직렬화 필드가 담당하고, 이 클래스는 재생만 한다.
     public class SoundPlayer : MonoBehaviour
     {
-        [SerializeField, Range(0f, 1f)] float masterVolume = 0.8f;
+        [SerializeField, Range(0f, 1f)] float masterVolume = 1f;
         [SerializeField, Min(0f)] float sameClipMinInterval = 0.04f;
         // 같은 클립이 동시에 울릴 수 있는 최대 개수. 다 차 있으면 새 요청은 건너뛴다 — 긴 폭발음이 연달아 쌓이는 것을 막는다.
         [SerializeField, Min(1)] int maxVoicesPerClip = 3;

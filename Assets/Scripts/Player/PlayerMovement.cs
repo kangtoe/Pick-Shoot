@@ -34,6 +34,7 @@ namespace PickShoot
         // 회피 중 몸이 통과하는 레이어 (적, 추후 적 탄환). 벽은 넣지 않는다 — 대시로 아레나를 벗어날 수 없어야 한다.
         [SerializeField] LayerMask dashPassThroughLayers;
         [SerializeField] AudioClip dashClip;
+        [SerializeField, Range(0f, 1f)] float dashVolume = 0.8f;
         // 잔상 사이의 거리 (월드 유닛). 프레임 단위가 아니라 궤적 위에 이 간격으로 놓으므로 프레임률과 무관하게 고르다.
         [SerializeField, Min(0.05f)] float afterimageSpacing = 0.5f;
         // 잔상 한 장이 사라지기까지 (초).
@@ -173,7 +174,7 @@ namespace PickShoot
             // 첫 잔상은 떠난 자리에.
             lastAfterimagePosition = transform.position;
             DashAfterimage.Spawn(sr, sr.sharedMaterial, lastAfterimagePosition, afterimageColor, afterimageDuration);
-            if (dashClip != null) SoundPlayer.Play(dashClip);
+            if (dashClip != null) SoundPlayer.Play(dashClip, dashVolume);
         }
 
         void OnCollisionEnter2D(Collision2D _)

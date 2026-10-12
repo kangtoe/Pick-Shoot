@@ -189,6 +189,7 @@ MonoBehaviour:
   windupFinalBlinkDuration: 0.3
   windupFinalBlinkFrequency: 8
   chargeClip: {fileID: 8300000, guid: b28e63f1668f71543b570fe0c08445e4, type: 3}
+  chargeVolume: 0.65
   afterimageSpacing: 0.5
   afterimageDuration: 0.2
   afterimageColor: {r: 1, g: 0.75, b: 0.6, a: 0.6}
@@ -210,7 +211,7 @@ MonoBehaviour:
   damageNumberColor: {r: 1, g: 1, b: 1, a: 1}
   deathEffectPrefab: {fileID: 5670591326354318199, guid: 621b869db3a9bdc42b153ed8e123f1ab, type: 3}
   hitClip: {fileID: 8300000, guid: 0b892b20090e74f4e9bdbd2239bd8d59, type: 3}
-  hitVolume: 0.7
+  hitVolume: 0.3
 --- !u!114 &3633091571525180294
 MonoBehaviour:
   m_ObjectHideFlags: 0

@@ -39,6 +39,7 @@ namespace PickShoot
         [SerializeField, Min(0f)] float recoilReturnSpeed = 18f;
         // 모든 자루의 탄약이 0인 채 사격을 시도했을 때의 헛방 소리.
         [SerializeField] AudioClip emptyClip;
+        [SerializeField, Range(0f, 1f)] float emptyVolume = 0.7f;
 
         Collider2D myCollider;
         PlayerAiming aiming;
@@ -254,7 +255,7 @@ namespace PickShoot
                 if (slots[i].CurrentAmmo > 0) return;
 
             emptySounded = true;
-            if (emptyClip != null) SoundPlayer.Play(emptyClip);
+            if (emptyClip != null) SoundPlayer.Play(emptyClip, emptyVolume);
         }
 
         // 발사 연출: 반동 킥 세팅 + 무기 비주얼의 자식으로 총구 화염 생성.

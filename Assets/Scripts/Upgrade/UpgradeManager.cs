@@ -44,7 +44,9 @@ namespace PickShoot
         [SerializeField, Min(0f)] float modWeight = 1f;
         [SerializeField] PlayerExperience experience;
         [SerializeField] AudioClip selectClip;
+        [SerializeField, Range(0f, 1f)] float selectVolume = 0.6f;
         [SerializeField] AudioClip rerollClip;
+        [SerializeField, Range(0f, 1f)] float rerollVolume = 0.8f;
 
         [Header("Presentation")]
         [SerializeField] PixelUiSkin skin;
@@ -326,7 +328,7 @@ namespace PickShoot
         void Select(int index)
         {
             currentCards[index].Apply(weapons, stats);
-            if (selectClip != null) SoundPlayer.Play(selectClip);
+            if (selectClip != null) SoundPlayer.Play(selectClip, selectVolume);
             selected = true;
         }
 
@@ -344,7 +346,7 @@ namespace PickShoot
                 throw new System.Exception("[PickShoot] UpgradeManager.Reroll: 보이는 카드가 후보에 없음. currentCards는 candidates에서 뽑혀야 함.");
             currentCards = Draw(pool);
             cardsShownAt = Time.unscaledTime;
-            if (rerollClip != null) SoundPlayer.Play(rerollClip);
+            if (rerollClip != null) SoundPlayer.Play(rerollClip, rerollVolume);
         }
 
         void OnGUI()

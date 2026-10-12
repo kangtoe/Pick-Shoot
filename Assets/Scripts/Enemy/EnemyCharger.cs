@@ -26,6 +26,7 @@ namespace PickShoot
         [SerializeField, Min(0f)] float windupFinalBlinkDuration = 0.3f;
         [SerializeField, Min(0.01f)] float windupFinalBlinkFrequency = 8f;
         [SerializeField] AudioClip chargeClip;
+        [SerializeField, Range(0f, 1f)] float chargeVolume = 0.65f;
         [SerializeField, Min(0.05f)] float afterimageSpacing = 0.5f;
         [SerializeField, Min(0.01f)] float afterimageDuration = 0.2f;
         [SerializeField] Color afterimageColor = new Color(1f, 0.75f, 0.6f, 0.6f);
@@ -147,7 +148,7 @@ namespace PickShoot
             // 첫 잔상은 떠나는 자리에.
             lastAfterimagePosition = transform.position;
             DashAfterimage.Spawn(Sprite, health.BodyMaterial, lastAfterimagePosition, afterimageColor, afterimageDuration);
-            if (chargeClip != null) SoundPlayer.Play(chargeClip);
+            if (chargeClip != null) SoundPlayer.Play(chargeClip, chargeVolume);
         }
 
         void BeginRecover()

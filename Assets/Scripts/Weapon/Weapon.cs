@@ -150,7 +150,7 @@ namespace PickShoot
                 burstShotsLeft = 0;
                 nextReadyTime = now + EffectiveCooldown;
             }
-            if (data.ShootClip != null) SoundPlayer.Play(data.ShootClip);
+            if (data.ShootClip != null) SoundPlayer.Play(data.ShootClip, data.ShootVolume);
 
             // 모자란 사격은 온전한 사격의 부채꼴 자리 중 중앙에 가까운 연속 구간만 채운다.
             // 구간을 정중앙에 둘 수 없으면(빈 자리가 홀수) 좌우 어느 쪽으로 치우칠지 매번 무작위

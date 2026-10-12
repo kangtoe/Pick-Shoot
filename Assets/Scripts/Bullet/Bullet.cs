@@ -14,7 +14,7 @@ namespace PickShoot
         [SerializeField] float bounceScalePulse = 1.5f;
         [SerializeField] AudioClip bounceClip;
         // 거의 모든 탄환이 한 번은 벽·가장자리에 닿으므로 다른 효과음보다 낮춰 깔아 둔다.
-        [SerializeField, Range(0f, 1f)] float bounceVolume = 0.5f;
+        [SerializeField, Range(0f, 1f)] float bounceVolume = 0.3f;
         [SerializeField] float separationRadius = 0.6f;
         [SerializeField] float separationStrength = 3f;
         [SerializeField] LayerMask bulletLayerMask;

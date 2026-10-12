@@ -18,6 +18,7 @@ namespace PickShoot
         [SerializeField] float sweepSpeed = 30f;
         [SerializeField] GameObject pickupEffectPrefab;
         [SerializeField] AudioClip pickupClip;
+        [SerializeField, Range(0f, 1f)] float pickupVolume = 0.55f;
 
         readonly Collider2D[] hits = new Collider2D[16];
         // 자석 반경에 한 번 들어온 탄환. 반경을 벗어나도 회수될 때까지 계속 끌려온다.
@@ -158,7 +159,7 @@ namespace PickShoot
         {
             if (pickupEffectPrefab != null)
                 Instantiate(pickupEffectPrefab, position, Quaternion.identity);
-            if (pickupClip != null) SoundPlayer.Play(pickupClip);
+            if (pickupClip != null) SoundPlayer.Play(pickupClip, pickupVolume);
         }
 
         // sweep 중에는 거리·페이즈·발사 직후 여부와 무관하게 전부 건다. 그사이 새로 발사된 탄환도 다음 스텝에 걸린다.

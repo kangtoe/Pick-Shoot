@@ -40,6 +40,8 @@ namespace PickShoot
         // 보상 화면 상세 패널의 역할 설명 한 줄 (선택). 시트 글꼴 문자만. 비어 있으면 줄을 두지 않는다 — 스탯·특성 줄은 자산 값에서 생성한다.
         [SerializeField] string description = "";
         [SerializeField] AudioClip shootClip;
+        // 사격음 볼륨 배율. 클립마다 원본 음량이 달라 자루마다 맞춘다 (DEVELOPMENT §2 효과음).
+        [SerializeField, Range(0f, 1f)] float shootVolume = 1f;
         // 폭발 탄환의 폭발음. 접촉 지점에서 튕김음·명중 파문 대신 난다.
         [SerializeField] AudioClip explosionClip;
         // 무기 중심에서 총구 화염이 뜨는 지점까지의 거리 (스프라이트 +x 방향, 월드 단위).
@@ -69,6 +71,7 @@ namespace PickShoot
         public Sprite WeaponSprite => weaponSprite;
         public string Description => description;
         public AudioClip ShootClip => shootClip;
+        public float ShootVolume => shootVolume;
         public AudioClip ExplosionClip => explosionClip;
         public float MuzzleOffset => muzzleOffset;
         public float RecoilStrength => recoilStrength;

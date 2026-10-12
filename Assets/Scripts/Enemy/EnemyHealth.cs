@@ -16,7 +16,7 @@ namespace PickShoot
         [SerializeField] Color damageNumberColor = Color.white;
         [SerializeField] GameObject deathEffectPrefab;
         [SerializeField] AudioClip hitClip;
-        [SerializeField, Range(0f, 1f)] float hitVolume = 0.7f;
+        [SerializeField, Range(0f, 1f)] float hitVolume = 0.3f;
 
         // 죽는 순간 (사망 이펙트 뒤, 파괴 직전). 웨이브 종료 정리(Kill)로 죽을 때도 난다. 마디가 죽으면 사슬을 다시 잇는 서펜트가 받는다.
         public event System.Action Died;

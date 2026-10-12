@@ -28,5 +28,6 @@ MonoBehaviour:
   visualColor: {r: 1, g: 0.76078431, b: 0.23529412, a: 1}
   weaponSprite: {fileID: -1929614260059924600, guid: 97adf27adbc24045b068db1d3bf1aacd, type: 3}
   shootClip: {fileID: 8300000, guid: 8736abace7719da4c9caddcb2fcb93b0, type: 3}
+  shootVolume: 0.65
   muzzleOffset: 0.5
   recoilStrength: 1
