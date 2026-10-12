@@ -12,9 +12,9 @@ namespace PickShoot
         [SerializeField, Range(0f, 1f)] float masterVolume = 1f;
         [SerializeField, Min(0f)] float sameClipMinInterval = 0.04f;
         // 같은 클립이 동시에 울릴 수 있는 최대 개수. 다 차 있으면 새 요청은 건너뛴다 — 긴 폭발음이 연달아 쌓이는 것을 막는다.
-        [SerializeField, Min(1)] int maxVoicesPerClip = 3;
-        // 같은 클립이 이미 울리고 있을 때 새 소리에 곱하는 볼륨 배율. 울리는 개수만큼 거듭 곱한다 (두 번째 0.6, 세 번째 0.36).
-        [SerializeField, Range(0f, 1f)] float overlapVolumeFactor = 0.6f;
+        [SerializeField, Min(1)] int maxVoicesPerClip = 4;
+        // 같은 클립이 이미 울리고 있을 때 새 소리에 곱하는 볼륨 배율. 울리는 개수만큼 거듭 곱한다 (두 번째 0.7, 세 번째 0.49, 네 번째 0.34).
+        [SerializeField, Range(0f, 1f)] float overlapVolumeFactor = 0.7f;
 
         static SoundPlayer instance;
         AudioSource source;

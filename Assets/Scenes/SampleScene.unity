@@ -1266,8 +1266,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::PickShoot.SoundPlayer
   masterVolume: 1
   sameClipMinInterval: 0.04
-  maxVoicesPerClip: 3
-  overlapVolumeFactor: 0.6
+  maxVoicesPerClip: 4
+  overlapVolumeFactor: 0.7
 --- !u!1 &2100000020
 GameObject:
   m_ObjectHideFlags: 0
