@@ -57,6 +57,8 @@ namespace PickShoot
         EnemyHealth homingTarget;
         ContactFilter2D enemyFilter;
         readonly Collider2D[] neighbors = new Collider2D[8];
+        // 관통해 지나가는 중인 적의 콜라이더 — 빠져나올 때까지 이 탄환과의 충돌을 꺼 둔다 (HandleEnemyHit·RestorePiercedCollisions).
+        readonly List<Collider2D> piercedColliders = new List<Collider2D>();
         static readonly List<Collider2D> explosionHits = new List<Collider2D>();
         static readonly List<Collider2D> homingHits = new List<Collider2D>();
 
@@ -183,6 +185,7 @@ namespace PickShoot
 
         void FixedUpdate()
         {
+            RestorePiercedCollisions();
             if (active) HandleCameraEdgeBounce();
             // 유도는 날아가는 동안만 — 정착하거나 자석에 걸리면 끝난다 (Mods §5).
             if (active && mod != null && mod.IsHoming) SteerTowardTarget();
@@ -203,6 +206,27 @@ namespace PickShoot
             {
                 gameObject.layer = active ? activeLayerIdx : inactiveLayerIdx;
                 wasActive = active;
+            }
+        }
+
+        // 관통해 지나간 적에게서 완전히 빠져나오면 충돌을 되살린다 — 벽에서 튕겨 돌아오면 같은 적을 다시 맞힐 수 있다.
+        // 빠져나왔다 = 겹치지 않고(접촉 여유 contact offset 안이면 되살리자마자 다시 닿는다) 그 적에게서 멀어지는 중. 거리만 보면 안 된다 —
+        // 맞은 스텝에 물리 엔진이 탄환을 반사해 한 스텝만큼 떼어 놓으므로, 되돌린 속도로 다시 들어가기 전에 되살아나 같은 적에게
+        // 또 맞고 관통을 다시 쓴다. 죽어 파괴된 적은 목록에서만 뺀다.
+        void RestorePiercedCollisions()
+        {
+            for (int i = piercedColliders.Count - 1; i >= 0; i--)
+            {
+                var other = piercedColliders[i];
+                if (other != null)
+                {
+                    ColliderDistance2D d = bodyCollider.Distance(other);
+                    if (d.isValid && d.distance <= Physics2D.defaultContactOffset * 2f) continue;
+                    Vector2 fromEnemy = rb.position - (Vector2)other.bounds.center;
+                    if (Vector2.Dot(rb.linearVelocity, fromEnemy) < 0f) continue;
+                    Physics2D.IgnoreCollision(bodyCollider, other, false);
+                }
+                piercedColliders.RemoveAt(i);
             }
         }
 
@@ -312,7 +336,11 @@ namespace PickShoot
             if (remainingPenetration > 0)
             {
                 // 관통 카운트 남음 → 통과. 속도·방향 유지, 튕김 카운트 미소모.
+                // 이 콜백은 물리 엔진이 이미 탄환을 밀어낸 뒤에 온다. 맞은 적이 살아 있으면 콜라이더가 그대로라 속도만 되돌려서는
+                // 다음 스텝에 다시 밀려나 통과하지 못한다(한 방에 안 죽는 탱커형 등) — 빠져나올 때까지 그 적과의 충돌을 끈다.
                 remainingPenetration--;
+                Physics2D.IgnoreCollision(bodyCollider, col.collider, true);
+                piercedColliders.Add(col.collider);
                 rb.linearVelocity = lastVelocity;
                 return;
             }
