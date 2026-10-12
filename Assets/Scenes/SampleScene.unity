@@ -382,7 +382,6 @@ MonoBehaviour:
   arcBaseDegrees: 30
   arcExponent: 0.9
   weaponSortingOrder: 6
-  globalShotInterval: 0
   ringMaxAngularSpeed: 720
   muzzleFlashPrefab: {fileID: 336630422492088379, guid: 115b22096cc34412babd65a4b958b1fd, type: 3}
   muzzleFlashWhiteBlend: 0.4

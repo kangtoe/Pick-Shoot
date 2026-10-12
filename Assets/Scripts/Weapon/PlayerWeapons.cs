@@ -5,9 +5,9 @@ using UnityEngine.Rendering;
 
 namespace PickShoot
 {
-    // 플레이어의 다중 무기 슬롯 관리자. 사격 입력 처리·발사 우선순위 결정. 슬롯·탄약 표시는 GameHud가 Slots를 읽어 그린다.
-    // 점사 중인 자루가 있으면 그 자루만 쏜다 — 버튼을 놓아도, 글로벌 간격과 무관하게 점사는 끝까지 나가고, 다른 자루는 점사의
-    // 마지막 사격 뒤 글로벌 간격이 지나야 쏜다 (Weapons §8).
+    // 플레이어의 다중 무기 슬롯 관리자. 사격 입력 처리. 슬롯·탄약 표시는 GameHud가 Slots를 읽어 그린다.
+    // 각 자루는 사격 버튼을 누르는 동안 제 쿨다운이 준비되는 즉시 쏜다 — 다른 자루를 기다리지 않으므로 한 프레임에 여럿이 쏠 수 있고,
+    // 버튼을 누르는 순간 준비된 자루가 모두 쏘는 일제사격이 된다 (Weapons §1). 점사는 버튼을 놓아도 끝까지 나간다 (Weapons §8).
     // 각 무기는 플레이어를 중심으로 하는 원형 링 위에 균등 분포로 배치되며,
     // 링은 조준 방향(PlayerAiming.AimAngleDeg)을 따라 자연스럽게 회전한다 (GDD §7.2).
     // 링 회전은 무기의 위치만 정하고, 총구 방향은 무기마다 제 위치에서 커서(PlayerAiming.AimWorldPosition)를 향한다 (Weapons §2).
@@ -28,7 +28,6 @@ namespace PickShoot
         [SerializeField, Range(0f, 1f)] float arcExponent = 0.7f;
         // 링 전체(SortingGroup)가 다른 스프라이트와 겨루는 순서. 무기끼리의 순서는 그룹 안에서 슬롯별로 따로 준다 (CreateVisual).
         [SerializeField] int weaponSortingOrder = 6;
-        [SerializeField, Min(0f)] float globalShotInterval = 0.1f;
         [SerializeField, Min(0f)] float ringMaxAngularSpeed = 720f;
 
         [Header("Fire Feedback")]
@@ -50,7 +49,6 @@ namespace PickShoot
         readonly List<SpriteRenderer> slotRenderers = new List<SpriteRenderer>(MaxSlots);
         // 슬롯별 반동 킥 잔량 (0 = 제자리). 발사 시 WeaponData.RecoilStrength로 세팅되고 지수 감쇠로 복귀.
         readonly List<float> slotRecoil = new List<float>(MaxSlots);
-        float nextGlobalShotTime;
         float currentRingAngleDeg;
         // 헛방 소리는 "탄약이 바닥난 순간"마다 한 번만 낸다. 사격 버튼을 떼거나 다시 한 발이라도 쏘면 풀린다.
         bool emptySounded;
@@ -131,9 +129,6 @@ namespace PickShoot
 
         void AddSlot(WeaponData data)
         {
-            // 쿨다운은 레벨로 줄지 않는 무기 특성이므로(Weapons §3) 자산 값 자체가 글로벌 최소 발사 간격(§1) 이상이어야 한다.
-            if (data.Cooldown < globalShotInterval)
-                throw new System.Exception($"[PickShoot] PlayerWeapons.AddSlot: '{data.DisplayName}'의 cooldown {data.Cooldown}이 globalShotInterval {globalShotInterval}보다 짧음. 쿨다운은 글로벌 간격 이상이어야 함 (Weapons §1).");
             slots.Add(new Weapon(data));
             slotVisuals.Add(CreateVisual(data, slots.Count - 1));
             slotRecoil.Add(0f);
@@ -229,47 +224,28 @@ namespace PickShoot
 
             if (Time.timeScale <= 0f) return;
 
-            // 점사 중인 자루는 입력·글로벌 간격보다 먼저 처리한다 (헤더 참조). 준비될 때까지는 다른 자루도 기다린다.
-            int burstingIdx = FindBurstingSlot();
-            if (burstingIdx >= 0)
-            {
-                if (slots[burstingIdx].CanFire(Time.time)) FireSlot(burstingIdx, Time.time);
-                return;
-            }
-
             var mouse = Mouse.current;
-            if (mouse == null) return;
-            if (!mouse.leftButton.isPressed)
-            {
-                emptySounded = false;
-                return;
-            }
+            bool triggerHeld = mouse != null && mouse.leftButton.isPressed;
+            if (!triggerHeld) emptySounded = false;
 
+            // 준비된 자루는 이 프레임에 모두 쏜다 (헤더 참조). 점사 중인 자루는 버튼을 놓아도 이어 쏜다.
             float now = Time.time;
-            if (now < nextGlobalShotTime) return;
-
-            int bestIdx = -1;
-            float bestReady = float.PositiveInfinity;
+            bool firedAny = false;
             for (int i = 0; i < slots.Count; i++)
             {
                 var w = slots[i];
+                if (!triggerHeld && !w.IsBursting) continue;
                 if (!w.CanFire(now)) continue;
-                if (w.NextReadyTime < bestReady)
-                {
-                    bestReady = w.NextReadyTime;
-                    bestIdx = i;
-                }
+                FireSlot(i, now);
+                firedAny = true;
             }
-            if (bestIdx < 0)
-            {
-                PlayEmptyFeedbackIfOutOfAmmo();
-                return;
-            }
-            emptySounded = false;
-            FireSlot(bestIdx, now);
+
+            if (!triggerHeld) return;
+            if (firedAny) emptySounded = false;
+            else PlayEmptyFeedbackIfOutOfAmmo();
         }
 
-        // 슬롯의 무기를 제 위치에서 커서를 향해 한 번 쏘고 발사 연출·알림을 낸다. 글로벌 간격도 여기서 다시 잰다.
+        // 슬롯의 무기를 제 위치에서 커서를 향해 한 번 쏘고 발사 연출·알림을 낸다.
         void FireSlot(int slotIndex, float now)
         {
             Vector3 pos = slotVisuals[slotIndex].position;
@@ -279,19 +255,10 @@ namespace PickShoot
             slots[slotIndex].Fire(pos, dir, myCollider, now, stats.DamageMultiplier);
             PlayFireFeedback(slotIndex);
             Fired?.Invoke(slots[slotIndex]);
-            nextGlobalShotTime = now + globalShotInterval;
-        }
-
-        // 점사 중인 슬롯. 점사 중에는 다른 자루를 쏘지 않으므로 한 번에 한 자루뿐이다. 없으면 -1.
-        int FindBurstingSlot()
-        {
-            for (int i = 0; i < slots.Count; i++)
-                if (slots[i].IsBursting) return i;
-            return -1;
         }
 
         // 쏠 수 있는 무기가 없는 이유가 쿨다운이 아니라 "전 자루 탄약 0"일 때만 헛방 소리를 낸다.
-        // 버튼을 누른 채 마지막 탄을 쏘면 다음 사격 차례(globalShotInterval 뒤, 0이면 바로 다음 프레임)에 한 번 울린다.
+        // 버튼을 누른 채 마지막 탄을 쏘면 바로 다음 프레임에 한 번 울린다.
         void PlayEmptyFeedbackIfOutOfAmmo()
         {
             if (emptySounded) return;

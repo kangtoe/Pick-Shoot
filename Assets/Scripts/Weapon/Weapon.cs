@@ -30,8 +30,7 @@ namespace PickShoot
         public bool IsMaxLevel => level >= MaxLevel;
         public int CurrentAmmo => currentAmmo;
         public int MaxAmmo => MaxAmmoAtLevel(data, level);
-        public float NextReadyTime => nextReadyTime;
-        // 점사 중 — burstInterval 뒤 CanFire가 다시 참이 되면 호출자가 이 자루를 우선해 다시 Fire한다 (Weapons §8).
+        // 점사 중 — burstInterval 뒤 CanFire가 다시 참이 되면 호출자가 사격 버튼과 무관하게 다시 Fire한다 (Weapons §8).
         public bool IsBursting => burstShotsLeft > 0;
         // 쿨다운은 레벨로 줄지 않는다 — 사격 리듬은 무기의 특성 (Weapons §3).
         public float EffectiveCooldown => data.Cooldown;
@@ -96,6 +95,9 @@ namespace PickShoot
                 throw new System.Exception($"[PickShoot] WeaponData '{data.DisplayName}'에 WeaponSprite 미할당. 링 위 무기 시각화용 sprite 필요.");
             if (data.ExplosionPullsInward && data.ExplosionRadius <= 0f)
                 throw new System.Exception($"[PickShoot] WeaponData '{data.DisplayName}'는 당기는 폭발(explosionPullsInward)인데 explosionRadius가 0. 폭발 탄환이어야 함.");
+            // 쿨다운 0이면 매 프레임 쏘게 되어 사격 빈도가 프레임레이트를 따른다.
+            if (data.Cooldown <= 0f)
+                throw new System.Exception($"[PickShoot] WeaponData '{data.DisplayName}'의 cooldown이 0 이하 ({data.Cooldown}). 쿨다운은 양수여야 함 (Weapons §1).");
             if (data.BurstCount > 1 && data.BurstInterval <= 0f)
                 throw new System.Exception($"[PickShoot] WeaponData '{data.DisplayName}'는 점사({data.BurstCount})인데 burstInterval이 0 이하 ({data.BurstInterval}). 점사 간격은 양수여야 함.");
             if (data.LevelDamageAdd < 0)
@@ -116,7 +118,7 @@ namespace PickShoot
         // 발사 실행 — 한 번의 사격(projectilesPerShot발). 호출자가 CanFire를 먼저 검증하고, 방향/위치/탄환 콜리전 무시 처리를 수행한다.
         // fireDirection은 정규화되어 있어야 한다.
         // 점사 무기(BurstCount > 1)는 첫 호출이 점사를 시작하고 burstInterval 뒤에 다시 준비되므로, 호출자가 IsBursting인 자루를
-        // 우선해 다시 Fire하면 점사가 이어진다. 쿨다운은 점사의 마지막 사격 뒤에 시작하고, 탄약이 떨어지면 점사도 거기서 끝난다 (Weapons §8).
+        // 사격 버튼과 무관하게 다시 Fire하면 점사가 이어진다. 쿨다운은 점사의 마지막 사격 뒤에 시작하고, 탄약이 떨어지면 점사도 거기서 끝난다 (Weapons §8).
         // damageMultiplier는 플레이어 전역 피해 배율 — 이 사격의 탄환(폭발 피해 포함)에 곱해진다.
         public void Fire(Vector3 muzzlePos, Vector2 fireDirection, Collider2D shooterCollider, float now, float damageMultiplier)
         {

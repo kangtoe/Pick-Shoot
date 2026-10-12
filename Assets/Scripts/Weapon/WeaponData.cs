@@ -9,7 +9,7 @@ namespace PickShoot
         [SerializeField] string displayName = "Weapon";
         [SerializeField] Bullet bulletPrefab;
         [SerializeField] float bulletSpeed = 14f;
-        // 사격 차례 사이의 쿨다운(초). 레벨로 줄지 않는 무기 특성이며 PlayerWeapons의 글로벌 최소 발사 간격 이상이어야 한다 (Weapons §1·§3).
+        // 사격 차례 사이의 쿨다운(초). 레벨로 줄지 않는 무기 특성이며 양수여야 한다 (Weapons §1·§3).
         [SerializeField] float cooldown = 0.2f;
         [SerializeField] int maxAmmo = 6;
         // 레벨업 한 번마다 최대 탄약에 더하는 수 (누적). 표준 2. 0이면 고정 탄창 — 탄창 크기가 정체성인 무기 (Weapons §3·§9).
