@@ -22,7 +22,8 @@ namespace PickShoot
     // 리롤 버튼은 레벨 업(PlayerExperience)으로 적립한 리롤이 남아 있을 때 3장을 다시 뽑는다 — 보이는 카드 중 한 장은 반드시 바뀐다 (Weapons §3).
     // 버튼에는 남은 적립 횟수를 적는다. 쓰지 않은 횟수는 다음 카드 화면으로 이어진다.
     // 카드는 (다시) 뽑힐 때마다 화면 아래 밖에서 차례로 튀어 올라 스프링처럼 흔들리며 멎는다 — 멎기 전에는 카드도 버튼도 입력을 받지 않는다.
-    // 타일과 카드 전시 칸에 마우스를 올리면 툴팁(TooltipPainter)이 뜬다 — 카드·버튼을 다 그린 뒤 맨 마지막에 (2026-10-06).
+    // 빌드 줄의 타일에 마우스를 올리면 그 자루·유물의 보기 카드(UpgradeCardPainter.DrawOwnedWeapon·DrawOwnedRelic)가 뜬다 — 카드·버튼을 다 그린 뒤 맨 마지막에
+    // (2026-10-12. 그전 2026-10-06부터는 툴팁이었고 카드 전시 칸에도 떴다 — 카드가 다 담게 되어 전시 칸 호버는 걷었다).
     public class UpgradeManager : MonoBehaviour
     {
         [SerializeField] PlayerWeapons weapons;
@@ -76,7 +77,8 @@ namespace PickShoot
         // 띠 → 카드는 10텍셀(40px)이었다가 카드 위로 솟던 배지(32px)가 띠에 닿지 않게 18(72px)로 벌렸고, 2026-10-08 카드가 종류 배지를 머리의 글자 제목으로
         // 옮겨(UpgradeCardPainter) 카드 위 끝이 패널 변이 되며 10으로 되돌렸다.
         // 카드 → 빌드 줄은 2텍셀(8px)이었다가 6(24px)으로 — 줄이 카드에 붙어 보였고, 호버 테두리가 카드 밖으로 4px 나온다 (2026-10-08).
-        // 블록 = 띠 96 + 40 + 카드 512 + 24 + 줄 124 × 2 + 16 = 936px — 세로 1080에서 위아래 72px 남는다 (카드가 9타일이던 때 1032px, 7타일이던 때 872px).
+        // 블록 = 띠 96 + 40 + 카드 576 + 24 + 줄 124 × 2 + 16 = 1000px — 세로 1080에서 위아래 40px 남는다 (2026-10-12 카드 9타일. 8타일이던 때 936px,
+        // 7타일이던 때 872px, 다른 간격으로 9타일이던 2026-10-08엔 1032px).
         const int CardGapTexels = 10;
         const int StripGapTexels = 6;
         const int SectionGapTexels = 8;
@@ -96,9 +98,6 @@ namespace PickShoot
         float cardsShownAt;
         bool active;
         bool selected;
-        // 툴팁 내용 버퍼 (프레임마다 비우고 채운다).
-        readonly List<string> tipFacts = new List<string>();
-        readonly List<string> tipNotes = new List<string>();
 
         public bool IsActive => active;
 
@@ -385,32 +384,12 @@ namespace PickShoot
             }
 
             // 빌드 줄은 카드보다 먼저 그린다 — 화면 아래에서 올라오는 카드가 그 위를 지나가므로 카드가 앞에 보여야 한다.
-            // 툴팁은 하나만, 다 그린 뒤 맨 마지막에. 멎기 전에는 카드처럼 호버에 반응하지 않는다.
-            string tipTitle = null;
-            Rect tipAnchor = default;
-            tipFacts.Clear();
-            tipNotes.Clear();
             int stripY = cardsY + cardSize.y + stripGap;
             BuildGridPainter.DrawTitle(skin, BuildGridPainter.WeaponTitle(weapons), startX, stripY);
             int slot = BuildGridPainter.DrawWeaponRow(skin, weapons, startX, stripY + rowTitleH, stripScale, mouse, out var weaponTile);
             stripY += rowH + sectionGap;
             BuildGridPainter.DrawTitle(skin, BuildGridPainter.RelicTitle(stats), startX, stripY);
             var relic = BuildGridPainter.DrawRelicGrid(skin, stats, startX, stripY + rowTitleH, stripScale, 1, mouse, out var relicTile);
-            if (interactable && slot >= 0)
-            {
-                var w = weapons.Slots[slot];
-                tipTitle = ItemInfoText.WeaponTitle(w.Data);
-                tipAnchor = weaponTile;
-                ItemInfoText.WeaponFacts(w.Data, w.Mod, w.Level, stats, tipFacts);
-                ItemInfoText.WeaponNotes(w.Data, w.Mod, tipNotes);
-            }
-            else if (interactable && relic != null)
-            {
-                tipTitle = ItemInfoText.RelicTitle(relic);
-                tipAnchor = relicTile;
-                ItemInfoText.RelicFacts(relic, stats.CountOf(relic), tipFacts);
-                ItemInfoText.RelicNotes(relic, tipNotes);
-            }
 
             for (int i = 0; i < currentCards.Length; i++)
             {
@@ -420,54 +399,19 @@ namespace PickShoot
                 // 출발점은 카드 위쪽 끝이 화면 아래 끝에 닿는 곳 — 화면 밖에서 들어온다.
                 r.y += EnterOffset(t, canvas.Height - cardsY, scale);
                 bool hovered = interactable && r.Contains(mouse);
-                var showcaseTile = UpgradeCardPainter.Draw(skin, currentCards[i], weapons, stats, r, scale, textScale, hovered);
-                // 전시 타일 위의 툴팁은 고른 뒤의 상태 (타일 배지와 같다).
-                if (hovered && showcaseTile.Contains(mouse))
-                {
-                    tipAnchor = showcaseTile;
-                    tipTitle = CardTooltip(currentCards[i], tipFacts, tipNotes);
-                }
+                UpgradeCardPainter.Draw(skin, currentCards[i], weapons, stats, r, scale, textScale, hovered);
                 // 보이지 않는 버튼으로 클릭만 받는다. 카드 그림은 위에서 직접 그렸다.
                 if (interactable && GUI.Button(r, GUIContent.none, GUIStyle.none))
                     Select(i);
             }
 
-            if (tipTitle != null && Event.current.type == EventType.Repaint)
-                TooltipPainter.Draw(skin, canvas, tipAnchor, tipTitle, tipFacts, tipNotes);
-        }
-
-        // 카드가 가리키는 것의 툴팁 — 고른 뒤의 상태. 획득 카드는 슬롯이 아직 없어 시작 레벨(UpgradeOption.Levels, 보통 1), 레벨업은 그 슬롯의 오른 뒤 레벨,
-        // 개조는 그 슬롯에 개조가 붙은 뒤, 유물은 보유 수 + 1.
-        string CardTooltip(UpgradeOption option, List<string> facts, List<string> notes)
-        {
-            facts.Clear();
-            notes.Clear();
-            switch (option.Kind)
+            // 보기 카드는 하나만, 다 그린 뒤 맨 마지막에 — 카드 위로 뜬다. 멎기 전에는 카드처럼 호버에 반응하지 않는다.
+            if (interactable && Event.current.type == EventType.Repaint)
             {
-                case UpgradeKind.AcquireWeapon:
-                    ItemInfoText.WeaponFacts(option.AcquireData, null, option.Levels, stats, facts);
-                    ItemInfoText.WeaponNotes(option.AcquireData, null, notes);
-                    return ItemInfoText.WeaponTitle(option.AcquireData);
-                case UpgradeKind.LevelUp:
-                {
-                    var w = weapons.Slots[option.TargetSlotIndex];
-                    ItemInfoText.WeaponFacts(w.Data, w.Mod, w.Level + option.Levels, stats, facts);
-                    ItemInfoText.WeaponNotes(w.Data, w.Mod, notes);
-                    return ItemInfoText.WeaponTitle(w.Data);
-                }
-                case UpgradeKind.Mod:
-                {
-                    var w = weapons.Slots[option.TargetSlotIndex];
-                    ItemInfoText.WeaponFacts(w.Data, option.ModData, w.Level, stats, facts);
-                    ItemInfoText.WeaponNotes(w.Data, option.ModData, notes);
-                    return ItemInfoText.WeaponTitle(w.Data);
-                }
-                case UpgradeKind.Relic:
-                    ItemInfoText.RelicFacts(option.RelicData, stats.CountOf(option.RelicData) + 1, facts);
-                    ItemInfoText.RelicNotes(option.RelicData, notes);
-                    return ItemInfoText.RelicTitle(option.RelicData);
-                default:
-                    throw new System.Exception($"[PickShoot] UpgradeManager.CardTooltip: 알 수 없는 Kind {option.Kind}");
+                if (slot >= 0)
+                    UpgradeCardPainter.DrawOwnedWeapon(skin, canvas, weapons.Slots[slot], stats, weaponTile);
+                else if (relic != null)
+                    UpgradeCardPainter.DrawOwnedRelic(skin, canvas, relic, stats.CountOf(relic), relicTile);
             }
         }
 

@@ -1,12 +1,12 @@
 using System.Collections.Generic;
 using System.Globalization;
+using UnityEngine;
 
 namespace PickShoot
 {
-    // 무기·유물 타일(ItemTilePainter)의 배지 문구와 툴팁(TooltipPainter) 내용, 카드(UpgradeCardPainter)의 스탯 값과 특성 줄 — 자산 값에서 만든다 (2026-10-06).
+    // 무기·유물 타일(ItemTilePainter)의 배지 문구와 카드(UpgradeCardPainter — 선택 카드·보기 카드)의 스탯 값과 특성 줄 — 자산 값에서 만든다 (2026-10-06).
     // 시트 글꼴 문자(A-Z 0-9 % + - ! ( ) / . 공백)만 쓴다. 없는 문자는 PixelGui가 그릴 때 예외로 알린다.
-    // 툴팁 내용은 제목(이름) + 사실 묶음(facts: `DMG 15`처럼 짧은 항목 — 한 항목은 줄을 나누지 않고 TooltipPainter가 폭에 맞춰 여러 항목을 한 줄에 채운다)
-    // + 설명 문단(notes: 자산의 description — 단어 단위로 접는다). 무기 설명은 아직 자산에 비어 있다 — 특성은 수치에서 만든 특성 항목(WeaponTraits)이 알린다.
+    // 2026-10-12까지는 타일 툴팁(TooltipPainter)의 사실 항목(`DMG 15`)·설명 문단도 여기서 만들었다 — 보유 장비 호버가 카드 꼴의 보기 카드로 바뀌며 걷었다.
     public static class ItemInfoText
     {
         // 무기 타일의 레벨 배지 `LV5` — HUD·카드의 `LV 5`와 같은 낱말이고, 좁은 타일 띠에서는 띄어쓰기 없이 붙인다 (2026-10-06, 그전 `L5`. `LV.5`도 잠깐
@@ -27,10 +27,12 @@ namespace PickShoot
             return "X" + count;
         }
 
-        // 카드·툴팁의 2 스탯: 공격력(산탄이면 X발수 — 한 번의 사격에 나가는 탄환 수)과 최대 탄약. 모두 정수 표기. 점사 수는 특성 줄(BURST)이 말한다.
+        // 카드의 2 스탯: 공격력(산탄이면 X발수 — 한 번의 사격에 나가는 탄환 수)과 최대 탄약. 모두 정수 표기. 점사 수는 특성 줄(BURST)이 말한다.
         // 공격력은 플레이어 전역 배율(유물)을 곱한 실제 값 — 유물을 얻은 뒤의 무기 카드는 그만큼 큰 수를 보인다.
-        // RPM(분당 사격 차례 수)은 2026-10-07 뺐다 — 카드의 그 줄을 특성 줄(WeaponTraits)에 내줬다 (Weapons §3).
+        // RPM(분당 사격 차례 수)은 2026-10-07 뺐다가 2026-10-12 FIRE RATE로 특성 줄 맨 앞에 돌아왔다 (WeaponTraitStats, Weapons §3).
         public static readonly string[] WeaponStatLabels = { "DMG", "AMMO" };
+        // FIRE RATE 값 = 분당 사격 수 ÷ 이 값 (2026-10-12 — 같은 날 분당 수 그대로였다가 1/10로).
+        const float FireRateDivisor = 10f;
 
         public static string[] WeaponStatValues(WeaponData d, int level, float damageMultiplier)
         {
@@ -40,38 +42,21 @@ namespace PickShoot
             return new[] { dmgText, Weapon.MaxAmmoAtLevel(d, level).ToString() };
         }
 
-        public static string WeaponTitle(WeaponData d)
-        {
-            return d.DisplayName.ToUpperInvariant();
-        }
-
-        // 무기 한 자루의 사실 항목 — 레벨, 개조(`MOD HOMING`), 2 스탯, 탄속·넉백, 그리고 특성(수치 특성 + 깃발 특성).
-        // 슬롯 번호는 적지 않는다 (2026-10-07) — 자루를 가리키는 데 쓰였지만 카드·타일의 그림과 레벨로 충분하고, 줄만 차지했다.
-        // mod는 그 자루의 개조(없으면 null) — 개조가 더한 수치는 특성 항목에 합친 값(`PIERCE 3`)으로 들어간다 (Mods §4.2).
-        public static void WeaponFacts(WeaponData d, ModData mod, int level, PlayerStats stats, List<string> facts)
-        {
-            facts.Add($"LEVEL {level}");
-            if (mod != null) facts.Add($"MOD {mod.UiName}");
-            var values = WeaponStatValues(d, level, stats.DamageMultiplier);
-            for (int i = 0; i < values.Length; i++)
-                facts.Add($"{WeaponStatLabels[i]} {values[i]}");
-            facts.Add($"SPEED {Num(d.BulletSpeed)}");
-            facts.Add($"KNOCKBACK {Num(d.KnockbackForce)}");
-            var traitLabels = new List<string>();
-            var traitValues = new List<string>();
-            WeaponTraitStats(d, mod, level, traitLabels, traitValues);
-            for (int i = 0; i < traitLabels.Count; i++)
-                facts.Add($"{traitLabels[i]} {traitValues[i]}");
-            WeaponTraitFlags(d, facts);
-        }
-
-        // 그 무기에만 있는 **수치** 특성 — 점사·튕김·관통·폭발 반경. 0이거나 기본인 것은 넣지 않아 무기를 가르는 것만 남는다.
-        // 카드에서는 DMG·AMMO와 같은 표의 줄이고(2026-10-07 — 결국 같은 성격의 수치라 따로 둘 이유가 없다), 툴팁에서는 `PIERCE 1` 항목이다.
+        // 무기의 **수치** 특성 — 모든 무기의 발사 속도(`FIRE RATE 30`, 분당 사격 수의 1/10을 반올림한 정수, 단위 없음) 뒤에 그 무기에만 있는 점사·튕김·관통·폭발 반경.
+        // 발사 속도 말고는 0이거나 기본인 것을 넣지 않아 무기를 가르는 것만 남는다. 발사 속도는 자루마다 제 쿨다운대로 쏘게 되며(2026-10-12, Weapons §1)
+        // 곧 그 자루의 화력 기여라 모든 무기에 적는다 — 레벨로 바뀌지 않으므로 DMG·AMMO 표가 아니라 값 하나로 서는 이 줄들에 둔다.
+        // 점사 안의 사격도 하나씩 센다(라이플 24 — 차례로 세면 8). 같은 날 초당 차례 수 `5/S`(소수 한 자리) → 분당 정수 `300` → 그 1/10로 바꿨다 —
+        // `5/S`는 라이플이 `1.4/S`로 런처 다음으로 느려 보였고, 정수는 소수점이 없고 쿨다운 초로 읽힐 일도 없어 단위를 뺐다.
+        // 카드에서는 DMG·AMMO와 같은 표의 줄이다 (2026-10-07 — 결국 같은 성격의 수치라 따로 둘 이유가 없다).
         // 적지 않는 것 — 산탄의 발수·각도(DMG의 `8X5`가 이미 말한다), 고정 탄창(`AMMO 1 -> 1`이 이미 말한다). 전부 2026-10-07에 뺐다.
-        // 레벨에 따라 바뀌는 것은 점사 수뿐이다 (탄창이 빌 때까지 쏘는 블래스터) — 카드는 그 줄만 "현재 → 다음"으로 보인다.
+        // 탄속·넉백도 적지 않는다 (2026-10-12) — 레벨·개조로 바뀌지 않고 수만으로는 빠른지 알 수 없어 고르는 근거가 못 된다. 타일 툴팁에만 있다가 툴팁과 함께 걷었다.
+        // 레벨에 따라 바뀌는 것은 점사 수와 그에 따른 발사 속도뿐이다 (탄창이 빌 때까지 쏘는 블래스터) — 카드는 그 줄만 "현재 → 다음"으로 보인다.
         // 개조(mod, 없으면 null)가 더한 튕김·관통·폭발 반경은 자산 값과 합친 값이다 — 따로 적지 않는다 (Mods §1).
         public static void WeaponTraitStats(WeaponData d, ModData mod, int level, List<string> labels, List<string> values)
         {
+            labels.Add("FIRE RATE");
+            // 반올림은 .5를 올린다 (산탄총 7.5 → 8) — Mathf.RoundToInt는 짝수 쪽으로 붙어 6.5가 6이 된다.
+            values.Add(Mathf.FloorToInt(Weapon.ShotsPerMinuteAtLevel(d, level) / FireRateDivisor + 0.5f).ToString());
             int burst = Weapon.ShotsPerTriggerAtLevel(d, level);
             if (burst > 1) { labels.Add("BURST"); values.Add(burst.ToString()); }
             int bounces = Weapon.BouncesWith(d, mod);
@@ -82,40 +67,11 @@ namespace PickShoot
             if (blast > 0f) { labels.Add("BLAST"); values.Add(Num(blast)); }
         }
 
-        // 수치가 없는 특성 — 표에 둘 값이 없어 카드에서는 표 아래 한 줄, 툴팁에서는 항목 하나가 된다.
+        // 수치가 없는 특성 — 표에 둘 값이 없어 카드에서는 표 아래 한 줄이 된다.
         public static void WeaponTraitFlags(WeaponData d, List<string> flags)
         {
             if (d.ExplosionRadius > 0f && d.ExplosionPullsInward) flags.Add("PULLS IN");
             if (d.AutoRetrieve) flags.Add("AUTO RETRIEVE");
-        }
-
-        public static void WeaponNotes(WeaponData d, ModData mod, List<string> notes)
-        {
-            if (!string.IsNullOrEmpty(d.Description)) notes.Add(d.Description);
-            if (mod != null && !string.IsNullOrEmpty(mod.Description)) notes.Add(mod.Description);
-        }
-
-        public static string RelicTitle(RelicData d)
-        {
-            return d.DisplayName.ToUpperInvariant();
-        }
-
-        // 유물 한 종류의 사실 항목: 등급과 그 보유분이 더하는 수정치(수정치 × 개수 — 종류별 총계가 아니라 이 유물 몫).
-        // 보유 수(`OWNED 3`)는 적지 않는다 (2026-10-07) — 타일 배지의 `X3`이 바로 옆에서 이미 말한다.
-        public static void RelicFacts(RelicData d, int count, List<string> facts)
-        {
-            facts.Add(d.Grade.ToString().ToUpperInvariant());
-            foreach (var s in PlayerStatModifiers.Stats)
-            {
-                int v = d.Modifiers.Get(s);
-                if (v == 0) continue;
-                facts.Add($"{PlayerStatModifiers.Label(s)} {PlayerStatModifiers.FormatSigned(s, v * count)}");
-            }
-        }
-
-        public static void RelicNotes(RelicData d, List<string> notes)
-        {
-            if (!string.IsNullOrEmpty(d.Description)) notes.Add(d.Description);
         }
 
         // 소수는 한 자리까지, 정수는 소수점 없이 (14 · 6.5). 소수점은 글꼴에 있다 (DEVELOPMENT §2). 문화권과 무관하게 '.'.

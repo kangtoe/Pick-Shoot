@@ -11,11 +11,11 @@ namespace PickShoot
     {
         // UI 이름은 영문 대문자 (`HOMING`). 첫 글자가 빌드 타일 배지의 머리글자(`LV5H`)라 개조끼리 첫 글자가 겹치면 안 된다 (UpgradeManager가 검사).
         [SerializeField] string displayName = "Mod";
-        // 카드 본문·타일 툴팁의 설명 문단 (선택) — 카드의 스탯 줄·특성 줄이 못 하는 말만. 시트 글꼴 문자만, 단어 단위로 접힌다.
+        // 개조 카드·보기 카드 본문의 설명 문단 (선택) — 카드의 스탯 줄·특성 줄이 못 하는 말만. 시트 글꼴 문자만, 단어 단위로 접힌다.
         [SerializeField] string description = "";
 
         [Header("Stat Adds")]
-        // 자산의 튕김 횟수·관통에 더한다 (도탄 +3·관통 +2, Mods §2.3·§2.4). 카드·툴팁에는 합친 값으로 보인다.
+        // 자산의 튕김 횟수·관통에 더한다 (도탄 +3·관통 +2, Mods §2.3·§2.4). 카드에는 합친 값으로 보인다.
         [SerializeField, Min(0)] int bounceAdd = 0;
         [SerializeField, Min(0)] int penetrationAdd = 0;
 
@@ -55,10 +55,6 @@ namespace PickShoot
         // UI 이름 (`HOMING`)과 빌드 타일 배지의 머리글자 (`H`).
         public string UiName => displayName.ToUpperInvariant();
         public string BadgeMark => UiName.Substring(0, 1);
-
-        // 수치로 적을 수 없는 새 동작이 생기는가 — 유도뿐이다. 카드의 특성 줄에 개조 이름(`HOMING`)을 적는 기준 (Mods §4.2).
-        // 폭발은 폭발 반경으로 적힌다 (`BLAST - → 0.8`·`BLAST 2 → 3`).
-        public bool AddsBehavior => IsHoming;
 
         // 이 무기의 탄환을 폭발 탄환으로 바꾸는가 — 이미 폭발 탄환인 무기는 반경만 커진다 (Mods §2.1).
         public bool MakesExplosive(WeaponData weapon)

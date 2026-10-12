@@ -57,6 +57,15 @@ namespace PickShoot
             return Mathf.Min(data.BurstCount, shotsInMagazine);
         }
 
+        // 분당 사격 수 — 점사 안의 사격도 하나씩 센다. 한 차례는 점사 사격 수만큼의 사격(사이마다 점사 간격)과 그 뒤 쿨다운이다. 카드의 FIRE RATE는 이 값의 1/10
+        // (ItemInfoText, Weapons §3). 사격 하나가 카드의 DMG 한 번(산탄이면 `10X3` 전체)이라 DMG × 이 값이 분당 피해다. 자루마다 제 쿨다운대로 쏘므로(Weapons §1)
+        // 이 값이 곧 그 자루의 사격 빈도다.
+        public static float ShotsPerMinuteAtLevel(WeaponData data, int level)
+        {
+            int shots = ShotsPerTriggerAtLevel(data, level);
+            return 60f * shots / (data.Cooldown + data.BurstInterval * (shots - 1));
+        }
+
         // 한 번의 사격에 나가는 탄환 수 = 동시 발사 수(산탄), 그 레벨의 탄창이 상한. 카드의 DMG가 'X발수'로 보여준다.
         // 점사 수는 곱하지 않는다 (2026-10-07) — 카드에 BURST 줄이 따로 서므로 곱하면 같은 수가 두 번 들어가고, 블래스터 고레벨의
         // "108X24" 같은 값은 카드 폭을 넘긴다.

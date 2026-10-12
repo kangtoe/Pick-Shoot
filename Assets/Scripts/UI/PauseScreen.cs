@@ -1,4 +1,3 @@
-using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.InputSystem;
 
@@ -11,7 +10,8 @@ namespace PickShoot
     // 일시정지 중엔 HUD가 숨으므로 웨이브도 여기서 보이고, 누적 경험치 총량은 여기서만 보인다 (GDD §3.3).
     // 상태 카드 아래에 현재 빌드 격자(BuildGridPainter — 제목 `WEAPONS (7/12)` 아래 보유 무기 한 줄, 제목 `RELICS (5)` 아래 유물 격자, 패널 배율 타일)를 둔다
     // (2026-10-04 두 줄 띠 → 2026-10-06 타일 격자·섹션 제목).
-    // 타일에 마우스를 올리면 툴팁(TooltipPainter)이 뜬다 — 하드웨어 커서는 멈춘 동안 GameHud가 되살린다.
+    // 타일에 마우스를 올리면 그 자루·유물의 보기 카드(UpgradeCardPainter.DrawOwnedWeapon·DrawOwnedRelic — 보상 화면 카드와 같은 틀의 회색 카드)가 뜬다
+    // (2026-10-12, 그전엔 툴팁). 하드웨어 커서는 멈춘 동안 GameHud가 되살린다.
     // 멈춤은 업그레이드 카드와 같은 방식(Time.timeScale = 0)이라 물리·코루틴·사격이 함께 멎는다.
     // 카드 선택 중(이미 멈춰 있음)과 플레이어 사망 뒤(데스 화면이 이어받음)에는 ESC를 받지 않는다.
     // 멈춘 동안 HUD는 GameHud가 걷고 하드웨어 커서를 되살린다 — 볼륨 조절 등 클릭 조작이 들어올 자리.
@@ -51,9 +51,6 @@ namespace PickShoot
         // 빌드 격자의 출처. 플레이어 오브젝트의 컴포넌트라 playerHealth에서 함께 찾는다.
         PlayerWeapons weapons;
         PlayerStats stats;
-        // 툴팁 내용 버퍼 (프레임마다 비우고 채운다).
-        readonly List<string> tipFacts = new List<string>();
-        readonly List<string> tipNotes = new List<string>();
 
         public bool IsPaused => paused;
 
@@ -180,24 +177,11 @@ namespace PickShoot
             var relic = BuildGridPainter.DrawRelicGrid(skin, stats, gridX, relicTitleY + titleH, gridScale, relicRows, mouse, out var relicTile);
             PixelGui.DrawTextCentered(skin.FontPlain, Hint, centerX, gridY + gridH + hintGap, textScale);
 
-            // 툴팁은 다 그린 뒤 맨 마지막에 — 이웃 타일 위로 뜬다.
+            // 보기 카드는 다 그린 뒤 맨 마지막에 — 상태 카드·이웃 타일 위로 뜬다.
             if (slot >= 0)
-            {
-                var w = weapons.Slots[slot];
-                tipFacts.Clear();
-                tipNotes.Clear();
-                ItemInfoText.WeaponFacts(w.Data, w.Mod, w.Level, stats, tipFacts);
-                ItemInfoText.WeaponNotes(w.Data, w.Mod, tipNotes);
-                TooltipPainter.Draw(skin, canvas, weaponTile, ItemInfoText.WeaponTitle(w.Data), tipFacts, tipNotes);
-            }
+                UpgradeCardPainter.DrawOwnedWeapon(skin, canvas, weapons.Slots[slot], stats, weaponTile);
             else if (relic != null)
-            {
-                tipFacts.Clear();
-                tipNotes.Clear();
-                ItemInfoText.RelicFacts(relic, stats.CountOf(relic), tipFacts);
-                ItemInfoText.RelicNotes(relic, tipNotes);
-                TooltipPainter.Draw(skin, canvas, relicTile, ItemInfoText.RelicTitle(relic), tipFacts, tipNotes);
-            }
+                UpgradeCardPainter.DrawOwnedRelic(skin, canvas, relic, stats.CountOf(relic), relicTile);
         }
 
         // RowLabels와 같은 순서의 값.

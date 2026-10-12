@@ -20,27 +20,34 @@ namespace PickShoot
     // 값은 화살표를 한 열에 맞춘 오른쪽 열의 표였다 — 세 카드의 값이 같은 열에 서 가로로 비교하기 쉬웠지만 라벨과 값 사이 빈칸이 넓었고, 가운데 맞춘 머리 묶음·설명
     // 줄과 정렬이 갈렸다. 한 줄 문구를 왼쪽에 두는 안은 카드 오른쪽이 비었고, 줄만 왼쪽·설명은 가운데인 안은 한 카드에 정렬이 섞였다
     // (Recordings/card_inline_rows_mockup_2026-10-09.png).
-    // 스탯 줄은 DMG·AMMO 뒤로 그 무기의 수치 특성(`BURST 3`·`BOUNCE 5`·`PIERCE 1`·`BLAST 2.5`, ItemInfoText.WeaponTraitStats)이 같은 꼴로 이어지고,
+    // 스탯 줄은 DMG·AMMO 뒤로 발사 속도(`FIRE RATE 30` — 분당 사격 수의 1/10, 2026-10-12)와 그 무기의 수치 특성(`BURST 3`·`BOUNCE 5`·`PIERCE 1`·`BLAST 2.5`,
+    // ItemInfoText.WeaponTraitStats)이 같은 꼴로 이어지고,
     // 수치가 없는 특성(`AUTO RETRIEVE`·`PULLS IN`)은 표 아래 본문 줄 — 유물 카드의 효과 줄과 같이 가운데 맞춤 일반 글꼴로, 카드의 설명 줄이 모두 같은 꼴이다
     // (2026-10-07 표 아래 가운데 맞춤 아웃라인 → 같은 날 값 열 오른쪽 정렬 → 2026-10-08 라벨 열 왼쪽 정렬 → 2026-10-09 다시 가운데. 처음 가운데 둔 때는 글꼴이
     // 아웃라인이라 표와 결이 달라 튀었다 — 지금은 표와 같은 일반 글꼴이고 표와 본문 간격으로 떨어진다, Recordings/card_center_desc_mockup_2026-10-09.png).
-    // 무기를 가르는 것이 카드에서 바로 읽히게 — 그전에는 호버 툴팁에만 있었다. 가장 긴 조합(특성 줄 + 수치 특성 한 줄 — 저격소총·라이플·런처 × 유도 개조의
-    // 레벨업 카드)에서 아래 여백이 32px — 최소 여백과 같아 줄이 하나 더 늘면 넘친다 (7×8타일 세로 쌓기, 2026-10-09. 7×7 가로 머리일 때 64px). 넘치면 예외.
-    // 개조된 자루의 레벨업 카드는 개조를 합친 특성 수치(`PIERCE 3`·`BLAST 0.8`)를 보이고, 수치로 못 적는 개조(유도)는 특성 줄에 개조 이름(`HOMING`)을
-    // `PULLS IN`과 같은 꼴로 적는다 (Mods §4.2).
-    // 개조 카드(Mods §4.1)도 같은 틀이다 — 제목 `MOD`(분홍, PixelUiSkin.ModText), 이름·전시 타일은 대상 자루의 것(배지는 붙인 뒤의 `LV5H`), 첫 줄 자리에
-    // 라벨 없는 `+개조 이름`(`+HOMING`, 제목과 같은 분홍). 스탯 줄은 레벨업 카드처럼 DMG·AMMO와 특성을 모두 적고, 개조가 바꾸는 줄만 화살표 — 오르는 줄
+    // 무기를 가르는 것이 카드에서 바로 읽히게 — 그전에는 호버 툴팁에만 있었다. 가장 긴 조합(수치 특성 셋 + 개조 줄 — 라이플·저격소총·런처에 수치 개조가 붙은
+    // 레벨업·개조 카드)에서 아래 여백이 48px (7×9타일, 2026-10-12 FIRE RATE 줄과 개조 줄. 7×8일 때 그 줄들 없이 32px, 7×7 가로 머리일 때 64px). 넘치면 예외.
+    // 개조는 어느 카드든 레벨 줄 바로 아래 개조 이름 한 줄(개조 색, PixelUiSkin.ModText — 배지 머리글자와 같은 분홍)로 적는다 (2026-10-12): 개조된 자루의
+    // 레벨업 카드와 보기 카드는 `HOMING`, 개조 카드는 붙는다는 뜻의 `+HOMING`. 개조가 더한 수치는 특성 줄에 합친 값(`PIERCE 3`·`BLAST 0.8`)으로 보인다 (Mods §4.2).
+    // 그전엔 카드마다 달랐다 — 레벨업 카드는 수치로 못 적는 유도만 본문에 흰 `HOMING`(관통·도탄·폭발은 이름 없이 배지 머리글자뿐), 개조 카드는 레벨 줄 없이
+    // 그 자리에 `+HOMING`이었다 (Recordings/mod_line_mockup_2026-10-12_*.png).
+    // 개조 카드(Mods §4.1)도 같은 틀이다 — 제목 `MOD`(분홍), 이름·전시 타일은 대상 자루의 것(배지는 붙인 뒤의 `LV5H`), 첫 줄은 그 자루의 레벨(`LEVEL 5`, 흰 값
+    // 하나 — 바뀌지 않는다)과 그 아래 `+개조 이름`. 스탯 줄은 레벨업 카드처럼 DMG·AMMO와 특성을 모두 적고, 개조가 바꾸는 줄만 화살표 — 오르는 줄
     // `PIERCE 1 → 3`, 없던 속성이 붙는 줄 `BOUNCE - → 3`·`BLAST - → 0.8`(튕김 0인 무기의 도탄, 폭발 탄환이 아닌 무기의 폭발. 0 → 3은 오르는 것이 아니라
     // 속성이 붙는 것이라 없음 `-`에서). 줄 순서는 다른 카드와 같은 특성 순서다 (2026-10-11). 레벨업·개조 카드는 같은 대상의 전후 비교라
     // "이 카드가 바꾸는 줄에만 화살표"가 같은 규칙이다.
     // 처음엔 바뀌는 줄만 적어 카드 아래가 비었다(Recordings/mod_card_rows_mockup_2026-10-10.png). 새 속성을 화살표 없는 초록 값으로 맨 끝에 두는 안은 획득 카드의
     // 값과 같은 꼴이라 원래 있던 값으로 읽힐 여지가 있었다 (card_new_trait_mockup_2026-10-10.png·card_new_trait_dash_mockup_2026-10-11.png).
     // 고르면 얻는 값은 `UPGRADE`와 같은 초록(PixelUiSkin.UpgradeText)으로 칠한다 (2026-10-11) — 레벨업·개조 카드의 화살표 뒤 다음 값, 획득 카드의 모든 값,
-    // 유물 카드의 수정치 값. 라벨·현재 값·화살표·바뀌지 않는 값은 흰색이고, 이미 가진 개조(레벨업 카드의 `HOMING` 줄)도 흰색이다.
+    // 유물 카드의 수정치 값. 라벨·현재 값·화살표·바뀌지 않는 값은 흰색이다. 개조 이름은 얻는 것이든 이미 가진 것이든 개조 색이다.
     // 획득 카드의 줄 전체(라벨까지)를 칠하는 안은 무거웠고, `NEW`의 노랑으로 칠하는 안은 얻는 것의 색이 둘로 갈렸다. 획득 카드에도 `-` → 값을 쓰는 안은 모든 줄에
     // 화살표가 붙어 아무것도 가리키지 않았다 — 2026-10-07에 `-` 열을 뺀 이유와 같다. 개조 이름은 노랑 → 초록 `+` → 초록 → 분홍 `+`를 거쳤다
     // (card_green_values·card_gain_green_final·card_kind_color_mockup_2026-10-10.png, card_new_weapon_dash_mockup_2026-10-11.png).
-    // 타일에 마우스를 올리면 격자와 같은 툴팁(TooltipPainter)이 뜬다 — 카드에 없는 탄속·넉백은 거기서 보인다 (2026-10-06).
+    // 일시정지·보상 화면 빌드 격자의 보유 자루·유물에 마우스를 올리면 같은 틀의 **보기 카드**가 뜬다 (DrawOwnedWeapon·DrawOwnedRelic, 2026-10-12) — 회색 패널,
+    // 종류 제목 줄 없이 이름부터, 폭은 카드와 같고 높이는 내용에 맞춘다(한 번에 하나라 세 장을 맞출 일이 없다). 값은 모두 흰색이고 화살표가 없다 — 얻는 것이
+    // 없다. 무기는 `LEVEL 3` 아래에 개조 이름 한 줄(개조 색), 유물은 1개분 수정치(보유 수는 배지 `X n`). 파란 패널 안은 선택 카드 위에 겹치면 네 번째
+    // 선택지처럼 보였다 (Recordings/owned_card_*_mockup_2026-10-12*.png). 그전(2026-10-06 ~ 10-12)엔 사실 항목을 폭에 맞춰 채운 툴팁(TooltipPainter)이었고,
+    // 카드 전시 칸에도 같은 툴팁이 떴다 — 카드가 특성까지 다 담게 되자 툴팁이 더 보이는 것은 탄속·넉백뿐이라 전시 칸 호버와 함께 걷었다.
     // 카드 호버는 테두리를 바깥으로 HoverOutlineTexels 넓히기 — 카드보다 그만큼 큰 흰 판 모양(PixelGui.FillPlateShape)을 패널 밑에 깔아 패널의 흰 바깥 선
     // 1텍셀이 2텍셀이 된다. 패널 모서리도 판처럼 1텍셀 깎여 있어 그 귀가 흰색으로 메워지고 바깥 귀만 깎인다. 리롤 버튼도 같은 값 (2026-10-08).
     // 그전엔 4텍셀 들림(띠→카드 간격 40px일 때 배지가 부제를 가림)·선택 테두리·비정수 배율 키우기(텍셀이 갈려 깨져 보이고 아래 빌드 줄 제목을 덮음)를 거쳤다.
@@ -53,9 +60,9 @@ namespace PickShoot
     {
         const int CardWidthTiles = 7;
         // 10 → 9 (2026-10-08, 표가 짧은 카드의 아래가 비어 보임) → 7 (같은 날 머리 가로 배치 — 타일 밑에 두던 이름이 타일 오른쪽으로 가고 타일도 배율 6→4가 되어
-        // 머리가 240px에서 120px로, 위 여백도 배지 깊이를 빼며 80에서 40px로) → 8 (2026-10-09 세로 쌓기 — 머리 216px). 가장 긴 카드(유도 개조된 저격소총의 레벨업)의
-        // 아래 여백 32px.
-        const int CardHeightTiles = 8;
+        // 머리가 240px에서 120px로, 위 여백도 배지 깊이를 빼며 80에서 40px로) → 8 (2026-10-09 세로 쌓기 — 머리 216px) → 9 (2026-10-12 모든 무기 카드에
+        // FIRE RATE 줄 — 8에서는 가장 긴 카드가 넘쳤다). 가장 긴 카드(수치 개조가 붙은 라이플의 레벨업·개조 카드 등)의 아래 여백 48px.
+        const int CardHeightTiles = 9;
         const int SidePaddingTexels = 10; // 좌우 여백 (패널 테두리 → 글자). 열 표 시절 산탄총 고레벨의 "256X3" 값까지 7타일 안에 들어가던 최대치.
         const int TopMarginTexels = 10;   // 위 여백 — 좌우와 같다. 배지가 카드 위 끝에 걸치던 때는 배지 깊이 16 + 4였다.
         const int BottomMinTexels = 8;    // 넘침 검사용 최소 아래 여백. 실제 아래 여백은 남는 만큼.
@@ -68,6 +75,8 @@ namespace PickShoot
         const int ShowcaseTileScale = 4;
         // 호버 때 테두리를 바깥으로 넓히는 두께 (패널 텍셀). 리롤 버튼(UpgradeManager)도 같은 값.
         public const int HoverOutlineTexels = 1;
+        // 보기 카드 ↔ 가리키는 타일 (패널 텍셀). 툴팁 때와 같은 값.
+        const int AnchorGapTexels = 2;
         // 종류 제목의 일반 글꼴 배율 — 이름(아웃라인 배율 2)보다 한 단계 커 종류가 먼저 읽힌다 (2026-10-08, 글자 배율 2에서 키움). 보너스 꼬리 `(+n)`은 글자 배율 그대로
         // 제목 뒤에 글리프 상자 아래 변을 맞춰 붙인다.
         const int TitleScale = 3;
@@ -95,6 +104,7 @@ namespace PickShoot
         struct CardContent
         {
             // 머리 제목(종류)과 그 글자색 — `NEW`는 노랑, `UPGRADE`는 초록. TitleTag는 제목 뒤에 작게 붙는 보너스 꼬리(`(+2)`), 없으면 null.
+            // 보기 카드는 Title이 null — 제목 줄과 그 아래 간격 없이 이름부터.
             public string Title;
             public string TitleTag;
             public Color TitleTint;
@@ -103,13 +113,15 @@ namespace PickShoot
             // 배지 뒤에 개조 색으로 붙는 개조 머리글자 (`LV5H`의 `H`). 개조가 없으면 null.
             public string ShowcaseModMark;
             public string Name;
-            // 전시 타일 밑 첫 줄 — 모든 카드에 있다. 무기는 레벨(`LEVEL 2 -> 3`), 유물은 등급(`COMMON` — RowLabel이 null이면 라벨 없이 값만), 개조는 `+HOMING`.
-            // RowNow는 스탯 줄과 같은 규칙 — null이면 비교 없이 값 하나 (획득 카드·유물·개조). RowTint는 다음 값(RowNext)의 글자색 — 얻는 값은 초록, 유물은 등급 색
-            // (Relics §5), 개조 이름은 개조 색.
+            // 전시 타일 밑 첫 줄 — 모든 카드에 있다. 무기는 레벨(`LEVEL 2 -> 3`, 개조 카드는 `LEVEL 5`), 유물은 등급(`COMMON` — RowLabel이 null이면 라벨 없이 값만).
+            // RowNow는 스탯 줄과 같은 규칙 — null이면 비교 없이 값 하나 (획득·개조·유물·보기 카드). RowTint는 다음 값(RowNext)의 글자색 — 얻는 값은 초록, 유물은 등급 색
+            // (Relics §5), 바뀌지 않는 값은 흰색.
             public string RowLabel;
             public string RowNow;
             public string RowNext;
             public Color RowTint;
+            // 첫 줄 바로 아래 개조 이름 한 줄(개조 색) — 개조된 자루(레벨업·보기 카드)는 `HOMING`, 개조 카드는 `+HOMING`, 개조가 없으면 null.
+            public string ModLine;
             public string[] StatLabels;
             // StatNow[i]가 null이면 그 줄은 값 하나 — "현재 → 다음"이 뜻 없는 줄(레벨로 바뀌지 않는 특성)이라 화살표 없이 고른 뒤의 값만 적는다.
             public string[] StatNow;
@@ -117,9 +129,11 @@ namespace PickShoot
             // StatNext[i]의 글자색 — 얻는 값은 초록, 그 밖은 흰색. 라벨·현재 값·화살표는 늘 흰색.
             public Color[] StatTints;
             // 표 아래 본문. BodyLines는 한 항목이 한 줄(가운데 맞춤 일반 글꼴 — 무기의 수치 없는 특성·유물의 수정치), Note는 단어 단위로 접는 문단.
-            // BodyValues[i]는 그 줄 뒤에 공백 하나를 두고 초록으로 붙는 얻는 값(유물 수정치 `+10%`) — null이면 줄이 흰 문구 하나다.
+            // BodyValues[i]는 그 줄 뒤에 공백 하나를 두고 붙는 값(유물 수정치 `+10%`) — null이면 줄이 흰 문구 하나다. BodyValuesGain이면 얻는 값이라 초록
+            // (선택 카드), 아니면 흰색(보기 카드 — 이미 가진 것).
             public string[] BodyLines;
             public string[] BodyValues;
+            public bool BodyValuesGain;
             public string Note;
         }
 
@@ -129,41 +143,129 @@ namespace PickShoot
             return new Vector2Int(CardWidthTiles * tile, CardHeightTiles * tile);
         }
 
-        // 반환: 전시 타일의 영역 — UpgradeManager가 툴팁 호버 판정에 쓴다.
-        public static Rect Draw(PixelUiSkin skin, UpgradeOption option, PlayerWeapons weapons, PlayerStats stats, Rect rect, int scale, int textScale, bool hovered)
+        // 선택 카드 한 장 (보상 화면). 크기는 고정(CardSize)이라 내용이 넘치면 예외.
+        public static void Draw(PixelUiSkin skin, UpgradeOption option, PlayerWeapons weapons, PlayerStats stats, Rect rect, int scale, int textScale, bool hovered)
         {
             var c = Build(skin, option, weapons, stats);
-            int pad = SidePaddingTexels * scale;
-            int gap = RowGapTexels * scale;
-            int bodyGap = BodyGapTexels * scale;
+            var noteLines = Measure(skin, c, (int)rect.width, scale, textScale, out int contentH);
+            int topMargin = TopMarginTexels * scale;
+            int bottomMin = BottomMinTexels * scale;
+            int innerH = (int)rect.height - topMargin - bottomMin;
+            if (contentH > innerH)
+                throw new System.Exception($"[PickShoot] UpgradeCardPainter: 카드 내용 높이 {contentH}px가 카드 안쪽 높이 {innerH}px(위 여백 {topMargin}·아래 최소 여백 {bottomMin} 제외)를 넘음 (본문 {c.BodyLines.Length + noteLines.Count}줄). 본문 문구를 줄이거나 간격을 줄일 것 — 카드를 키우려면 보상 화면 블록(UpgradeManager)이 캔버스 세로에 드는지 볼 것.");
+
+            // 호버면 카드보다 한 텍셀 큰 흰 판 모양을 먼저 깔아 테두리를 바깥으로 넓힌다.
+            if (hovered)
+            {
+                int o = HoverOutlineTexels * scale;
+                PixelGui.FillPlateShape(new Rect(rect.x - o, rect.y - o, rect.width + 2 * o, rect.height + 2 * o), scale, Color.white);
+            }
+            // 획득·레벨업·개조·유물 카드는 같은 패널(일시정지 배너와 같은 파란 패널).
+            PixelGui.DrawNineSlice(skin.PanelBlue, rect, skin.TileSize, scale);
+            DrawContent(skin, c, noteLines, rect, scale, textScale);
+        }
+
+        // 보유 자루의 보기 카드 — 지금 상태(레벨·개조)의 값. anchor는 그 자루의 빌드 격자 타일(캔버스 픽셀).
+        public static void DrawOwnedWeapon(PixelUiSkin skin, PixelGui.CanvasScope canvas, Weapon weapon, PlayerStats stats, Rect anchor)
+        {
+            // 값은 모두 흰색 값 하나 — 비교할 "현재"가 없는 획득 카드와 같은 표를, 얻는 값의 색 없이 만든다.
+            var rows = BuildWeaponStats(weapon.Data, weapon.Mod, 0, weapon.Level, stats.DamageMultiplier, Color.white);
+            var flags = WeaponFlags(weapon.Data);
+            var c = new CardContent
+            {
+                Title = null,
+                ShowcaseSprite = weapon.Data.WeaponSprite,
+                ShowcaseBadge = ItemInfoText.WeaponBadge(weapon.Level),
+                ShowcaseModMark = ItemInfoText.ModMark(weapon.Mod),
+                Name = weapon.Data.DisplayName.ToUpperInvariant(),
+                RowLabel = LevelLabel,
+                RowNow = null,
+                RowNext = weapon.Level.ToString(),
+                RowTint = Color.white,
+                ModLine = weapon.Mod != null ? weapon.Mod.UiName : null,
+                StatLabels = rows.Labels,
+                StatNow = rows.Now,
+                StatNext = rows.Next,
+                StatTints = rows.Tints,
+                BodyLines = flags,
+                BodyValues = new string[flags.Length],
+                Note = JoinNotes(weapon.Data.Description, weapon.Mod != null ? weapon.Mod.Description : null),
+            };
+            DrawOwned(skin, canvas, c, anchor);
+        }
+
+        // 보유 유물 한 종류의 보기 카드 — 수정치는 1개분(선택 카드와 같은 값을 흰색으로), 보유 수는 배지 `X n`이 말한다 (2026-10-12).
+        // 보유분 합(`+30%`)은 툴팁 때 적었지만 고르지 않았다 — 같은 유물의 선택 카드와 값이 갈리고, 합은 배지와 곱해 읽힌다.
+        public static void DrawOwnedRelic(PixelUiSkin skin, PixelGui.CanvasScope canvas, RelicData relic, int count, Rect anchor)
+        {
+            var effects = new List<string>();
+            var effectValues = new List<string>();
+            RelicEffects(relic, effects, effectValues);
+            var c = new CardContent
+            {
+                Title = null,
+                ShowcaseSprite = relic.Icon,
+                ShowcaseBadge = ItemInfoText.RelicBadge(count),
+                Name = relic.DisplayName.ToUpperInvariant(),
+                RowLabel = null,
+                RowNow = null,
+                RowNext = relic.Grade.ToString().ToUpperInvariant(),
+                RowTint = GradeTint(relic.Grade),
+                StatLabels = NoLines,
+                StatNow = NoLines,
+                StatNext = NoLines,
+                StatTints = NoTints,
+                BodyLines = effects.ToArray(),
+                BodyValues = effectValues.ToArray(),
+                BodyValuesGain = false,
+                Note = relic.Description,
+            };
+            DrawOwned(skin, canvas, c, anchor);
+        }
+
+        // 보기 카드 — 폭은 선택 카드와 같고 높이는 내용 + 위아래 여백(둘 다 위 여백 값). 자리는 타일 위 가운데, 위에 자리가 없으면 아래, 둘 다 없으면
+        // 넓은 쪽 캔버스 끝에 붙인다 — 타일을 조금 가린다 (유물이 두 줄인 일시정지 화면의 무기 줄). 좌우는 캔버스 안으로 민다.
+        // 이웃 타일·카드 위로 뜨므로 화면이 다른 요소를 다 그린 뒤 맨 마지막에 부른다.
+        static void DrawOwned(PixelUiSkin skin, PixelGui.CanvasScope canvas, CardContent c, Rect anchor)
+        {
+            int scale = PixelGui.PanelScale;
+            int textScale = PixelGui.TextScale;
+            int w = CardWidthTiles * skin.TileSize * scale;
+            var noteLines = Measure(skin, c, w, scale, textScale, out int contentH);
+            int h = contentH + 2 * TopMarginTexels * scale;
+            if (h > canvas.Height)
+                throw new System.Exception($"[PickShoot] UpgradeCardPainter: 보기 카드 '{c.Name}'의 높이 {h}px가 캔버스 {canvas.Height}px를 넘음. 본문 문구를 줄일 것.");
+
+            int gap = AnchorGapTexels * scale;
+            int x = Mathf.Clamp((int)anchor.center.x - w / 2, 0, canvas.Width - w);
+            int above = (int)anchor.y - gap;
+            int below = canvas.Height - (int)anchor.yMax - gap;
+            int y;
+            if (h <= above) y = above - h;
+            else if (h <= below) y = (int)anchor.yMax + gap;
+            else y = above >= below ? 0 : canvas.Height - h;
+
+            var rect = new Rect(x, y, w, h);
+            PixelGui.DrawNineSlice(skin.PanelGrey, rect, skin.TileSize, scale);
+            DrawContent(skin, c, noteLines, rect, scale, textScale);
+        }
+
+        // 내용의 폭을 검사하고(넘치면 예외 — 카드 폭은 늘리지 않는다) 접은 설명 줄과 내용 높이(위아래 여백 제외)를 낸다. width는 카드 폭.
+        static List<string> Measure(PixelUiSkin skin, CardContent c, int width, int scale, int textScale, out int contentH)
+        {
+            int innerW = width - 2 * SidePaddingTexels * scale;
             int lineH = skin.FontPlain.lineHeight * textScale;
             int space = skin.FontPlain.spaceWidth * textScale;
-            int nameH = skin.FontOutlined.lineHeight * NameScale;
-
-            int x0 = (int)rect.x + pad;
-            int x1 = (int)rect.xMax - pad;
-            int centerX = (int)rect.center.x;
-            int innerW = x1 - x0;
-
-            // 머리: 제목(배율 3, 꼬리와 한 덩이) → 이름(아웃라인 배율 2, 한 줄) → 전시 타일을 각각 카드 가운데에 쌓는다. 높이는 모든 카드가 같아 첫 줄 자리도 같다.
-            int showcaseH = ItemTilePainter.Size(ShowcaseTileScale);
-            int titleH = skin.FontPlain.lineHeight * TitleScale;
-            int titleTextW = PixelGui.MeasureText(skin.FontPlain, c.Title, TitleScale);
-            int titleW = titleTextW;
-            if (c.TitleTag != null) titleW += space + PixelGui.MeasureText(skin.FontPlain, c.TitleTag, textScale);
-            int nameW = PixelGui.MeasureText(skin.FontOutlined, c.Name, NameScale);
-            int titleNameGap = TitleNameGapTexels * scale;
-            int nameShowcaseGap = NameShowcaseGapTexels * scale;
-            int headerH = titleH + titleNameGap + nameH + nameShowcaseGap + showcaseH;
-
             // 화살표는 글자 배율의 아이콘 한 칸.
             int iconSize = skin.TileSize * textScale;
 
-            // 크기가 고정이라 내용이 카드를 넘칠 수 있다. 넘치면 어긋난 채 그리지 않고 예외로 알린다.
             // 제목·이름과 첫 줄·스탯·본문 줄은 카드 안쪽 폭에 — 첫 줄·스탯 줄은 한 줄 문구 전체의 폭으로 잰다.
-            RequireFits(titleW, innerW, $"{c.Title} {c.TitleTag}", "카드 안쪽(제목)");
-            RequireFits(nameW, innerW, c.Name, "카드 안쪽(이름)");
+            if (c.Title != null)
+                RequireFits(TitleWidth(skin, c, textScale, out _), innerW, $"{c.Title} {c.TitleTag}", "카드 안쪽(제목)");
+            RequireFits(PixelGui.MeasureText(skin.FontOutlined, c.Name, NameScale), innerW, c.Name, "카드 안쪽(이름)");
             RequireFits(RowWidth(skin, c.RowLabel, c.RowNow, c.RowNext, iconSize, space, textScale), innerW, $"{c.RowLabel} {c.RowNow} > {c.RowNext}", "카드 안쪽");
+            if (c.ModLine != null)
+                RequireFits(PixelGui.MeasureText(skin.FontPlain, c.ModLine, textScale), innerW, c.ModLine, "카드 안쪽");
             for (int i = 0; i < c.StatLabels.Length; i++)
                 RequireFits(RowWidth(skin, c.StatLabels[i], c.StatNow[i], c.StatNext[i], iconSize, space, textScale), innerW, $"{c.StatLabels[i]} {c.StatNow[i]} > {c.StatNext[i]}", "카드 안쪽");
 
@@ -178,50 +280,73 @@ namespace PickShoot
                 : PixelGui.WrapText(skin.FontPlain, c.Note, textScale, innerW);
             int bodyLines = c.BodyLines.Length + noteLines.Count;
 
-            int topMargin = TopMarginTexels * scale;
-            int bottomMin = BottomMinTexels * scale;
-            int contentH = headerH + gap + lineH + gap + c.StatLabels.Length * lineH;
-            if (bodyLines > 0) contentH += bodyGap + bodyLines * lineH;
-            int innerH = (int)rect.height - topMargin - bottomMin;
-            if (contentH > innerH)
-                throw new System.Exception($"[PickShoot] UpgradeCardPainter: 카드 내용 높이 {contentH}px가 카드 안쪽 높이 {innerH}px(위 여백 {topMargin}·아래 최소 여백 {bottomMin} 제외)를 넘음 (본문 {bodyLines}줄). 본문 문구를 줄이거나 간격을 줄일 것 — 카드를 키우려면 보상 화면 블록(UpgradeManager)이 캔버스 세로에 드는지 볼 것.");
+            int gap = RowGapTexels * scale;
+            int firstLines = c.ModLine != null ? 2 : 1;
+            contentH = HeaderHeight(skin, c, scale) + gap + firstLines * lineH + gap + c.StatLabels.Length * lineH;
+            if (bodyLines > 0) contentH += BodyGapTexels * scale + bodyLines * lineH;
+            return noteLines;
+        }
 
-            // 호버면 카드보다 한 텍셀 큰 흰 판 모양을 먼저 깔아 테두리를 바깥으로 넓힌다.
-            if (hovered)
-            {
-                int o = HoverOutlineTexels * scale;
-                PixelGui.FillPlateShape(new Rect(rect.x - o, rect.y - o, rect.width + 2 * o, rect.height + 2 * o), scale, Color.white);
-            }
-            // 획득·레벨업·유물 카드는 같은 패널(일시정지 배너와 같은 파란 패널).
-            PixelGui.DrawNineSlice(skin.PanelBlue, rect, skin.TileSize, scale);
+        // 머리: 제목(배율 3, 꼬리와 한 덩이 — 보기 카드는 없음) → 이름(아웃라인 배율 2, 한 줄) → 전시 타일. 선택 카드는 높이가 모두 같아 첫 줄 자리도 같다.
+        static int HeaderHeight(PixelUiSkin skin, CardContent c, int scale)
+        {
+            int h = skin.FontOutlined.lineHeight * NameScale + NameShowcaseGapTexels * scale + ItemTilePainter.Size(ShowcaseTileScale);
+            if (c.Title != null) h += skin.FontPlain.lineHeight * TitleScale + TitleNameGapTexels * scale;
+            return h;
+        }
 
-            // 위 여백은 고정, 남는 공간은 아래 여백. 어떤 종류든 내용 위치가 같다.
-            int y = (int)rect.y + topMargin;
+        // 제목과 꼬리를 한 덩이로 잰 폭. titleTextW는 제목 글자만의 폭(꼬리를 놓을 자리).
+        static int TitleWidth(PixelUiSkin skin, CardContent c, int textScale, out int titleTextW)
+        {
+            titleTextW = PixelGui.MeasureText(skin.FontPlain, c.Title, TitleScale);
+            int w = titleTextW;
+            if (c.TitleTag != null) w += skin.FontPlain.spaceWidth * textScale + PixelGui.MeasureText(skin.FontPlain, c.TitleTag, textScale);
+            return w;
+        }
 
-            // 머리 — 제목, 이름, 전시 타일(그림과 고른 뒤의 상태 배지)을 차례로 가운데에.
+        // 내용을 rect 안에 위 여백부터 가운데 맞춤으로 쌓는다 — 위 여백은 고정, 남는 공간은 아래 여백이라 어떤 종류든 내용 위치가 같다. 폭·높이는 Measure가 검사했다.
+        static void DrawContent(PixelUiSkin skin, CardContent c, List<string> noteLines, Rect rect, int scale, int textScale)
+        {
+            int gap = RowGapTexels * scale;
+            int lineH = skin.FontPlain.lineHeight * textScale;
+            int space = skin.FontPlain.spaceWidth * textScale;
+            int iconSize = skin.TileSize * textScale;
+            int showcaseH = ItemTilePainter.Size(ShowcaseTileScale);
+            int centerX = (int)rect.center.x;
+            int y = (int)rect.y + TopMarginTexels * scale;
+
+            // 머리 — 제목, 이름, 전시 타일(그림과 상태 배지)을 차례로 가운데에.
             // 제목 글자색은 GUI.color로 곱한다 — 글리프의 흰 획이 그 색이 되고 어두운 상자도 함께 어두워진다 (XP 팝업과 같은 방식). 꼬리도 같은 색.
-            int titleX = centerX - titleW / 2;
-            var prevColor = GUI.color;
-            GUI.color = prevColor * c.TitleTint;
-            PixelGui.DrawText(skin.FontPlain, c.Title, titleX, y, TitleScale);
-            if (c.TitleTag != null)
+            if (c.Title != null)
             {
-                // 꼬리는 글자 배율 — 글리프 상자의 아래 변을 제목에 맞춘다 (상자 아래 변 = 줄 위 y + (capTop + capHeight) × 배율).
-                int tagX = titleX + titleTextW + space;
-                int tagY = y + (skin.FontPlain.capTop + skin.FontPlain.capHeight) * (TitleScale - textScale);
-                PixelGui.DrawText(skin.FontPlain, c.TitleTag, tagX, tagY, textScale);
+                int titleX = centerX - TitleWidth(skin, c, textScale, out int titleTextW) / 2;
+                var prevColor = GUI.color;
+                GUI.color = prevColor * c.TitleTint;
+                PixelGui.DrawText(skin.FontPlain, c.Title, titleX, y, TitleScale);
+                if (c.TitleTag != null)
+                {
+                    // 꼬리는 글자 배율 — 글리프 상자의 아래 변을 제목에 맞춘다 (상자 아래 변 = 줄 위 y + (capTop + capHeight) × 배율).
+                    int tagX = titleX + titleTextW + space;
+                    int tagY = y + (skin.FontPlain.capTop + skin.FontPlain.capHeight) * (TitleScale - textScale);
+                    PixelGui.DrawText(skin.FontPlain, c.TitleTag, tagX, tagY, textScale);
+                }
+                GUI.color = prevColor;
+                y += skin.FontPlain.lineHeight * TitleScale + TitleNameGapTexels * scale;
             }
-            GUI.color = prevColor;
-            y += titleH + titleNameGap;
             PixelGui.DrawTextCentered(skin.FontOutlined, c.Name, centerX, y, NameScale);
-            y += nameH + nameShowcaseGap;
+            y += skin.FontOutlined.lineHeight * NameScale + NameShowcaseGapTexels * scale;
             int showcaseX = centerX - showcaseH / 2;
-            var showcaseTile = new Rect(showcaseX, y, showcaseH, showcaseH);
             ItemTilePainter.Draw(skin, c.ShowcaseSprite, c.ShowcaseBadge, c.ShowcaseModMark, showcaseX, y, ShowcaseTileScale);
             y += showcaseH + gap;
 
             DrawRow(skin, c.RowLabel, c.RowNow, c.RowNext, c.RowTint, centerX, y, iconSize, space, textScale);
-            y += lineH + gap;
+            y += lineH;
+            if (c.ModLine != null)
+            {
+                DrawRow(skin, null, null, c.ModLine, skin.ModText, centerX, y, iconSize, space, textScale);
+                y += lineH;
+            }
+            y += gap;
 
             for (int i = 0; i < c.StatLabels.Length; i++)
             {
@@ -231,16 +356,17 @@ namespace PickShoot
 
             // 본문도 가운데 맞춤 — 스탯 줄과는 본문 간격으로 덩어리가 갈린다. 무기의 수치 없는 특성과 유물 카드의 수정치가 여기 온다.
             // 글꼴은 표의 값과 같은 일반 글꼴 (2026-10-08, 그전엔 아웃라인 — 카드 안에서 이름만 아웃라인이게).
-            if (bodyLines > 0) y += bodyGap;
+            if (c.BodyLines.Length + noteLines.Count > 0) y += BodyGapTexels * scale;
+            var valueTint = c.BodyValuesGain ? skin.UpgradeText : Color.white;
             for (int i = 0; i < c.BodyLines.Length; i++)
             {
-                // 값이 있으면 문구(흰색)와 값(초록)을 한 덩이로 가운데에.
+                // 값이 있으면 문구(흰색)와 값을 한 덩이로 가운데에.
                 int bx = centerX - PixelGui.MeasureText(skin.FontPlain, BodyText(c.BodyLines[i], c.BodyValues[i]), textScale) / 2;
                 PixelGui.DrawText(skin.FontPlain, c.BodyLines[i], bx, y, textScale);
                 if (c.BodyValues[i] != null)
                 {
                     var prevBody = GUI.color;
-                    GUI.color = prevBody * skin.UpgradeText;
+                    GUI.color = prevBody * valueTint;
                     // 한 문구로 그릴 때와 같은 자리 — 공백 뒤 글자 간격까지.
                     int vx = bx + PixelGui.MeasureText(skin.FontPlain, c.BodyLines[i] + " ", textScale) + skin.FontPlain.letterSpacing * textScale;
                     PixelGui.DrawText(skin.FontPlain, c.BodyValues[i], vx, y, textScale);
@@ -253,8 +379,6 @@ namespace PickShoot
                 PixelGui.DrawTextCentered(skin.FontPlain, noteLines[i], centerX, y, textScale);
                 y += lineH;
             }
-
-            return showcaseTile;
         }
 
         // area는 그 문구가 들어가야 하는 칸의 이름 (예외 문구용).
@@ -274,7 +398,7 @@ namespace PickShoot
                     // 시작 레벨(UpgradeOption.Levels)은 보통 1. 둘 이상이면 제목이 `NEW (+n)`이고 표·배지도 그 레벨의 값.
                     int start = option.Levels;
                     var acquired = BuildWeaponStats(d, null, 0, start, stats.DamageMultiplier, skin.UpgradeText);
-                    var acquiredFlags = WeaponFlags(d, null);
+                    var acquiredFlags = WeaponFlags(d);
                     return new CardContent
                     {
                         Title = NewTitle,
@@ -307,7 +431,7 @@ namespace PickShoot
                     if (next > Weapon.MaxLevel)
                         throw new System.Exception($"[PickShoot] UpgradeCardPainter: 레벨업 카드가 '{w.Data.DisplayName}' 레벨 {w.Level}에 {option.Levels}를 더하면 최대 {Weapon.MaxLevel}을 넘음. 후보를 만들 때 걸러야 함 (UpgradeManager).");
                     var levelled = BuildWeaponStats(w.Data, w.Mod, w.Level, next, stats.DamageMultiplier, skin.UpgradeText);
-                    var levelledFlags = WeaponFlags(w.Data, w.Mod);
+                    var levelledFlags = WeaponFlags(w.Data);
                     return new CardContent
                     {
                         Title = LevelUpTitle,
@@ -321,13 +445,14 @@ namespace PickShoot
                         RowNow = w.Level.ToString(),
                         RowNext = next.ToString(),
                         RowTint = skin.UpgradeText,
+                        ModLine = w.Mod != null ? w.Mod.UiName : null,
                         StatLabels = levelled.Labels,
                         StatNow = levelled.Now,
                         StatNext = levelled.Next,
                         StatTints = levelled.Tints,
                         BodyLines = levelledFlags,
                         BodyValues = new string[levelledFlags.Length],
-                        Note = w.Data.Description,
+                        Note = JoinNotes(w.Data.Description, w.Mod != null ? w.Mod.Description : null),
                     };
                 }
 
@@ -340,8 +465,7 @@ namespace PickShoot
                     if (w.Mod != null)
                         throw new System.Exception($"[PickShoot] UpgradeCardPainter: 개조 카드가 이미 '{w.Mod.DisplayName}'가 붙은 '{w.Data.DisplayName}'를 가리킴. 후보를 만들 때 걸러야 함 (UpgradeManager).");
                     var modded = BuildModStats(w.Data, m, w.Level, stats.DamageMultiplier, skin.UpgradeText);
-                    // 그 무기의 수치 없는 특성은 그대로 적는다. 개조의 이름은 첫 줄이 말하므로 특성 줄에 다시 적지 않는다.
-                    var moddedFlags = WeaponFlags(w.Data, null);
+                    var moddedFlags = WeaponFlags(w.Data);
                     return new CardContent
                     {
                         Title = ModTitle,
@@ -352,25 +476,24 @@ namespace PickShoot
                         ShowcaseBadge = ItemInfoText.WeaponBadge(w.Level),
                         ShowcaseModMark = m.BadgeMark,
                         Name = w.Data.DisplayName.ToUpperInvariant(),
-                        RowLabel = null,
+                        RowLabel = LevelLabel,
                         RowNow = null,
-                        RowNext = "+" + m.UiName,
-                        RowTint = skin.ModText,
+                        RowNext = w.Level.ToString(),
+                        RowTint = Color.white,
+                        ModLine = "+" + m.UiName,
                         StatLabels = modded.Labels,
                         StatNow = modded.Now,
                         StatNext = modded.Next,
                         StatTints = modded.Tints,
                         BodyLines = moddedFlags,
                         BodyValues = new string[moddedFlags.Length],
-                        Note = m.Description,
+                        Note = JoinNotes(w.Data.Description, m.Description),
                     };
                 }
 
                 case UpgradeKind.Relic:
                 {
                     var d = option.RelicData;
-                    if (d.Modifiers.IsZero)
-                        throw new System.Exception($"[PickShoot] UpgradeCardPainter: 유물 '{d.DisplayName}'의 수정치가 전부 0 — 효과 없는 유물. 자산 확인.");
                     // 유물 카드의 표는 등급 한 줄뿐이다 — 그 유물이 더하는 수정치를 `GUN DAMAGE +10%` 한 줄로 본문(가운데 맞춤, 일반 글꼴)에 둔다 (2026-10-07).
                     // 라벨과 값을 좌우 끝으로 갈라 놓으면(표) 한 줄짜리 효과를 읽는 데 눈이 빈칸을 건너야 한다. 값은 "지금 총계 → 획득 뒤 총계"였다가
                     // 수정치 하나로 바꿨다 — 카드가 답할 것은 "이걸 고르면 무엇이 붙나"이고, 총계는 일시정지 화면이 보일 자리다 (Relics §7).
@@ -378,13 +501,7 @@ namespace PickShoot
                     // 수정치 값(`+10%`)은 얻는 값이라 초록 (2026-10-11).
                     var effects = new List<string>();
                     var effectValues = new List<string>();
-                    foreach (var s in PlayerStatModifiers.Stats)
-                    {
-                        int v = d.Modifiers.Get(s);
-                        if (v == 0) continue;
-                        effects.Add(PlayerStatModifiers.Label(s));
-                        effectValues.Add(PlayerStatModifiers.FormatSigned(s, v));
-                    }
+                    RelicEffects(d, effects, effectValues);
                     int owned = stats.CountOf(d);
                     return new CardContent
                     {
@@ -405,6 +522,7 @@ namespace PickShoot
                         StatTints = NoTints,
                         BodyLines = effects.ToArray(),
                         BodyValues = effectValues.ToArray(),
+                        BodyValuesGain = true,
                         // 설명 문구는 스탯 줄이 못 하는 말이 있을 때만 — 커먼 7종은 비어 있다 (Relics §2).
                         Note = d.Description,
                     };
@@ -457,7 +575,7 @@ namespace PickShoot
 
         // 개조 카드의 표 (Mods §4.1) — 레벨업 카드처럼 DMG·AMMO와 특성을 모두 적되 레벨은 그대로라 바뀌지 않는 줄은 흰 값 하나, 개조가 바꾸는 특성만
         // "개조 전 → 개조 뒤"(다음 값 초록). 개조 전에 없던 특성(튕김 0인 무기의 BOUNCE)은 0이 아니라 없음(NoneValue)에서 붙는다 — `BOUNCE - → 3`.
-        // 줄 순서는 다른 카드와 같은 특성 순서다. 수치를 바꾸지 않는 개조(유도)는 바뀌는 줄이 없다 — 첫 줄의 개조 이름이 말한다.
+        // 줄 순서는 다른 카드와 같은 특성 순서다. 수치를 바꾸지 않는 개조(유도)는 바뀌는 줄이 없다 — 레벨 줄 아래 개조 줄이 말한다.
         static StatRows BuildModStats(WeaponData data, ModData mod, int level, float damageMultiplier, Color gain)
         {
             var labels = new List<string>(ItemInfoText.WeaponStatLabels);
@@ -489,14 +607,35 @@ namespace PickShoot
             return new StatRows { Labels = labels.ToArray(), Now = now.ToArray(), Next = next.ToArray(), Tints = tints.ToArray() };
         }
 
-        // 수치가 없는 특성 — 표에 둘 값이 없어 표 아래 본문 줄(가운데 맞춤)이 된다 (자동 회수·당기는 폭발). 수치로 못 적는 개조(유도)는
-        // 그 뒤에 개조 이름 한 줄 (Mods §4.2). mod는 그 자루의 개조, 없으면 null.
-        static string[] WeaponFlags(WeaponData data, ModData mod)
+        // 수치가 없는 특성 — 표에 둘 값이 없어 표 아래 본문 줄(가운데 맞춤)이 된다 (자동 회수·당기는 폭발). 개조 이름은 여기 두지 않는다 — 레벨 줄 아래
+        // 개조 줄(ModLine)이 말한다 (2026-10-12, 그전엔 레벨업 카드의 유도만 여기 흰 줄이었다).
+        static string[] WeaponFlags(WeaponData data)
         {
             var flags = new List<string>();
             ItemInfoText.WeaponTraitFlags(data, flags);
-            if (mod != null && mod.AddsBehavior) flags.Add(mod.UiName);
             return flags.ToArray();
+        }
+
+        // 유물이 더하는 수정치를 한 줄씩 — 라벨(`GUN DAMAGE`)과 1개분 값(`+10%`, 양수에도 부호). 선택 카드·보기 카드가 같이 쓴다.
+        static void RelicEffects(RelicData d, List<string> labels, List<string> values)
+        {
+            if (d.Modifiers.IsZero)
+                throw new System.Exception($"[PickShoot] UpgradeCardPainter: 유물 '{d.DisplayName}'의 수정치가 전부 0 — 효과 없는 유물. 자산 확인.");
+            foreach (var s in PlayerStatModifiers.Stats)
+            {
+                int v = d.Modifiers.Get(s);
+                if (v == 0) continue;
+                labels.Add(PlayerStatModifiers.Label(s));
+                values.Add(PlayerStatModifiers.FormatSigned(s, v));
+            }
+        }
+
+        // 무기 카드의 설명 문단 — 무기 설명 뒤에 개조 설명(둘 다 선택, 지금 자산은 모두 비어 있다). 한 문단으로 이어 단어 단위로 접는다.
+        static string JoinNotes(string first, string second)
+        {
+            if (string.IsNullOrEmpty(first)) return second;
+            if (string.IsNullOrEmpty(second)) return first;
+            return first + " " + second;
         }
 
         // 제목 뒤의 보너스 꼬리. 한 장이 레벨을 둘 이상 올리는 카드(아직 없다 — 앞으로의 보너스 카드)는 `NEW (+2)`·`UPGRADE (+3)`처럼 올리는 수를 괄호에 붙인다.

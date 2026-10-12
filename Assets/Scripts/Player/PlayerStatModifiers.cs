@@ -102,7 +102,7 @@ namespace PickShoot
             return IsPercent(stat) ? $"{value}%" : value.ToString();
         }
 
-        // 수정치 표기: 그 유물이 더하는 값이라 양수에도 부호를 붙인다 ("+10%"·"+3"). 유물 카드와 타일 툴팁이 쓴다 (2026-10-07).
+        // 수정치 표기: 그 유물이 더하는 값이라 양수에도 부호를 붙인다 ("+10%"·"+3"). 유물의 선택 카드와 보기 카드가 쓴다 (2026-10-07).
         public static string FormatSigned(PlayerStat stat, int value)
         {
             string sign = value >= 0 ? "+" : "";

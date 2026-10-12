@@ -1,6 +1,6 @@
 # 픽셀 UI 목업 — PixelUiSkin 조각으로 에디터 없이 배치 비교
 
-`PixelGui`로 그리는 픽셀 UI(HUD·일시정지·보상 화면·카드·타일·툴팁)의 배치·배율·문구를 바꿀 때, 에디터에 넣기 전에 **실제 시트 조각을 실제 규칙으로 합성한 그림**으로 안을 고르는 절차. Pick&Shoot 전용이다 — 공통 재료(시트 `.meta` 디코드, 컴파일 검사, 목업 원칙)는 `OfflineVerification.md`에 있고, 이 문서의 코드 조각은 그 문서 §3 조각 **뒤에 이어 붙여** 실행한다.
+`PixelGui`로 그리는 픽셀 UI(HUD·일시정지·보상 화면·카드·타일)의 배치·배율·문구를 바꿀 때, 에디터에 넣기 전에 **실제 시트 조각을 실제 규칙으로 합성한 그림**으로 안을 고르는 절차. Pick&Shoot 전용이다 — 공통 재료(시트 `.meta` 디코드, 컴파일 검사, 목업 원칙)는 `OfflineVerification.md`에 있고, 이 문서의 코드 조각은 그 문서 §3 조각 **뒤에 이어 붙여** 실행한다.
 
 - 검증: 2026-10-07 아래 조각으로 두 글꼴 44글리프 전부 디코드, 9-slice 패널과 글자 합성 확인.
 - 적용 예: 2026-10-02 일시정지 화면 세 안, 2026-10-06 아이템 타일 배지 네 안과 HUD 네 안(`Recordings/*_mockup_2026-10-06.png`), 2026-10-07 보상 화면 배치 여섯 안 — 카드·빌드 줄·리롤 버튼·제목을 전부 합성한 전체 화면(`Recordings/reward_layout_mockup_2026-10-07.png`). 결정은 `Docs/Systems/PixelArtUI.md`와 `Docs/Roadmap.md`에 적혀 있다.
@@ -9,7 +9,7 @@
 
 픽셀 UI는 세로 1080px(270텍셀 × 4) 기준 캔버스에 정수 배율로 배치하고 캔버스 전체를 화면 높이에 비례해 축소·확대한다(`Docs/Systems/PixelArtUI.md` §1). 목업도 같은 좌표계를 쓴다.
 
-- 캔버스 1920×1080. 배율은 패널 4·글자와 HUD 2·보상 화면 빌드 줄 타일과 카드 종류 제목 3. 여백·간격·타일 수 같은 배치 상수는 해당 Painter(`GameHud`·`BuildGridPainter`·`ItemTilePainter`·`UpgradeCardPainter`·`TooltipPainter`)에서 **읽어서** 그대로 쓴다.
+- 캔버스 1920×1080. 배율은 패널 4·글자와 HUD 2·보상 화면 빌드 줄 타일과 카드 종류 제목 3. 여백·간격·타일 수 같은 배치 상수는 해당 Painter(`GameHud`·`BuildGridPainter`·`ItemTilePainter`·`UpgradeCardPainter`)에서 **읽어서** 그대로 쓴다.
 - 720p는 1080p 캔버스를 **2/3로 NEAREST 축소**한 것이 실제에 가장 가깝다. 배율 1 글자·1텍셀 테두리가 빠지는 문제는 여기서만 보이므로, 확인할 부분을 크롭해 실제 크기와 2배 확대 둘 다 둔다.
 - 바탕은 `ArenaTheme`의 바닥 타일(배율 4)을 깔고, 일시정지·보상 화면이면 검정 70%로 덮는다.
 - 안 이름·설명도 같은 비트맵 글꼴(일반 글꼴 배율 2)로 적는다.
@@ -88,7 +88,7 @@ cv.resize((1280, 720), Image.NEAREST).convert('RGB').save('Recordings/pause_mock
 
 ## 4. 문구 폭 사전 검증
 
-고정 폭 영역(업그레이드 카드 `UpgradeCardPainter`, 툴팁의 `PixelGui.WrapText`)은 한 단어가 폭을 넘으면 **런타임 예외**다(fail loud). 문구를 바꾸면 §3의 `measure()`로 먼저 잰다.
+고정 폭 영역(업그레이드 카드·보기 카드 `UpgradeCardPainter`의 줄, 설명을 접는 `PixelGui.WrapText`)은 한 단어가 폭을 넘으면 **런타임 예외**다(fail loud). 문구를 바꾸면 §3의 `measure()`로 먼저 잰다.
 
 - 공식(`PixelGui.MeasureText`): `(Σ advance + (글자 수 − 1) × letterSpacing) × 배율`, advance는 공백이면 `spaceWidth`, 아니면 `glyphWidth`. 코드가 바뀌면 `PixelGui.cs`를 다시 읽고 Python 쪽을 맞춘다.
 - 폭 상수는 그때그때 Painter에서 읽는다. 예(2026-10-03): 카드 안쪽 폭 = 7타일 × 64 − 2 × 10 × 4 = 368px(1080p), 본문 글자 배율 2, 무기 이름은 아웃라인 글꼴 배율 3. 유물 카드 라벨을 5글자로 줄이고 총계 부호를 뺀 근거.
