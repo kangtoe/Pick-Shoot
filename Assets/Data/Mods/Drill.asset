@@ -10,9 +10,9 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: c434bd11c60b44a79057308a76385590, type: 3}
-  m_Name: Piercing
+  m_Name: Drill
   m_EditorClassIdentifier: Assembly-CSharp::PickShoot.ModData
-  displayName: Piercing
+  displayName: Drill
   description: 
   bounceAdd: 0
   penetrationAdd: 2

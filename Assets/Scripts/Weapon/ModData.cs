@@ -15,7 +15,7 @@ namespace PickShoot
         [SerializeField] string description = "";
 
         [Header("Stat Adds")]
-        // 자산의 튕김 횟수·관통에 더한다 (도탄 +3·관통 +2, Mods §2.3·§2.4). 카드에는 합친 값으로 보인다.
+        // 자산의 튕김 횟수·관통에 더한다 (도탄 +3·천공 +2, Mods §2.3·§2.4). 카드에는 합친 값으로 보인다.
         [SerializeField, Min(0)] int bounceAdd = 0;
         [SerializeField, Min(0)] int penetrationAdd = 0;
 
