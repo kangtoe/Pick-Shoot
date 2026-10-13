@@ -28,18 +28,19 @@ namespace PickShoot
         }
 
         // 카드의 2 스탯: 공격력(산탄이면 X발수 — 한 번의 사격에 나가는 탄환 수)과 최대 탄약. 모두 정수 표기. 점사 수는 특성 줄(BURST)이 말한다.
-        // 공격력은 플레이어 전역 배율(유물)을 곱한 실제 값 — 유물을 얻은 뒤의 무기 카드는 그만큼 큰 수를 보인다.
+        // 공격력은 플레이어 전역 배율(유물)을 곱한 실제 값 — 유물을 얻은 뒤의 무기 카드는 그만큼 큰 수를 보인다. 최대 탄약도 플레이어 가산(캐릭터의 MAX AMMO,
+        // Characters §5)이 든 실제 값이다.
         // RPM(분당 사격 차례 수)은 2026-10-07 뺐다가 2026-10-12 FIRE RATE로 특성 줄 맨 앞에 돌아왔다 (WeaponTraitStats, Weapons §3).
         public static readonly string[] WeaponStatLabels = { "DMG", "AMMO" };
         // FIRE RATE 값 = 분당 사격 수 ÷ 이 값 (2026-10-12 — 같은 날 분당 수 그대로였다가 1/10로).
         const float FireRateDivisor = 10f;
 
-        public static string[] WeaponStatValues(WeaponData d, int level, float damageMultiplier)
+        public static string[] WeaponStatValues(WeaponData d, int level, float damageMultiplier, int maxAmmoBonus)
         {
             int dmg = Weapon.DamageAtLevel(d, level, damageMultiplier);
-            int bullets = Weapon.BulletsPerShotAtLevel(d, level);
+            int bullets = Weapon.BulletsPerShotAtLevel(d, level, maxAmmoBonus);
             string dmgText = bullets > 1 ? $"{dmg}X{bullets}" : dmg.ToString();
-            return new[] { dmgText, Weapon.MaxAmmoAtLevel(d, level).ToString() };
+            return new[] { dmgText, Weapon.MaxAmmoAtLevel(d, level, maxAmmoBonus).ToString() };
         }
 
         // 무기의 **수치** 특성 — 모든 무기의 발사 속도(`FIRE RATE 30`, 분당 사격 수의 1/10을 반올림한 정수, 단위 없음) 뒤에 그 무기에만 있는 점사·튕김·관통·폭발 반경.
@@ -52,12 +53,12 @@ namespace PickShoot
         // 탄속·넉백도 적지 않는다 (2026-10-12) — 레벨·개조로 바뀌지 않고 수만으로는 빠른지 알 수 없어 고르는 근거가 못 된다. 타일 툴팁에만 있다가 툴팁과 함께 걷었다.
         // 레벨에 따라 바뀌는 것은 점사 수와 그에 따른 발사 속도뿐이다 (탄창이 빌 때까지 쏘는 블래스터) — 카드는 그 줄만 "현재 → 다음"으로 보인다.
         // 개조(mod, 없으면 null)가 더한 튕김·관통·폭발 반경은 자산 값과 합친 값이다 — 따로 적지 않는다 (Mods §1).
-        public static void WeaponTraitStats(WeaponData d, ModData mod, int level, List<string> labels, List<string> values)
+        public static void WeaponTraitStats(WeaponData d, ModData mod, int level, int maxAmmoBonus, List<string> labels, List<string> values)
         {
             labels.Add("FIRE RATE");
             // 반올림은 .5를 올린다 (산탄총 7.5 → 8) — Mathf.RoundToInt는 짝수 쪽으로 붙어 6.5가 6이 된다.
-            values.Add(Mathf.FloorToInt(Weapon.ShotsPerMinuteAtLevel(d, level) / FireRateDivisor + 0.5f).ToString());
-            int burst = Weapon.ShotsPerTriggerAtLevel(d, level);
+            values.Add(Mathf.FloorToInt(Weapon.ShotsPerMinuteAtLevel(d, level, maxAmmoBonus) / FireRateDivisor + 0.5f).ToString());
+            int burst = Weapon.ShotsPerTriggerAtLevel(d, level, maxAmmoBonus);
             if (burst > 1) { labels.Add("BURST"); values.Add(burst.ToString()); }
             int bounces = Weapon.BouncesWith(d, mod);
             if (bounces > 0) { labels.Add("BOUNCE"); values.Add(bounces.ToString()); }

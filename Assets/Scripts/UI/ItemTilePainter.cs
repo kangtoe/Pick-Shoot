@@ -19,9 +19,12 @@ namespace PickShoot
     // HUD는 이 타일을 쓰지 않는다 — HUD 배율(2)에서는 글자 배율이 타일 배율과 같아 배지가 타일 높이의 40%를 차지해 총을 덮고, 정사각 판은 한쪽 6자루 때
     // 줄 묶음을 화면 높이의 2/3까지 올린다 (목업 Recordings/hud_mockup_2026-10-06.png, 글자 배율 1은 720p에서 획이 빠져 제외).
     // 보상 화면의 리롤 버튼(UpgradeManager)도 같은 판·띠로 그린다 — 그림 자리에 글자 `R`, 띠에 남은 횟수 (2026-10-08). 그래서 띠 그리기와 치수는 공개다.
+    // 배지 없는 정사각 판이 하나 더 있다 (2026-10-13, Characters §4): 초상 타일(36텍셀 — 32×32 격자의 캐릭터 그림이 테두리 안에 꼭 든다. 아이템 타일에 넣으면 그림이
+    // 테두리를 넘어 발이 판 밖으로 나온다)은 시작 화면의 캐릭터 타일과 캐릭터 카드의 전시 칸이 쓴다.
     public static class ItemTilePainter
     {
         public const int SizeTexels = 28;
+        public const int PortraitSizeTexels = 36;
         // 타일 아래 변 → 배지 띠 (타일 배율 텍셀). 판 테두리 두께와 같아 띠가 테두리에 붙는다.
         public const int BadgeInsetTexels = 2;
         // 배지 글자(글리프 상자) 위아래의 띠 여백 (글자 배율 텍셀).
@@ -33,6 +36,23 @@ namespace PickShoot
         public static int Size(int scale)
         {
             return SizeTexels * scale;
+        }
+
+        public static int PortraitSize(int scale)
+        {
+            return PortraitSizeTexels * scale;
+        }
+
+        // 초상 타일 — 캐릭터의 정지 포즈를 배지 없는 정사각 판 가운데에. (x, y)는 타일 좌상단 (캔버스 픽셀).
+        public static void DrawPortrait(PixelUiSkin skin, Sprite icon, int x, int y, int scale)
+        {
+            if (icon == null)
+                throw new System.Exception("[PickShoot] ItemTilePainter.DrawPortrait: icon이 null. 타일은 그림이 있어야 함.");
+            int size = PortraitSize(scale);
+            PixelGui.DrawWeaponPlate(skin, new Rect(x, y, size, size), scale);
+            int iw = Mathf.RoundToInt(icon.rect.width) * scale;
+            int ih = Mathf.RoundToInt(icon.rect.height) * scale;
+            PixelGui.DrawSprite(icon, new Rect(x + (size - iw) / 2, y + (size - ih) / 2, iw, ih));
         }
 
         // 배지 띠의 높이 (캔버스 픽셀): 대문자·숫자 글리프 상자 높이 + 위아래 여백.

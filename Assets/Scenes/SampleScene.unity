@@ -175,7 +175,6 @@ MonoBehaviour:
   wallBounceRetention: 0.75
   dashDistance: 3
   dashDuration: 0.1
-  dashCooldown: 1.5
   dashEvadeGrace: 0.2
   dashPassThroughLayers:
     serializedVersion: 2
@@ -297,7 +296,7 @@ SpriteRenderer:
   m_SortingLayer: 0
   m_SortingOrder: 5
   m_MaskInteraction: 0
-  m_Sprite: {fileID: -3617217171684107962, guid: 8c4fc863c2ecf7c42830eb859ffede55, type: 3}
+  m_Sprite: {fileID: 0}
   m_Color: {r: 1, g: 1, b: 1, a: 1}
   m_FlipX: 0
   m_FlipY: 0
@@ -402,9 +401,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: a43c715f32644acf8ae6b906ace5e729, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PickShoot.SpriteWalkCycle
-  frames:
-  - {fileID: -3617217171684107962, guid: 8c4fc863c2ecf7c42830eb859ffede55, type: 3}
-  - {fileID: 166411858142596255, guid: 8c4fc863c2ecf7c42830eb859ffede55, type: 3}
+  frames: []
   strideLength: 1.2
   idleSpeed: 0.3
 --- !u!114 &142563687
@@ -1080,6 +1077,11 @@ MonoBehaviour:
   - {fileID: 11400000, guid: bdfd639950254a9abcb189e1e601ebc9, type: 2}
   - {fileID: 11400000, guid: 7d1afb50ec9741469cef071d20c26959, type: 2}
   - {fileID: 11400000, guid: d62b0ebd8d53e731acf6479cb7712ead, type: 2}
+  characterPool:
+  - {fileID: 11400000, guid: 5b9ce69d684b4761ba02c00ed1a7b640, type: 2}
+  - {fileID: 11400000, guid: 869cc278e12043c9aeed1e2debcca4c6, type: 2}
+  - {fileID: 11400000, guid: df442bdb8ec1412bbcbdc2d621919d99, type: 2}
+  startTheme: {fileID: 11400000, guid: d2b62deb347a488086b23adeffe93cf6, type: 2}
   stats: {fileID: 142563687}
   relicPool:
   - {fileID: 11400000, guid: 09a5f6befc764e778332932c6c5ca463, type: 2}

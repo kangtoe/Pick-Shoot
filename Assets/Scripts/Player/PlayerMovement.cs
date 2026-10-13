@@ -12,6 +12,8 @@ namespace PickShoot
     // 틈을 준다. 회피 중 피해를 받지 않는 것은 PlayerHealth가 IsEvading을 보고 처리한다.
     // 이동속도와 대시 쿨다운은 PlayerStats의 배율(유물, Relics §2)을 받는다 — 이동속도 배율은 목표 속도와 대시 뒤 클램프에, 리차지 배율은 쿨다운을
     // 나누는 데 쓴다. 가속·마찰은 그대로라 빨라진 만큼 최고 속도에 닿기까지 조금 더 걸린다. 대시 거리·시간은 바뀌지 않는다.
+    // 스페이스 능력의 종류와 쿨다운은 러닝 시작에 고른 캐릭터(CharacterData)가 정하고 SetAbility로 들어온다 (Characters §2·§5). 지금 구현된 능력은 대시뿐 —
+    // 회수 펄스·충격파는 구현 2단계에서 "발동했을 때 하는 일"만 종류별로 가른다. 입력·쿨다운·머리 위 표시·리차지 배율은 공통.
     [RequireComponent(typeof(Rigidbody2D))]
     [RequireComponent(typeof(PlayerStats))]
     [RequireComponent(typeof(SpriteWalkCycle))]
@@ -27,8 +29,6 @@ namespace PickShoot
         // 대시 한 번에 나아가는 거리(월드 유닛)와 걸리는 시간. 속도 = 거리 ÷ 시간. 시간은 물리 스텝 단위로 반올림된다.
         [SerializeField, Min(0f)] float dashDistance = 3f;
         [SerializeField, Min(0.01f)] float dashDuration = 0.1f;
-        // 대시를 시작한 순간부터 다음 대시가 가능해질 때까지 (초).
-        [SerializeField, Min(0f)] float dashCooldown = 1.5f;
         // 대시가 끝난 뒤에도 회피(통과·피해 무시)가 이어지는 시간 (초).
         [SerializeField, Min(0f)] float dashEvadeGrace = 0.2f;
         // 회피 중 몸이 통과하는 레이어 (적, 추후 적 탄환). 벽은 넣지 않는다 — 대시로 아레나를 벗어날 수 없어야 한다.
@@ -60,7 +60,12 @@ namespace PickShoot
         LayerMask baseExcludeLayers;
         // 마지막 잔상을 놓은 자리. 여기서 afterimageSpacing만큼 멀어질 때마다 다음 잔상을 놓는다.
         Vector2 lastAfterimagePosition;
+        // 고른 캐릭터의 능력과 쿨다운 (SetAbility). 능력을 쓴 순간부터 다음 사용까지의 초 — 캐릭터 자산 값.
+        AbilityKind ability;
+        float abilityCooldown;
+        bool abilitySet;
 
+        public AbilityKind Ability => ability;
         public bool IsDashing => dashTimeLeft > 0f;
         // 회피 중 = 대시 중 + 끝난 뒤 유예. 이동안 적을 통과하고 피해를 받지 않는다.
         public bool IsEvading => evading;
@@ -71,7 +76,18 @@ namespace PickShoot
         float EffectiveMoveSpeed => moveSpeed * stats.MoveSpeedMultiplier;
         // 배율을 곱하기 전의 자산 값. 보상 화면의 상세 패널이 유물의 효과를 "지금 → 다음"의 실제 값으로 보여줄 때 쓴다.
         public float BaseMoveSpeed => moveSpeed;
-        public float BaseDashCooldown => dashCooldown;
+
+        // 러닝 시작 화면이 고른 캐릭터의 능력을 넣는다 (UpgradeManager). 다시 부르면(ESC로 돌아가 다른 캐릭터) 바뀐다 — 쿨다운 중이 아닌 멈춘 화면에서만 부른다.
+        public void SetAbility(AbilityKind kind, float cooldown)
+        {
+            if (kind != AbilityKind.Dash)
+                throw new System.Exception($"[PickShoot] PlayerMovement.SetAbility: 능력 {kind}는 아직 구현되지 않음 — 1단계는 대시뿐 (Characters §5). 자산의 abilityKind를 Dash로 둘 것.");
+            if (cooldown <= 0f)
+                throw new System.Exception($"[PickShoot] PlayerMovement.SetAbility: 쿨다운이 0 이하 ({cooldown}).");
+            ability = kind;
+            abilityCooldown = cooldown;
+            abilitySet = true;
+        }
 
         void Awake()
         {
@@ -93,7 +109,11 @@ namespace PickShoot
             // 게임이 멈춘 동안(일시정지·카드 선택, timeScale 0)의 입력은 받지 않는다 — 재개하자마자 대시가 나가지 않게.
             // 쿨다운 중의 입력은 버린다 (선입력 없음).
             if (Time.timeScale > 0f && DashPressed() && DashReady && !IsDashing)
+            {
+                if (!abilitySet)
+                    throw new System.Exception("[PickShoot] PlayerMovement: 능력 미설정인데 스페이스 입력 — 러닝 시작 화면에서 캐릭터를 고른 뒤에만 게임이 움직여야 함 (Characters §5).");
                 dashRequested = true;
+            }
             // 대시 중에는 걷기 프레임이 거리에 비례해 빠르게 깜빡이므로 정지 포즈로 둔다.
             walkCycle.Propelled = input.sqrMagnitude > 0.0001f && !IsDashing;
             if (IsDashing) LeaveAfterimages();
@@ -166,8 +186,8 @@ namespace PickShoot
             // 시작한 스텝도 대시 한 스텝으로 센다 (FixedUpdate가 곧바로 한 스텝을 뺀다).
             dashTimeLeft = dashDuration + Time.fixedDeltaTime;
             dashStartTime = Time.time;
-            // 리차지 배율(Relics §2 능력 리차지 속도)은 시작하는 대시의 쿨다운에만 적용 — 진행 중인 쿨다운은 건드리지 않는다.
-            dashReadyTime = dashStartTime + dashCooldown / stats.RechargeMultiplier;
+            // 리차지 배율(Relics §2 능력 리차지 속도)은 시작하는 대시의 쿨다운에만 적용 — 진행 중인 쿨다운은 건드리지 않는다. 쿨다운은 캐릭터 자산 값.
+            dashReadyTime = dashStartTime + abilityCooldown / stats.RechargeMultiplier;
             evading = true;
             rb.excludeLayers = baseExcludeLayers | dashPassThroughLayers;
 

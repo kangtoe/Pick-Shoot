@@ -62,11 +62,12 @@ namespace PickShoot
         {
             return new CanvasScope(Screen.height / (float)DesignHeight);
         }
-        // 단색 사각형. 시트 조각 없이 평면 색으로 칠하는 면(머리 위 게이지 등)에 쓴다.
+        // 단색 사각형. 시트 조각 없이 평면 색으로 칠하는 면(머리 위 게이지 등)에 쓴다. 색은 그대로 쓰되 알파에는 GUI.color의 알파를 곱한다 — 시트 조각·글자처럼
+        // 바깥에서 GUI.color 알파로 묶음 전체를 투명하게(시작 화면의 캐릭터 카드) 할 수 있게 (2026-10-13). RGB는 곱하지 않는다 — 어둡게 보일 판(리롤 버튼)은 호출자가 색에 곱한다.
         public static void FillRect(Rect screenRect, Color color)
         {
             var prev = GUI.color;
-            GUI.color = color;
+            GUI.color = new Color(color.r, color.g, color.b, color.a * prev.a);
             GUI.DrawTexture(screenRect, Texture2D.whiteTexture);
             GUI.color = prev;
         }
@@ -88,21 +89,30 @@ namespace PickShoot
             DrawWeaponPlate(skin, r, scale, Color.white);
         }
 
-        // tint는 판 색에 곱한다. 단색 사각형은 GUI.color를 타지 않으므로, 어둡게 보일 판(리롤 버튼의 0회)은 막으로 덮는 대신 색을 곱한다 — 직사각형 막은
+        // tint는 판 색에 곱한다. 단색 사각형은 GUI.color의 RGB를 타지 않으므로, 어둡게 보일 판(리롤 버튼의 0회)은 막으로 덮는 대신 색을 곱한다 — 직사각형 막은
         // 네 귀의 깎인 자리까지 덮어 모서리가 각져 보였다 (2026-10-08).
+        // 테두리 여섯 조각과 바탕이 서로 겹치지 않게 그린다 (2026-10-13) — 테두리 모양 위에 바탕을 덮어 그리면 GUI.color 알파로 투명하게 할 때 바탕 밑의 테두리 색이 비친다.
         public static void DrawWeaponPlate(PixelUiSkin skin, Rect r, int scale, Color tint)
         {
             int o = WeaponPlateOutlineTexels * scale;
-            FillPlateShape(r, scale, skin.WeaponPlateOutline * tint);
+            int s = scale;
+            var line = skin.WeaponPlateOutline * tint;
+            FillRect(new Rect(r.x + s, r.y, r.width - 2 * s, s), line);                 // 맨 윗줄 (귀가 깎인 줄)
+            FillRect(new Rect(r.x, r.y + s, r.width, o - s), line);                     // 위 테두리 나머지
+            FillRect(new Rect(r.x, r.y + o, o, r.height - 2 * o), line);                // 왼쪽
+            FillRect(new Rect(r.xMax - o, r.y + o, o, r.height - 2 * o), line);         // 오른쪽
+            FillRect(new Rect(r.x, r.yMax - o, r.width, o - s), line);                  // 아래 테두리 나머지
+            FillRect(new Rect(r.x + s, r.yMax - s, r.width - 2 * s, s), line);          // 맨 아랫줄
             FillRect(new Rect(r.x + o, r.y + o, r.width - 2 * o, r.height - 2 * o), skin.WeaponPlateFill * tint);
         }
 
-        // 네 귀를 1텍셀씩 깎은 사각형을 한 색으로 채운다 — 판의 외곽선과, 그 바깥에 두르는 흰 선(리롤 버튼)이 쓴다. 가로로 긴 사각형과 세로로 긴 사각형을
-        // 겹쳐 그리므로 불투명 색만 쓴다 (반투명이면 겹친 데가 두 번 칠해진다).
+        // 네 귀를 1텍셀씩 깎은 사각형을 한 색으로 채운다 — 판의 바깥에 두르는 흰 선(카드 호버·리롤 버튼·시작 화면 타일)이 쓴다. 맨 윗줄·가운데·맨 아랫줄 세 조각이
+        // 겹치지 않아 반투명(GUI.color 알파)에도 고르다 (2026-10-13. 그전엔 가로로 긴 사각형과 세로로 긴 사각형을 겹쳐 불투명 색만 쓸 수 있었다).
         public static void FillPlateShape(Rect r, int scale, Color color)
         {
-            FillRect(new Rect(r.x + scale, r.y, r.width - 2 * scale, r.height), color);
+            FillRect(new Rect(r.x + scale, r.y, r.width - 2 * scale, scale), color);
             FillRect(new Rect(r.x, r.y + scale, r.width, r.height - 2 * scale), color);
+            FillRect(new Rect(r.x + scale, r.yMax - scale, r.width - 2 * scale, scale), color);
         }
 
         // 좌우 반전. 화면 오른쪽에 거울상으로 놓는 조각(HUD 무기 스프라이트)용 — UV의 가로 구간을 뒤집어 넘긴다.
@@ -264,6 +274,18 @@ namespace PickShoot
             if (g < 0)
                 throw new System.Exception($"[PickShoot] PixelGui: 비트맵 글꼴에 없는 문자 '{c}' (U+{(int)c:X4}). 사용 가능: \"{font.characters}\" 및 공백.");
             return g;
+        }
+
+        // 영역을 한 타일로 반복해 채운다 — 시작 화면의 바닥 무늬. 타일 변을 화면 픽셀에 맞추므로(DrawTile) 비정수 배율에서도 틈이 없다. t는 타일 한 변 (캔버스 픽셀).
+        public static void FillTiles(Sprite sprite, Rect area, float t)
+        {
+            TileFill(sprite, area, t);
+        }
+
+        // 이웃과 맞닿는 타일 한 장 — 바닥 무늬 위에 덧놓는 변형 타일처럼 FillTiles의 칸과 변이 같아야 하는 조각. 혼자 놓이는 조각은 DrawSprite.
+        public static void DrawTileSnapped(Sprite sprite, Rect screenRect)
+        {
+            DrawTile(sprite, screenRect, 0f, 0f, 1f, 1f);
         }
 
         // 영역을 타일 크기 t로 반복해 채운다. 끝에 남는 부분은 타일의 좌상단 조각만 잘라 그린다.

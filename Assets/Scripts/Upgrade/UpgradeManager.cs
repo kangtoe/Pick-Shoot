@@ -24,14 +24,22 @@ namespace PickShoot
     // 카드는 (다시) 뽑힐 때마다 화면 아래 밖에서 차례로 튀어 올라 스프링처럼 흔들리며 멎는다 — 멎기 전에는 카드도 버튼도 입력을 받지 않는다.
     // 빌드 줄의 타일에 마우스를 올리면 그 자루·유물의 보기 카드(UpgradeCardPainter.DrawOwnedWeapon·DrawOwnedRelic)가 뜬다 — 카드·버튼을 다 그린 뒤 맨 마지막에
     // (2026-10-12. 그전 2026-10-06부터는 툴팁이었고 카드 전시 칸에도 떴다 — 카드가 다 담게 되어 전시 칸 호버는 걷었다).
-    // 러닝 시작의 무기 고르기(PresentStartAndWait, Weapons §2, 2026-10-12)도 여기서 맡는다 — 획득 풀의 모든 무기가 후보인 첫 무기 보상이고, 고르기·멈춤·IsActive를
-    // 카드 화면과 같이 써서 HUD 숨김·커서·ESC 차단·녹화 봇(PickShootPlayDriver)이 그대로 따른다. 브로타토의 무기 선택처럼 제목 아래 풀의 무기를 누르는 타일 한 줄로
-    // 늘어놓고, 그 아래 초점 무기(마지막으로 마우스를 올린 타일, 처음엔 첫 무기)의 획득 카드를 둔다. 타일이나 카드를 누르면 그 무기로 첫 웨이브를 시작한다.
+    // 러닝 시작 화면(PresentStartAndWait, 2026-10-12)도 여기서 맡는다 — 고르기·멈춤·IsActive를 카드 화면과 같이 써서 HUD 숨김·커서·ESC 차단·녹화 봇(PickShootPlayDriver)이
+    // 그대로 따른다. 캐릭터와 시작 무기를 **한 화면**에서 고른다 (Characters §4, 2026-10-13 저녁): 위에 `CHARACTER` 제목과 초상 타일 줄, 아래에 `WEAPON` 제목과
+    // 그 캐릭터의 시작 무기 타일 줄, 카드는 하나만 — 캐릭터 타일을 누르면 그 캐릭터가 플레이어 껍데기에 채워지고(SelectCharacter) 캐릭터 카드가 캐릭터 줄 아래에 열리며
+    // 무기 구역은 그 아래로 밀려난다. 무기 타일을 누르면 캐릭터 카드가 닫히고 무기 구역(제목·줄·카드)이 캐릭터 줄 바로 아래로 미끄러져 올라오며 무기 카드가 무기 줄
+    // 아래에 열린다. 시작은 오른쪽 아래 `PLAY` 버튼 — 무기 카드가 열려 있을 때만 눌린다 (Lv.1 첫 자루). 마우스를 올리는 것은 테두리만 넓히고 카드를 바꾸지 않는다 —
+    // 호버로 카드가 바뀌면 밀려나는 무기 줄이 커서에서 달아난다. 미끄러지는 동안(pushSeconds)은 누를 수 없고, 닫히는 캐릭터 카드는 같은 시간에 투명해진다(열릴 땐 반대).
+    // 배경은 아레나 바닥 타일 무늬(startTheme — 땅과 잔무늬 변형, 월드 텍셀 배율) 위에 어두운 막(startTint)을 덮은 불투명한 면 — 러닝 전이라 세계를 비칠 이유가 없고,
+    // 보상·일시정지 화면의 막(멈춘 바닥 위 70%)과 같은 결이다 (2026-10-13. 검정 불투명은 밋밋했다).
+    // 같은 날 낮의 캐릭터 → 무기 두 단계(ESC로 되돌아감), 두 열 안, 아코디언 안, 카드 자리 고정 안을 목업으로 비교해 골랐다 (Characters §4).
     // 카드 세 장 꼴은 풀 전체(6종 이상)가 한 화면에 들지 않는다 (7타일 카드 여섯 장이면 2.9천 px).
     public class UpgradeManager : MonoBehaviour
     {
         [SerializeField] PlayerWeapons weapons;
         [SerializeField] List<WeaponData> weaponPool = new List<WeaponData>();
+        // 시작 화면 캐릭터 단계의 후보 (Characters §3, Assets/Data/Characters). 순서가 타일 순서다.
+        [SerializeField] List<CharacterData> characterPool = new List<CharacterData>();
         // 유물 화면의 후보 (Relics §2)와 획득한 유물이 쌓이는 곳. 커먼 유물은 반복 획득이 가능하므로 보유 여부와 무관하게 풀 전체가 후보다.
         [SerializeField] PlayerStats stats;
         [SerializeField] List<RelicData> relicPool = new List<RelicData>();
@@ -60,6 +68,15 @@ namespace PickShoot
         [SerializeField, Min(0f)] float enterStaggerSeconds = 0.07f;     // 다음 장이 출발하기까지
         // 흔들림의 감쇠. 되밀림(두 번째 튐)은 첫 튐의 e^(-WobbleDecay/2) — 2.5면 약 29%.
         const float WobbleDecay = 2.5f;
+
+        [Header("Start Screen")]
+        // 시작 화면에서 카드가 바뀔 때 무기 구역이 두 자리 사이를 미끄러지는 시간 (실시간 초, 감속). 그동안 입력을 받지 않고 캐릭터 카드가 투명해지거나 나타난다.
+        [SerializeField, Min(0.01f)] float pushSeconds = 0.2f;
+        // 시작 화면 배경의 바닥 타일 (아레나와 같은 ArenaTheme, Assets/Data/Arena). 땅 타일을 캔버스 가득 깔고 잔무늬 변형을 startVariantRarity칸에 하나꼴로 덧놓는다.
+        [SerializeField] ArenaTheme startTheme;
+        [SerializeField, Min(1)] int startVariantRarity = 12;
+        // 바닥 무늬 위에 덮는 막. 기본은 보상·일시정지 화면과 같은 검정 70% — 무늬가 어두운 갈색으로 비친다.
+        [SerializeField] Color startTint = new Color(0f, 0f, 0f, 0.7f);
 
         // 글꼴에 있는 문자(A-Z 0-9 % + - 공백)만 써야 한다. 없는 문자는 PixelGui가 예외로 알린다.
         // 리롤 버튼은 아이템 타일(ItemTilePainter)과 같은 꼴 — 단색 판 위에 글자 `R`(뒤에 리롤 아이콘으로 바꿀 자리), 아래쪽 띠에 남은 적립 횟수. 그림이 띠 위 칸의
@@ -92,13 +109,29 @@ namespace PickShoot
         // 없다. 카드의 종류 제목과 같은 중간 배율 3(84px) — 배지가 양옆 10px를 남기고 들어간다 (카드의 무기 이름도 3이었다가 2026-10-08 머리 가로 배치로 2).
         const int StripTileScale = 3;
 
-        // 시작 화면 (PresentStartAndWait). 제목은 보상 화면 제목과 같은 아웃라인 글꼴 패널 배율.
-        const string StartTitle = "CHOOSE A WEAPON";
+        // 시작 화면 (PresentStartAndWait) 두 구역의 제목. 보상 화면 제목과 같은 아웃라인 글꼴 패널 배율, 각 줄 위 제 줄에.
+        const string CharacterTitle = "CHARACTER";
+        const string WeaponTitle = "WEAPON";
         // 무기 타일은 일시정지 격자·카드 전시 칸과 같은 패널 배율 타일(112px)에 리롤 버튼처럼 바깥 흰 선 1텍셀을 두른 누르는 타일(120px) — 인벤토리 타일과 가른다.
-        // 초점 타일은 카드 호버처럼 흰 테두리가 바깥으로 1텍셀 더 넓다. 타일 사이는 초점 테두리가 이웃 흰 선에 닿지 않게 6텍셀(24px).
+        // 캐릭터 타일은 같은 꼴의 초상 타일(ItemTilePainter.DrawPortrait, 144 + 8 = 152px) — 32×32 그림이 테두리 안에 든다.
+        // 고른 캐릭터·초점 무기·마우스를 올린 타일은 카드 호버처럼 흰 테두리가 바깥으로 1텍셀 더 넓다. 타일 사이는 그 테두리가 이웃 흰 선에 닿지 않게 6텍셀(24px).
         const int StartTileScale = PixelGui.PanelScale;
         const int StartTileLineTexels = 1;
         const int StartTileGapTexels = 6;
+        // 시작 화면의 카드는 8타일 높이 — 보상 카드(9타일)보다 한 타일 낮다. 개조 줄이 없어 가장 긴 획득 카드(수치 특성 둘)가 496px, 캐릭터 카드가 456px로 들고,
+        // 9타일이면 제목 둘·타일 줄 둘·카드 하나가 1080을 넘는다 (2026-10-13).
+        const int StartCardHeightTiles = 8;
+        // 제목 → 타일 줄 (패널 텍셀, 16px). 줄·카드 → 다음 구역은 CardGapTexels(40px).
+        const int StartTitleTileGapTexels = 4;
+        // 오른쪽 아래 PLAY 버튼 — 시작 화면 타일과 같은 꼴(바깥 흰 선 1텍셀 + 판)에 일반 글꼴 패널 배율 글자. 판은 글자 줄 상자 둘레에 6텍셀(테두리 2 포함)이라
+        // 높이가 타일과 같은 28텍셀(112px). 캔버스 오른쪽·아래 끝에서 8텍셀(32px). 무기 카드가 열려 있을 때만 눌리고, 아니면 리롤 버튼의 0회처럼 어둡다.
+        const string PlayLabel = "PLAY";
+        const int PlayLabelScale = PixelGui.PanelScale;
+        const int PlayPadTexels = 6;
+        const int PlayMarginTexels = 8;
+
+        // 시작 화면에서 열려 있는 카드. 캐릭터 카드는 캐릭터 줄 아래, 무기 카드는 무기 줄 아래.
+        enum StartCard { Character, Weapon }
 
         // 이번 카드 화면의 후보 전체(유물 화면은 유물 풀 전체, 무기 화면은 획득 + 레벨업 + 개조, 순서 고정). 처음 카드도 리롤도 여기서 뽑는다.
         static readonly UpgradeKind[] Kinds = (UpgradeKind[])System.Enum.GetValues(typeof(UpgradeKind));
@@ -112,10 +145,20 @@ namespace PickShoot
         float cardsShownAt;
         bool active;
         bool selected;
-        // 시작 화면인가. currentCards가 풀의 모든 무기의 획득 카드이고 OnGUI가 시작 화면 배치로 그린다.
+        // 시작 화면인가. OnGUI가 시작 화면 배치로 그린다 — characterPool의 캐릭터 줄과 currentCards(고른 캐릭터의 시작 무기 획득 카드)의 무기 줄.
         bool startPick;
-        // 시작 화면에서 카드로 보이는 무기의 currentCards 인덱스 — 마지막으로 마우스를 올린 타일.
-        int startFocus;
+        // 고른 캐릭터(플레이어 껍데기에 채워진 것)와 무기 카드가 보이는 무기 — 둘 다 눌러서 정한다.
+        int selectedCharacter;
+        int focusedWeapon;
+        StartCard openCard;
+        // 무기 구역이 미끄러지기 시작한 실시간. 음수면 연출 중이 아니다.
+        float pushStartedAt = -1f;
+        // 두 줄의 타일 그림 (프레임마다 새로 만들지 않는다). 캐릭터는 Awake에서, 무기는 캐릭터를 고를 때.
+        Sprite[] characterTiles;
+        Sprite[] startTiles;
+        // 플레이어 껍데기에 캐릭터를 채우는 곳 — stats와 같은 오브젝트 (Characters §5).
+        SpriteWalkCycle playerWalkCycle;
+        PlayerMovement playerMovement;
 
         public bool IsActive => active;
 
@@ -140,7 +183,23 @@ namespace PickShoot
                     throw new System.Exception($"[PickShoot] UpgradeManager.weaponPool[{i}] '{weaponPool[i].DisplayName}'에 WeaponSprite 미할당. 시작 화면 타일·획득 카드 전시용 sprite 필요.");
             }
             if (stats == null)
-                throw new System.Exception("[PickShoot] UpgradeManager.stats 미할당. 플레이어의 PlayerStats 참조 필요 (유물 획득·카드의 스탯 총계).");
+                throw new System.Exception("[PickShoot] UpgradeManager.stats 미할당. 플레이어의 PlayerStats 참조 필요 (유물 획득·카드의 스탯 총계·캐릭터 채우기).");
+            playerWalkCycle = stats.GetComponent<SpriteWalkCycle>();
+            if (playerWalkCycle == null)
+                throw new System.Exception("[PickShoot] UpgradeManager: 플레이어에 SpriteWalkCycle 없음 (캐릭터 그림을 채우는 데 필요).");
+            playerMovement = stats.GetComponent<PlayerMovement>();
+            if (playerMovement == null)
+                throw new System.Exception("[PickShoot] UpgradeManager: 플레이어에 PlayerMovement 없음 (캐릭터 능력을 채우는 데 필요).");
+            if (characterPool.Count == 0)
+                throw new System.Exception("[PickShoot] UpgradeManager.characterPool이 비어있음. 최소 1종의 CharacterData 필요 (시작 화면 캐릭터 후보, Assets/Data/Characters).");
+            characterTiles = new Sprite[characterPool.Count];
+            for (int i = 0; i < characterPool.Count; i++)
+            {
+                if (characterPool[i] == null)
+                    throw new System.Exception($"[PickShoot] UpgradeManager.characterPool[{i}]가 null.");
+                characterPool[i].Validate(weaponPool);
+                characterTiles[i] = characterPool[i].IdleSprite;
+            }
             if (relicPool.Count == 0)
                 throw new System.Exception("[PickShoot] UpgradeManager.relicPool이 비어있음. 최소 1종의 RelicData 필요 (유물 카드 후보, Assets/Data/Relics).");
             for (int i = 0; i < relicPool.Count; i++)
@@ -170,6 +229,9 @@ namespace PickShoot
             if (skin == null)
                 throw new System.Exception("[PickShoot] UpgradeManager.skin 미할당. PixelUiSkin 자산(Assets/Data/UI) 필요.");
             skin.Validate();
+            if (startTheme == null)
+                throw new System.Exception("[PickShoot] UpgradeManager.startTheme 미할당. 시작 화면 배경의 바닥 타일 — ArenaTheme 자산(Assets/Data/Arena) 필요.");
+            startTheme.Validate();
             if (experience == null)
                 throw new System.Exception("[PickShoot] UpgradeManager.experience 미할당. PlayerExperience(GameManager) 참조 필요 (리롤 적립 횟수).");
         }
@@ -193,19 +255,78 @@ namespace PickShoot
             yield return WaitForSelection();
         }
 
-        // 러닝 시작의 무기 고르기 (Weapons §2). 획득 풀의 모든 무기가 후보이고 고른 무기가 Lv.1 첫 자루로 든다 — 획득 카드를 고르는 것과 같다.
-        // 고르기 전에는 자루가 없다 (PlayerWeapons). 첫 웨이브 전에 WaveManager가 부른다.
+        // 러닝 시작 화면 — 캐릭터와 시작 무기를 한 화면에서 (Characters §4, Weapons §2). 고른 무기가 Lv.1 첫 자루로 든다 — 획득 카드를 고르는 것과 같다.
+        // 열리면서 첫 캐릭터를 플레이어 껍데기에 채운다 — 어두운 막 뒤의 플레이어가 바로 그 캐릭터다. 고르기 전에는 자루가 없다 (PlayerWeapons). 첫 웨이브 전에
+        // WaveManager가 부른다.
         public IEnumerator PresentStartAndWait()
         {
             if (weapons.Slots.Count != 0)
                 throw new System.Exception($"[PickShoot] UpgradeManager.PresentStartAndWait: 이미 자루가 {weapons.Slots.Count}개 있음. 시작 무기는 빈 링의 첫 자루로 든다.");
-            currentCards = new UpgradeOption[weaponPool.Count];
-            for (int i = 0; i < weaponPool.Count; i++)
-                currentCards[i] = UpgradeOption.Acquire(weaponPool[i]);
-            startFocus = 0;
             startPick = true;
+            openCard = StartCard.Character;
+            pushStartedAt = -1f;
+            SelectCharacter(0);
             yield return WaitForSelection();
             startPick = false;
+        }
+
+        // 캐릭터를 고른다 — 플레이어 껍데기에 그림·스탯 수정치·능력을 채우고(Characters §5) 무기 줄을 그 캐릭터의 시작 무기로 바꾼다. 다른 캐릭터를 다시 고르면
+        // 다시 채운다 — 스탯 총계는 캐릭터 몫이 갈아끼워지고(PlayerStats.SetCharacter), 최대 체력은 PlayerHealth가 총계 변화를 따라간다.
+        void SelectCharacter(int index)
+        {
+            var character = characterPool[index];
+            stats.SetCharacter(character);
+            playerWalkCycle.SetFrames(character.Frames);
+            playerMovement.SetAbility(character.AbilityKind, character.AbilityCooldown);
+
+            var startWeapons = character.StartWeapons;
+            currentCards = new UpgradeOption[startWeapons.Count];
+            startTiles = new Sprite[startWeapons.Count];
+            for (int i = 0; i < startWeapons.Count; i++)
+            {
+                currentCards[i] = UpgradeOption.Acquire(startWeapons[i]);
+                startTiles[i] = startWeapons[i].WeaponSprite;
+            }
+            selectedCharacter = index;
+            focusedWeapon = 0;
+        }
+
+        // 캐릭터 타일 — 다른 캐릭터면 고르고, 무기 카드가 열려 있으면 캐릭터 카드로 바꾼다 (무기 구역이 아래로 밀려난다).
+        void ClickCharacter(int index)
+        {
+            if (index != selectedCharacter)
+            {
+                SelectCharacter(index);
+                if (selectClip != null) SoundPlayer.Play(selectClip, selectVolume);
+            }
+            if (openCard == StartCard.Weapon) BeginPush(StartCard.Character);
+        }
+
+        // 무기 타일 — 카드를 그 무기로 하고, 캐릭터 카드가 열려 있었으면 무기 카드로 바꾼다 (무기 구역이 위로 올라온다). 시작은 PLAY 버튼.
+        void ClickWeapon(int index)
+        {
+            focusedWeapon = index;
+            if (openCard == StartCard.Character) BeginPush(StartCard.Weapon);
+        }
+
+        void BeginPush(StartCard target)
+        {
+            openCard = target;
+            pushStartedAt = Time.unscaledTime;
+        }
+
+        // 무기 구역이 두 자리 사이를 얼마나 왔나 (0 = 떠난 자리, 1 = 도착). 감속 — 처음 빠르고 끝에서 멎는다. 연출 중이 아니면 1.
+        float PushProgress()
+        {
+            if (pushStartedAt < 0f) return 1f;
+            float s = (Time.unscaledTime - pushStartedAt) / pushSeconds;
+            if (s >= 1f)
+            {
+                pushStartedAt = -1f;
+                return 1f;
+            }
+            float back = 1f - s;
+            return 1f - back * back * back;
         }
 
         // currentCards 중 하나를 고를 때까지 게임을 멈춘다 (Time.timeScale 0). 카드 화면과 시작 화면이 같이 쓴다.
@@ -358,17 +479,21 @@ namespace PickShoot
             int textScale = PixelGui.TextScale;
             int tile = skin.TileSize * scale;
 
-            // 어둡게 덮는 막은 화면 픽셀 그대로 (캔버스를 열기 전).
-            GUI.color = new Color(0f, 0f, 0f, dimAlpha);
-            GUI.DrawTexture(new Rect(0, 0, Screen.width, Screen.height), Texture2D.whiteTexture);
-            GUI.color = Color.white;
+            // 어둡게 덮는 막은 화면 픽셀 그대로 (캔버스를 열기 전). 시작 화면은 막 대신 제 배경(바닥 무늬)을 캔버스 안에 깐다.
+            if (!startPick)
+            {
+                GUI.color = new Color(0f, 0f, 0f, dimAlpha);
+                GUI.DrawTexture(new Rect(0, 0, Screen.width, Screen.height), Texture2D.whiteTexture);
+                GUI.color = Color.white;
+            }
 
             // 클릭 판정(GUI.Button)도 캔버스 좌표로 하므로 Repaint뿐 아니라 모든 이벤트에서 캔버스를 연다.
             using var canvas = PixelGui.BeginCanvas();
 
             if (startPick)
             {
-                DrawStartPick(canvas);
+                DrawStartBackdrop(canvas);
+                DrawStartScreen(canvas);
                 return;
             }
 
@@ -459,68 +584,162 @@ namespace PickShoot
             }
         }
 
-        // 시작 화면 — 제목, 무기 타일 한 줄, 초점 무기의 획득 카드를 한 열로 화면 가운데에. 타일에 마우스를 올리면 그 무기가 초점이 되고, 타일이나 카드를 누르면 고른다.
+        // 시작 화면 배경 — 땅 타일을 월드 텍셀 배율(패널 배율)로 캔버스 가득 깔고, 칸마다 정해진 해시로 startVariantRarity분의 1꼴로 잔무늬 변형을 덧놓은 뒤 막을 덮는다.
+        // 아레나(ArenaDecor)의 흩뿌림과 같은 꼴이지만 난수가 아니라 칸 좌표의 해시라 프레임마다 같다. 타일은 변을 화면 픽셀에 맞춰(PixelGui.FillTiles·DrawTileSnapped)
+        // 720p에서도 틈이 없다.
+        void DrawStartBackdrop(PixelGui.CanvasScope canvas)
+        {
+            int tile = skin.TileSize * PixelGui.PanelScale;
+            var area = new Rect(0, 0, canvas.Width, canvas.Height);
+            PixelGui.FillTiles(startTheme.Floor, area, tile);
+            var variants = startTheme.FloorVariants;
+            if (variants.Length > 0)
+            {
+                int columns = (canvas.Width + tile - 1) / tile;
+                int rows = (canvas.Height + tile - 1) / tile;
+                for (int y = 0; y < rows; y++)
+                    for (int x = 0; x < columns; x++)
+                    {
+                        // 칸 좌표를 섞은 정수 해시 — 같은 칸은 늘 같은 값.
+                        uint h = (uint)(x * 73856093) ^ (uint)(y * 19349663);
+                        h ^= h >> 13; h *= 0x5bd1e995u; h ^= h >> 15;
+                        if (h % (uint)startVariantRarity != 0) continue;
+                        PixelGui.DrawTileSnapped(variants[(int)((h / (uint)startVariantRarity) % (uint)variants.Length)], new Rect(x * tile, y * tile, tile, tile));
+                    }
+            }
+            PixelGui.FillRect(area, startTint);
+        }
+
+        // 시작 화면 — 위에서부터 `CHARACTER` 제목·초상 타일 줄, 카드 하나, `WEAPON` 제목·무기 타일 줄을 한 열로 화면 가운데에 (헤더 참조). 블록 높이는 카드가 어느 쪽에
+        // 열려 있든 같다. 무기 구역(제목·줄·카드)의 자리는 둘 — 캐릭터 카드가 열렸을 때는 그 카드 아래(무기 카드 없음), 무기 카드가 열렸을 때는 캐릭터 줄 바로 아래
+        // (그 아래 무기 카드) — 이고, 카드가 바뀌면 두 자리 사이를 미끄러진다. 캐릭터 카드는 연출 중에도 그려 두고 무기 구역이 그 위를 덮거나 걷는다.
         // 등장 연출은 없다 — 러닝이 시작하는 화면이라 처음부터 누를 수 있다.
-        void DrawStartPick(PixelGui.CanvasScope canvas)
+        void DrawStartScreen(PixelGui.CanvasScope canvas)
         {
             int scale = PixelGui.PanelScale;
             int textScale = PixelGui.TextScale;
-            var cardSize = UpgradeCardPainter.CardSize(skin, scale);
+            var cardSize = UpgradeCardPainter.CardSize(skin, scale, StartCardHeightTiles);
             int line = StartTileLineTexels * StartTileScale;
-            int buttonSize = ItemTilePainter.Size(StartTileScale) + 2 * line;
+            int characterButton = ItemTilePainter.PortraitSize(StartTileScale) + 2 * line;
+            int weaponButton = ItemTilePainter.Size(StartTileScale) + 2 * line;
             int tileGap = StartTileGapTexels * StartTileScale;
-            int n = currentCards.Length;
-            int rowW = n * buttonSize + (n - 1) * tileGap;
-            if (rowW > canvas.Width)
-                throw new System.Exception($"[PickShoot] UpgradeManager: 시작 화면 무기 타일 줄 {rowW}px({n}종)가 캔버스 폭 {canvas.Width}px를 넘음. 줄을 접는 방식을 정할 것.");
             int titleH = skin.FontOutlined.lineHeight * scale;
-            int gap = CardGapTexels * scale;
-            int blockH = titleH + gap + buttonSize + gap + cardSize.y;
+            int titleGap = StartTitleTileGapTexels * scale;
+            int sectionGap = CardGapTexels * scale;
+            int characters = characterTiles.Length;
+            int weaponsCount = startTiles.Length;
+            int characterRowW = characters * characterButton + (characters - 1) * tileGap;
+            int weaponRowW = weaponsCount * weaponButton + (weaponsCount - 1) * tileGap;
+            if (characterRowW > canvas.Width || weaponRowW > canvas.Width)
+                throw new System.Exception($"[PickShoot] UpgradeManager: 시작 화면 타일 줄(캐릭터 {characterRowW}px·무기 {weaponRowW}px)이 캔버스 폭 {canvas.Width}px를 넘음. 줄을 접는 방식을 정할 것.");
+            int blockH = titleH + titleGap + characterButton + sectionGap + cardSize.y + sectionGap + titleH + titleGap + weaponButton;
             if (blockH > canvas.Height)
-                throw new System.Exception($"[PickShoot] UpgradeManager: 시작 화면 블록 높이 {blockH}px가 캔버스 {canvas.Height}px를 넘음. 간격을 줄일 것.");
+                throw new System.Exception($"[PickShoot] UpgradeManager: 시작 화면 블록 높이 {blockH}px가 캔버스 {canvas.Height}px를 넘음. 간격을 줄이거나 StartCardHeightTiles를 낮출 것.");
 
             int centerX = canvas.Width / 2;
-            int y = (canvas.Height - blockH) / 2;
-            PixelGui.DrawTextCentered(skin.FontOutlined, StartTitle, centerX, y, scale);
-            y += titleH + gap;
-
-            // 초점을 먼저 정하고 그린다 — 같은 이벤트에서 타일 테두리와 카드가 같은 무기를 가리킨다.
+            int y0 = (canvas.Height - blockH) / 2;
+            int characterRowY = y0 + titleH + titleGap;
+            int characterCardY = characterRowY + characterButton + sectionGap;
+            // 무기 구역의 두 자리. 연출 중엔 떠난 자리에서 도착할 자리로.
+            int weaponBlockLow = characterCardY + cardSize.y + sectionGap;
+            int weaponBlockHigh = characterRowY + characterButton + sectionGap;
+            float push = PushProgress();
+            bool pushing = push < 1f;
+            int weaponBlockY = openCard == StartCard.Weapon
+                ? Mathf.RoundToInt(Mathf.Lerp(weaponBlockLow, weaponBlockHigh, push))
+                : Mathf.RoundToInt(Mathf.Lerp(weaponBlockHigh, weaponBlockLow, push));
+            int weaponRowY = weaponBlockY + titleH + titleGap;
+            int weaponCardY = weaponRowY + weaponButton + sectionGap;
+            // 미끄러지는 동안은 아무것도 누를 수 없다 — 보상 카드의 등장과 같다. 테두리 넓히기도 멈춘다.
+            bool interactable = !pushing;
             var mouse = Event.current.mousePosition;
-            int rowX = centerX - rowW / 2;
-            var buttons = new Rect[n];
-            for (int i = 0; i < n; i++)
+
+            PixelGui.DrawTextCentered(skin.FontOutlined, CharacterTitle, centerX, y0, scale);
+            int characterX = centerX - characterRowW / 2;
+            for (int i = 0; i < characters; i++)
             {
-                buttons[i] = new Rect(rowX + i * (buttonSize + tileGap), y, buttonSize, buttonSize);
-                if (buttons[i].Contains(mouse)) startFocus = i;
-            }
-            for (int i = 0; i < n; i++)
-            {
-                DrawStartTile(buttons[i], currentCards[i].AcquireData.WeaponSprite, i == startFocus, line);
-                if (GUI.Button(buttons[i], GUIContent.none, GUIStyle.none))
+                var r = new Rect(characterX + i * (characterButton + tileGap), characterRowY, characterButton, characterButton);
+                bool hovered = interactable && r.Contains(mouse);
+                DrawStartTile(r, characterTiles[i], i == selectedCharacter || hovered, line, portrait: true);
+                if (interactable && GUI.Button(r, GUIContent.none, GUIStyle.none))
                 {
-                    Select(i);
+                    // 캐릭터가 바뀌면 무기 줄이 새 배열이라 이 이벤트는 여기서 끝낸다.
+                    ClickCharacter(i);
                     return;
                 }
             }
-            y += buttonSize + gap;
+            // 캐릭터 카드는 누를 수 없다 — 캐릭터는 타일로 고른다. 무기 카드로 바뀌는 동안은 투명해지며 사라지고 돌아올 때는 나타난다 — 무기 구역이 그 위를 지나는 동안
+            // 겹쳐 보이지 않게. 판·패널·글자가 모두 GUI.color의 알파를 따르고 판은 겹쳐 칠하지 않는다 (PixelGui.FillRect·DrawWeaponPlate). 처음엔 연출 중에도 그대로
+            // 그려 두고 무기 구역이 덮게 했는데 끝에서 뚝 사라졌다 (2026-10-13).
+            if (openCard == StartCard.Character || pushing)
+            {
+                float alpha = !pushing ? 1f : openCard == StartCard.Weapon ? 1f - push : push;
+                var prevColor = GUI.color;
+                GUI.color = new Color(1f, 1f, 1f, alpha);
+                UpgradeCardPainter.DrawCharacter(skin, characterPool[selectedCharacter], new Rect(centerX - cardSize.x / 2, characterCardY, cardSize.x, cardSize.y), scale, textScale, false);
+                GUI.color = prevColor;
+            }
 
-            var card = new Rect(centerX - cardSize.x / 2, y, cardSize.x, cardSize.y);
-            UpgradeCardPainter.Draw(skin, currentCards[startFocus], weapons, stats, card, scale, textScale, card.Contains(mouse));
-            if (GUI.Button(card, GUIContent.none, GUIStyle.none))
-                Select(startFocus);
+            PixelGui.DrawTextCentered(skin.FontOutlined, WeaponTitle, centerX, weaponBlockY, scale);
+            int weaponX = centerX - weaponRowW / 2;
+            for (int i = 0; i < weaponsCount; i++)
+            {
+                var r = new Rect(weaponX + i * (weaponButton + tileGap), weaponRowY, weaponButton, weaponButton);
+                bool hovered = interactable && r.Contains(mouse);
+                DrawStartTile(r, startTiles[i], (openCard == StartCard.Weapon && i == focusedWeapon) || hovered, line, portrait: false);
+                if (interactable && GUI.Button(r, GUIContent.none, GUIStyle.none))
+                {
+                    ClickWeapon(i);
+                    return;
+                }
+            }
+            // 무기 카드는 무기 구역과 함께 미끄러진다 — 올라올 땐 화면 아래 밖에서 들어오고 내려갈 땐 밖으로 나간다. 누를 수 없다 — 시작은 PLAY 버튼.
+            if (openCard == StartCard.Weapon || pushing)
+                UpgradeCardPainter.Draw(skin, currentCards[focusedWeapon], weapons, stats, new Rect(centerX - cardSize.x / 2, weaponCardY, cardSize.x, cardSize.y), scale, textScale, false);
+
+            DrawPlayButton(canvas, interactable && openCard == StartCard.Weapon, mouse);
         }
 
-        // 시작 화면의 무기 타일 — 리롤 버튼과 같이 누르는 것임을 바깥 흰 선으로 보인다: button 가득 흰 판 모양, 그 안쪽에 아이템 타일(배지 없음 — 이름은 카드가 말한다).
-        // 초점이면 카드 호버처럼 흰 판 모양을 한 텍셀 더 크게 먼저 깐다.
-        void DrawStartTile(Rect button, Sprite sprite, bool focused, int line)
+        // 오른쪽 아래 PLAY 버튼 (헤더·상수 참조). 눌리면 초점 무기로 시작한다.
+        void DrawPlayButton(PixelGui.CanvasScope canvas, bool enabled, Vector2 mouse)
         {
-            if (focused)
+            int scale = PixelGui.PanelScale;
+            int line = StartTileLineTexels * scale;
+            int pad = PlayPadTexels * scale;
+            int plateW = PixelGui.MeasureText(skin.FontPlain, PlayLabel, PlayLabelScale) + 2 * pad;
+            int plateH = skin.FontPlain.lineHeight * PlayLabelScale + 2 * pad;
+            int margin = PlayMarginTexels * scale;
+            var button = new Rect(canvas.Width - margin - plateW - 2 * line, canvas.Height - margin - plateH - 2 * line, plateW + 2 * line, plateH + 2 * line);
+            bool hovered = enabled && button.Contains(mouse);
+            var tint = enabled ? Color.white : DisabledTint;
+            if (hovered)
+            {
+                int o = UpgradeCardPainter.HoverOutlineTexels * scale;
+                PixelGui.FillPlateShape(new Rect(button.x - o, button.y - o, button.width + 2 * o, button.height + 2 * o), scale, Color.white);
+            }
+            PixelGui.FillPlateShape(button, scale, Color.white * tint);
+            var plate = new Rect(button.x + line, button.y + line, plateW, plateH);
+            PixelGui.DrawWeaponPlate(skin, plate, scale, tint);
+            var prevColor = GUI.color;
+            GUI.color = prevColor * tint;
+            PixelGui.DrawTextCentered(skin.FontPlain, PlayLabel, (int)plate.center.x, (int)plate.y + pad, PlayLabelScale);
+            GUI.color = prevColor;
+            if (enabled && GUI.Button(button, GUIContent.none, GUIStyle.none))
+                Select(focusedWeapon);
+        }
+
+        // 시작 화면의 타일 — 리롤 버튼과 같이 누르는 것임을 바깥 흰 선으로 보인다: button 가득 흰 판 모양, 그 안쪽에 배지 없는 타일(무기는 아이템 타일, 캐릭터는 초상
+        // 타일 — 이름은 카드가 말한다). 강조(고른 캐릭터·초점 무기·마우스를 올린 타일)면 카드 호버처럼 흰 판 모양을 한 텍셀 더 크게 먼저 깐다.
+        void DrawStartTile(Rect button, Sprite sprite, bool highlighted, int line, bool portrait)
+        {
+            if (highlighted)
             {
                 int o = UpgradeCardPainter.HoverOutlineTexels * StartTileScale;
                 PixelGui.FillPlateShape(new Rect(button.x - o, button.y - o, button.width + 2 * o, button.height + 2 * o), StartTileScale, Color.white);
             }
             PixelGui.FillPlateShape(button, StartTileScale, Color.white);
-            ItemTilePainter.Draw(skin, sprite, null, (int)button.x + line, (int)button.y + line, StartTileScale);
+            if (portrait) ItemTilePainter.DrawPortrait(skin, sprite, (int)button.x + line, (int)button.y + line, StartTileScale);
+            else ItemTilePainter.Draw(skin, sprite, null, (int)button.x + line, (int)button.y + line, StartTileScale);
         }
 
         // scale은 버튼의 판·글자 배율. 띠의 숫자는 타일 배지와 같이 글자 배율이다.

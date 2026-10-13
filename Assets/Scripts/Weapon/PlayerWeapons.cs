@@ -82,6 +82,7 @@ namespace PickShoot
                 throw new System.Exception("[PickShoot] PlayerWeapons는 같은 GameObject의 PlayerStats를 요구합니다 (전역 피해 배율 출처).");
             if (muzzleFlashPrefab == null)
                 throw new System.Exception("[PickShoot] PlayerWeapons.muzzleFlashPrefab 미할당. 씬의 PlayerWeapons에 MuzzleFlash 프리팹(컴포넌트 참조) 필요.");
+            stats.Changed += OnStatsChanged;
 
             ringPivot = new GameObject("WeaponRingPivot").transform;
             ringPivot.SetParent(transform, false);
@@ -118,9 +119,21 @@ namespace PickShoot
 
         void AddSlot(WeaponData data)
         {
-            slots.Add(new Weapon(data));
+            slots.Add(new Weapon(data, stats.MaxAmmoBonus));
             slotVisuals.Add(CreateVisual(data, slots.Count - 1));
             slotRecoil.Add(0f);
+        }
+
+        void OnDestroy()
+        {
+            if (stats != null) stats.Changed -= OnStatsChanged;
+        }
+
+        // 스탯 총계가 바뀌면 (캐릭터 선택·유물 획득) 최대 탄약 가산을 모든 자루에 넣는다 (Characters §5). 다른 스탯은 자루가 알 일이 없다.
+        void OnStatsChanged()
+        {
+            for (int i = 0; i < slots.Count; i++)
+                slots[i].SetMaxAmmoBonus(stats.MaxAmmoBonus);
         }
 
         void LateUpdate()

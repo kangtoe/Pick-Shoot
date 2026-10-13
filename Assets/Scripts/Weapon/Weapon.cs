@@ -8,6 +8,7 @@ namespace PickShoot
     // 쿨다운은 레벨과 무관한 무기 특성이라 오르지 않는다 (Weapons §3).
     // 새로 획득한 자루는 항상 Lv.1로 시작하고 MaxLevel까지 오른다 (Weapons §3).
     // 피해에는 플레이어 전역 배율(PlayerStats의 공격력, 유물 — Relics §2)이 곱해진다. Weapon은 플레이어를 모르므로 발사 때 호출자(PlayerWeapons)가 넘긴다.
+    // 최대 탄약에는 플레이어 가산(PlayerStats의 최대 탄약, 캐릭터 — Characters §3·§5)이 더해진다 — 만들 때 받고, 총계가 바뀌면 호출자가 SetMaxAmmoBonus로 갱신한다.
     // 개조(ModData, Mods §1)는 자루당 하나, 붙으면 런이 끝날 때까지 그대로다. 새 자루는 개조 없이 들어오고, 레벨업해도 유지된다.
     // 개조가 더하는 수치(튕김·관통·폭발 반경)는 ...With 함수가 자산 값에 얹어 계산한다 — 카드가 붙인 뒤의 값을 미리 보일 때도 같은 식을 쓴다.
     public class Weapon
@@ -22,6 +23,8 @@ namespace PickShoot
         // 시작한 점사에서 아직 쏘지 않은 사격 수. 0이면 점사 중이 아니다 (Weapons §8).
         int burstShotsLeft;
         ModData mod;
+        // 플레이어의 최대 탄약 가산 (PlayerStats.MaxAmmoBonus). 모든 자루에 같은 값.
+        int maxAmmoBonus;
 
         public WeaponData Data => data;
         // 붙은 개조. 없으면 null.
@@ -29,7 +32,7 @@ namespace PickShoot
         public int Level => level;
         public bool IsMaxLevel => level >= MaxLevel;
         public int CurrentAmmo => currentAmmo;
-        public int MaxAmmo => MaxAmmoAtLevel(data, level);
+        public int MaxAmmo => MaxAmmoAtLevel(data, level, maxAmmoBonus);
         // 점사 중 — burstInterval 뒤 CanFire가 다시 참이 되면 호출자가 사격 버튼과 무관하게 다시 Fire한다 (Weapons §8).
         public bool IsBursting => burstShotsLeft > 0;
         // 쿨다운은 레벨로 줄지 않는다 — 사격 리듬은 무기의 특성 (Weapons §3).
@@ -45,33 +48,38 @@ namespace PickShoot
             return Mathf.Max(1, Mathf.RoundToInt((data.Damage + data.LevelDamageAdd * (level - 1)) * globalMultiplier));
         }
 
-        public static int MaxAmmoAtLevel(WeaponData data, int level)
+        // 최대 탄약 = 자산 값 + 레벨 가산 × (레벨−1) + 플레이어 가산 (Weapons §3, Characters §5). 고정 탄창(가산 0) 무기에도 플레이어 가산은 더한다.
+        // 가산이 음수(앞으로의 유니크 유물 패널티)라 탄창이 1 미만이면 쏠 수 없는 자루라 예외.
+        public static int MaxAmmoAtLevel(WeaponData data, int level, int playerBonus)
         {
-            return data.MaxAmmo + (level - 1) * data.LevelMaxAmmoAdd;
+            int ammo = data.MaxAmmo + (level - 1) * data.LevelMaxAmmoAdd + playerBonus;
+            if (ammo < 1)
+                throw new System.Exception($"[PickShoot] Weapon.MaxAmmoAtLevel: '{data.DisplayName}' Lv{level}의 최대 탄약이 1 미만 ({ammo}). 플레이어 최대 탄약 가산 {playerBonus}이 탄창을 다 깎음.");
+            return ammo;
         }
 
         // 한 사격 차례의 사격 수 — 점사 수가 그 레벨의 탄창으로 쏠 수 있는 사격 수를 넘으면 탄창이 빌 때까지가 한 차례다 (Weapons §8, 블래스터).
-        public static int ShotsPerTriggerAtLevel(WeaponData data, int level)
+        public static int ShotsPerTriggerAtLevel(WeaponData data, int level, int playerAmmoBonus)
         {
-            int shotsInMagazine = Mathf.CeilToInt((float)MaxAmmoAtLevel(data, level) / data.ProjectilesPerShot);
+            int shotsInMagazine = Mathf.CeilToInt((float)MaxAmmoAtLevel(data, level, playerAmmoBonus) / data.ProjectilesPerShot);
             return Mathf.Min(data.BurstCount, shotsInMagazine);
         }
 
         // 분당 사격 수 — 점사 안의 사격도 하나씩 센다. 한 차례는 점사 사격 수만큼의 사격(사이마다 점사 간격)과 그 뒤 쿨다운이다. 카드의 FIRE RATE는 이 값의 1/10
         // (ItemInfoText, Weapons §3). 사격 하나가 카드의 DMG 한 번(산탄이면 `10X3` 전체)이라 DMG × 이 값이 분당 피해다. 자루마다 제 쿨다운대로 쏘므로(Weapons §1)
         // 이 값이 곧 그 자루의 사격 빈도다.
-        public static float ShotsPerMinuteAtLevel(WeaponData data, int level)
+        public static float ShotsPerMinuteAtLevel(WeaponData data, int level, int playerAmmoBonus)
         {
-            int shots = ShotsPerTriggerAtLevel(data, level);
+            int shots = ShotsPerTriggerAtLevel(data, level, playerAmmoBonus);
             return 60f * shots / (data.Cooldown + data.BurstInterval * (shots - 1));
         }
 
         // 한 번의 사격에 나가는 탄환 수 = 동시 발사 수(산탄), 그 레벨의 탄창이 상한. 카드의 DMG가 'X발수'로 보여준다.
         // 점사 수는 곱하지 않는다 (2026-10-07) — 카드에 BURST 줄이 따로 서므로 곱하면 같은 수가 두 번 들어가고, 블래스터 고레벨의
         // "108X24" 같은 값은 카드 폭을 넘긴다.
-        public static int BulletsPerShotAtLevel(WeaponData data, int level)
+        public static int BulletsPerShotAtLevel(WeaponData data, int level, int playerAmmoBonus)
         {
-            return Mathf.Min(data.ProjectilesPerShot, MaxAmmoAtLevel(data, level));
+            return Mathf.Min(data.ProjectilesPerShot, MaxAmmoAtLevel(data, level, playerAmmoBonus));
         }
 
         // 개조가 더한 튕김 횟수·관통 (Mods §2.3·§2.4). mod가 null이면 자산 값.
@@ -94,7 +102,8 @@ namespace PickShoot
             return data.ExplosionRadius * mod.ExplosionRadiusMultiplier;
         }
 
-        public Weapon(WeaponData data)
+        // maxAmmoBonus는 만드는 시점의 플레이어 최대 탄약 가산 (PlayerStats.MaxAmmoBonus). 새 자루는 그 탄창으로 가득 차 들어온다.
+        public Weapon(WeaponData data, int maxAmmoBonus)
         {
             if (data == null)
                 throw new System.Exception("[PickShoot] Weapon 생성자에 WeaponData가 null.");
@@ -114,8 +123,20 @@ namespace PickShoot
             if (data.LevelMaxAmmoAdd < 0)
                 throw new System.Exception($"[PickShoot] WeaponData '{data.DisplayName}'의 levelMaxAmmoAdd가 음수 ({data.LevelMaxAmmoAdd}). 0(고정 탄창) 이상이어야 함 (Weapons §3).");
             this.data = data;
+            this.maxAmmoBonus = maxAmmoBonus;
             currentAmmo = MaxAmmo;
             nextReadyTime = 0f;
+        }
+
+        // 플레이어 최대 탄약 가산이 바뀌면 (PlayerStats.Changed) 호출자가 모든 자루에 넣는다. 레벨업과 같이 오른 만큼 현재 탄약도 채우고, 내리면 현재 탄약을
+        // 최대치 아래로 자른다. 지금은 러닝 시작의 캐릭터 선택이 유일한 출처라 자루가 생기기 전에 정해진다 (Characters §3).
+        public void SetMaxAmmoBonus(int bonus)
+        {
+            if (bonus == maxAmmoBonus) return;
+            int before = MaxAmmo;
+            maxAmmoBonus = bonus;
+            int after = MaxAmmo;
+            currentAmmo = after > before ? currentAmmo + (after - before) : Mathf.Min(currentAmmo, after);
         }
 
         // 탄약이 한 번 사격분(ProjectilesPerShot)에 못 미쳐도 1발이라도 있으면 쏠 수 있다 (Weapons §4).

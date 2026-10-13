@@ -10,7 +10,8 @@ namespace PickShoot
     // 이동: 가까운 적·스폰 예고에서 멀어지는 힘 + 정착한 탄환으로 끌리는 힘 + 아레나 안쪽으로 미는 힘의 합을 8방향 키로 양자화.
     // 조준·사격: 가장 가까운 적에 커서를 두고 탄약이 있으면 좌클릭을 유지. 적이 붙으면 대시. 웨이브 사이 등 할 일이 없으면 중앙으로.
     // 카드 화면: IMGUI 버튼이라 가상 마우스로 못 누르므로 등장 연출이 끝난 뒤 UpgradeManager.Select를 reflection으로 부른다.
-    // 러닝 시작의 무기 고르기도 같은 길이다 — currentCards가 풀의 모든 무기라 시작 무기도 무작위로 고른다.
+    // 러닝 시작 화면(startPick)도 같은 길이다 — characterPool에서 SelectCharacter로 무작위 캐릭터를 고르고 곧바로 currentCards(그 캐릭터의 시작 무기)에서 무작위
+    // 무기를 Select한다 (Characters §5). 화면의 밀어내기 연출은 거치지 않는다.
     // 사망: 데스 화면이 뜬 뒤 R을 한 프레임 눌러 재시작한다. 난수는 고정 시드 — 카드 선택만 봇의 몫이고 스폰은 게임의 난수를 따른다.
     public class PickShootPlayDriver : IPlayDriver
     {
@@ -30,6 +31,9 @@ namespace PickShoot
         static readonly MethodInfo SelectMethod = typeof(UpgradeManager).GetMethod("Select", BindingFlags.Instance | BindingFlags.NonPublic);
         static readonly FieldInfo CardsShownAtField = typeof(UpgradeManager).GetField("cardsShownAt", BindingFlags.Instance | BindingFlags.NonPublic);
         static readonly FieldInfo CurrentCardsField = typeof(UpgradeManager).GetField("currentCards", BindingFlags.Instance | BindingFlags.NonPublic);
+        static readonly MethodInfo SelectCharacterMethod = typeof(UpgradeManager).GetMethod("SelectCharacter", BindingFlags.Instance | BindingFlags.NonPublic);
+        static readonly FieldInfo StartPickField = typeof(UpgradeManager).GetField("startPick", BindingFlags.Instance | BindingFlags.NonPublic);
+        static readonly FieldInfo CharacterPoolField = typeof(UpgradeManager).GetField("characterPool", BindingFlags.Instance | BindingFlags.NonPublic);
 
         Keyboard keyboard;
         Mouse mouse;
@@ -45,8 +49,9 @@ namespace PickShoot
 
         public void Begin()
         {
-            if (SelectMethod == null || CardsShownAtField == null || CurrentCardsField == null)
-                throw new System.Exception("[PickShoot] PickShootPlayDriver: UpgradeManager의 Select/cardsShownAt/currentCards를 찾지 못함 — 이름이 바뀌었으면 봇도 고쳐야 한다.");
+            if (SelectMethod == null || CardsShownAtField == null || CurrentCardsField == null
+                || SelectCharacterMethod == null || StartPickField == null || CharacterPoolField == null)
+                throw new System.Exception("[PickShoot] PickShootPlayDriver: UpgradeManager의 Select/cardsShownAt/currentCards/SelectCharacter/startPick/characterPool을 찾지 못함 — 이름이 바뀌었으면 봇도 고쳐야 한다.");
             keyboard = InputSystem.AddDevice<Keyboard>();
             mouse = InputSystem.AddDevice<Mouse>();
             lastScreen = new Vector2(Screen.width * 0.5f, Screen.height * 0.5f);
@@ -85,11 +90,20 @@ namespace PickShoot
             // Select 뒤 PresentAndWait가 다음 프레임에 닫으므로 한 화면에 두 번 고르지 않도록 뽑힌 시각으로 구분한다.
             if (shownAt == selectedShownAt) { Status = "card chosen, closing"; return; }
             if (Time.unscaledTime - shownAt < CardWaitSeconds) { Status = "cards shown"; return; }
+            // 시작 화면 — 캐릭터를 고르면 currentCards가 그 캐릭터의 시작 무기로 바뀌므로 이어서 무기를 고른다.
+            string character = "";
+            if ((bool)StartPickField.GetValue(upgrades))
+            {
+                var pool = (System.Collections.IList)CharacterPoolField.GetValue(upgrades);
+                int c = rng.Next(pool.Count);
+                SelectCharacterMethod.Invoke(upgrades, new object[] { c });
+                character = $"character {c}, ";
+            }
             var cards = (System.Array)CurrentCardsField.GetValue(upgrades);
             int index = rng.Next(cards.Length);
             SelectMethod.Invoke(upgrades, new object[] { index });
             selectedShownAt = shownAt;
-            Status = $"card {index} chosen";
+            Status = $"{character}card {index} chosen";
         }
 
         // 데스 화면은 사망 1초 뒤에 뜬다. 3초마다 R을 눌러 재시작을 시도한다 (화면이 뜨기 전의 R은 무시된다).

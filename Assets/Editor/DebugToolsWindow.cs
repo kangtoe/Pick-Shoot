@@ -209,10 +209,12 @@ namespace PickShoot
             }
         }
 
-        // 보유 유물(종류별 개수, 처음 얻은 순서)과 스탯 총계. 총계는 유물이 더한 수정치의 합이라 유물이 없으면 전부 0이다.
+        // 보유 유물(종류별 개수, 처음 얻은 순서)과 스탯 총계. 총계는 캐릭터와 유물이 더한 수정치의 합 (Characters §5) — 캐릭터 이름을 함께 보인다.
+        // 캐릭터 바꾸기는 두지 않는다 — 러닝 시작 전에만 뜻이 있다.
         void DrawRelics(PlayerStats stats)
         {
             var relics = stats.Relics;
+            GUILayout.Label($"Character  {(stats.Character != null ? stats.Character.DisplayName : "(none)")}", EditorStyles.boldLabel);
             GUILayout.Label($"Relics  {relics.Count}", EditorStyles.boldLabel);
             var listed = new List<RelicData>();
             foreach (var r in relics)

@@ -89,11 +89,12 @@ namespace PickShoot
         // 화면 픽셀에 맞춰 그린다. 아래 값은 월드 텍셀(스프라이트 픽셀, PPU 16) 단위.
         //   Width: 폭. 캐릭터의 보이는 폭이 약 21텍셀이라 그보다 조금 좁게.
         //   Thickness: 두께.
-        //   SpriteTopPadding: 캐릭터 시트가 타일 위쪽에 두는 투명 여백 (걷기 5, 정지 6). 보이는 머리 꼭대기를 잡는 기준.
+        //   SpriteTopPadding: 캐릭터 시트가 타일 위쪽에 두는 투명 여백 — platformer_characters.png 32×32 격자의 헬멧 캐릭터는 정지 포즈 2, 걷기 1 (Characters §3,
+        //                     2026-10-13. 사막 팩 고양이 때는 걷기 5·정지 6으로 5였다). 보이는 머리 꼭대기를 잡는 기준.
         //   Gap: 보이는 머리 꼭대기에서 게이지 아래 가장자리까지.
         const int PlayerGaugeWidthTexels = 16;
         const int PlayerGaugeThicknessTexels = 3;
-        const int PlayerSpriteTopPaddingTexels = 5;
+        const int PlayerSpriteTopPaddingTexels = 2;
         const int PlayerGaugeGapTexels = 2;
         // 머리 위 대시 쿨다운 원판. 체력 게이지와 같이 캔버스 밖에서 월드 텍셀 크기로 그린다 (RadialFillTexture가 텍셀 단위로 래스터라이즈).
         // 체력 게이지가 보이든 말든(풀피면 숨는다) 늘 게이지 자리 위쪽 같은 곳에 뜬다 — 피격 순간 표시가 튀어 오르지 않게.
@@ -241,6 +242,9 @@ namespace PickShoot
             bool showGauge = playerHealth.Current < playerHealth.Max;
             bool showDashDial = !playerMovement.DashReady;
             if (!showGauge && !showDashDial) return;
+            // 플레이어 그림은 러닝 시작 화면에서 고른 캐릭터의 것이다 (Characters §5). 그 화면이 떠 있는 동안 HUD는 숨으므로 여기서 비어 있으면 흐름이 어긋난 것.
+            if (playerSprite.sprite == null)
+                throw new System.Exception("[PickShoot] GameHud: 플레이어 스프라이트가 비어 있음 — 캐릭터를 고르기 전에 HUD가 그려짐.");
 
             var b = playerSprite.bounds;
             float unitsPerTexel = 1f / playerSprite.sprite.pixelsPerUnit;
