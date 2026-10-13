@@ -29,6 +29,13 @@ MonoBehaviour:
   - {fileID: 11400000, guid: bdfd639950254a9abcb189e1e601ebc9, type: 2}
   - {fileID: 11400000, guid: d62b0ebd8d53e731acf6479cb7712ead, type: 2}
   - {fileID: 11400000, guid: c1a2b3d4e5f6789012345abcdef01234, type: 2}
-  abilityKind: 0
-  abilityCooldown: 1.5
-  abilityDescription: DASH THROUGH ENEMIES
+  abilityKind: 1
+  abilityCooldown: 7
+  abilityInvulnerability: 0.5
+  dashDistance: 0
+  dashEvadeGrace: 0
+  abilityRadius: 7.2
+  shockwaveKnockback: 0
+  abilityClip: {fileID: 8300000, guid: 47b65457b23f4e64b882ce9362c7453f, type: 3}
+  abilityVolume: 0.5
+  abilityDescription: PULL NEARBY BULLETS

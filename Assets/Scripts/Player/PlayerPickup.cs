@@ -6,6 +6,7 @@ namespace PickShoot
 {
     // 탄환 회수 (GDD §3.2): 자석 반경에 들어온 탄환을 끌어와 pickupRadius 안에서 귀속 무기의 탄창에 넣는다.
     // 자석 반경과 끌림 속도는 PlayerStats의 배율(유물의 회수 범위·회수 속도, Relics §2)을 받는다. 흡수 거리(pickupRadius)와 sweep 속도는 그대로.
+    // 회수 펄스 능력(Characters §2)은 반경 안의 탄환을 한 번에 자석에 건다 (Pulse) — 걸린 뒤는 평소 자석과 같다.
     [RequireComponent(typeof(PlayerStats))]
     public class PlayerPickup : MonoBehaviour
     {
@@ -160,6 +161,28 @@ namespace PickShoot
             if (pickupEffectPrefab != null)
                 Instantiate(pickupEffectPrefab, position, Quaternion.identity);
             if (pickupClip != null) SoundPlayer.Play(pickupClip, pickupVolume);
+        }
+
+        // 회수 펄스 (Characters §2): 플레이어 중심 radius 안의 탄환을 페이즈·발사 직후 여부와 무관하게 전부 건다 — 웨이브 클리어 sweep의 거는 일을 반경 안으로
+        // 좁힌 것이다. 날아가는 탄환은 그 자리에서 튕김 페이즈가 끝나 남은 튕김·관통을 버리고(Bullet.Magnetize), 수집형이 끌어 둔 탄환은 자석에 걸리는 순간
+        // 수집형이 손을 뗀다. 끌림은 처음부터 최대다 — 평소처럼 0에서 차오르면 먼 탄환이 머뭇거리다 와서 빨아들이는 느낌이 나지 않는다. 끌어오기·회수는
+        // FixedUpdate의 평소 자석 경로가 맡는다.
+        // 반경은 탄환 중심까지의 거리로 잰다. 이미 걸린 탄환은 콜라이더가 꺼져 있어도 상관없도록 물리 조회 대신 모든 탄환을 훑는다 (sweep과 같다).
+        public void Pulse(float radius)
+        {
+            if (radius <= 0f)
+                throw new System.Exception($"[PickShoot] PlayerPickup.Pulse: 반경은 양수여야 함 ({radius}).");
+            Vector2 center = transform.position;
+            float radiusSqr = radius * radius;
+            foreach (var bullet in FindObjectsByType<Bullet>(FindObjectsSortMode.None))
+            {
+                if (bullet.IsMagnetized) continue;
+                if (((Vector2)bullet.transform.position - center).sqrMagnitude > radiusSqr) continue;
+
+                bullet.Magnetize();
+                bullet.MagnetPull = 1f;
+                magnetized.Add(bullet);
+            }
         }
 
         // sweep 중에는 거리·페이즈·발사 직후 여부와 무관하게 전부 건다. 그사이 새로 발사된 탄환도 다음 스텝에 걸린다.

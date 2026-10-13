@@ -35,4 +35,11 @@ MonoBehaviour:
   - {fileID: 11400000, guid: 58079aef756d4ecbb86608b1608e74d4, type: 2}
   abilityKind: 0
   abilityCooldown: 1.5
+  abilityInvulnerability: 0
+  dashDistance: 3
+  dashEvadeGrace: 0.2
+  abilityRadius: 0
+  shockwaveKnockback: 0
+  abilityClip: {fileID: 8300000, guid: bdcad12f2d0bdfc4ba0ac15f83be152a, type: 3}
+  abilityVolume: 0.8
   abilityDescription: DASH THROUGH ENEMIES

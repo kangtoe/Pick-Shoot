@@ -6,7 +6,7 @@ namespace PickShoot
     // 인게임 HUD 단일 창구. PixelUiSkin(Kenney Interface 시트)으로 OnGUI에 그린다.
     //   체력: 좌상단에 시트 게이지와 현재/최대 숫자, 플레이어 머리 위에는 비율만 보이는 작은 게이지.
     //   경험치: 하단 중앙에 레벨("LV N")과 지금 레벨 구간의 게이지 (GDD §3.3). 숫자는 없다 — 누적 총량은 일시정지 화면이 보인다.
-    //   대시: 쿨다운 중에만 머리 위 체력 게이지 위쪽에 시계 방향으로 차오르는 작은 원판 (GDD §3.5).
+    //   능력: 쿨다운 중에만 머리 위 체력 게이지 위쪽에 시계 방향으로 차오르는 작은 원판 — 대시·펄스·충격파 공통 (Characters §1).
     //   무기: 링에서 조준 기준 왼쪽에 있는 슬롯은 화면 하단 왼쪽 구석, 오른쪽 슬롯은 하단 오른쪽 구석에 거울상으로.
     //         패널 배경 없이 슬롯마다 한 줄(스프라이트 · 레벨 · 탄창)만 바닥 위에 바로 그린다. 스프라이트 밑에만 작은 판을 깐다.
     //   웨이브: 상단 중앙 배너 + 남은 시간 바.
@@ -52,8 +52,8 @@ namespace PickShoot
         // 플레이어 머리 위 체력 게이지의 색. 테두리 없이 바탕 위에 남은 비율만큼 채운다. 채움 기본값은 시트 게이지 채움 조각의 붉은색.
         [SerializeField] Color playerGaugeBackColor = Color.black;
         [SerializeField] Color playerGaugeFillColor = new Color32(221, 103, 76, 255);
-        // 머리 위 대시 쿨다운 원판의 채움 색. 바탕은 체력 게이지와 같은 playerGaugeBackColor.
-        [SerializeField] Color dashDialFillColor = Color.white;
+        // 머리 위 능력 쿨다운 원판의 채움 색. 바탕은 체력 게이지와 같은 playerGaugeBackColor.
+        [SerializeField] Color abilityDialFillColor = Color.white;
 
         // IMGUI는 depth가 작을수록 위에 그린다. 다른 스크립트는 기본값 0이므로 HUD는 그 뒤에 깔린다.
         const int HudGuiDepth = 10;
@@ -96,19 +96,19 @@ namespace PickShoot
         const int PlayerGaugeThicknessTexels = 3;
         const int PlayerSpriteTopPaddingTexels = 2;
         const int PlayerGaugeGapTexels = 2;
-        // 머리 위 대시 쿨다운 원판. 체력 게이지와 같이 캔버스 밖에서 월드 텍셀 크기로 그린다 (RadialFillTexture가 텍셀 단위로 래스터라이즈).
+        // 머리 위 능력 쿨다운 원판. 체력 게이지와 같이 캔버스 밖에서 월드 텍셀 크기로 그린다 (RadialFillTexture가 텍셀 단위로 래스터라이즈).
         // 체력 게이지가 보이든 말든(풀피면 숨는다) 늘 게이지 자리 위쪽 같은 곳에 뜬다 — 피격 순간 표시가 튀어 오르지 않게.
         //   Radius: 중심 텍셀에서 센 반경. 3이면 지름 7텍셀.
         //   Gap: 체력 게이지 위 가장자리에서 원판 아래 가장자리까지.
-        const int DashDialRadiusTexels = 3;
-        const int DashDialGapTexels = 2;
+        const int AbilityDialRadiusTexels = 3;
+        const int AbilityDialGapTexels = 2;
 
-        PlayerMovement playerMovement;
+        PlayerAbility playerAbility;
         SpriteRenderer playerSprite;
         Camera cam;
         readonly List<int> sideSlots = new List<int>(PlayerWeapons.MaxSlots);
         readonly CrosshairTexture crosshair = new CrosshairTexture();
-        readonly RadialFillTexture dashDial = new RadialFillTexture();
+        readonly RadialFillTexture abilityDial = new RadialFillTexture();
         // 크로스헤어 링이 사격으로 벌어져 있는 양 (텍셀, 0 = 제자리). 발사 시 세팅되고 지수 감쇠로 복귀.
         float cursorRingKick;
         // 무기 줄의 레벨 열 폭(텍셀). 레벨은 한 자리(1~Weapon.MaxLevel)뿐이라 "LV n" 중 가장 넓은 것에 맞춰 Awake에서 한 번 잰다 —
@@ -136,9 +136,9 @@ namespace PickShoot
                 throw new System.Exception("[PickShoot] GameHud.pauseScreen 미할당 (일시정지 중 HUD 숨김 판정에 필요).");
             if (experience == null)
                 throw new System.Exception("[PickShoot] GameHud.experience 미할당 (하단 중앙 경험치 게이지에 필요).");
-            playerMovement = playerHealth.GetComponent<PlayerMovement>();
-            if (playerMovement == null)
-                throw new System.Exception("[PickShoot] GameHud: 플레이어에 PlayerMovement 없음 (대시 쿨다운 표시에 필요).");
+            playerAbility = playerHealth.GetComponent<PlayerAbility>();
+            if (playerAbility == null)
+                throw new System.Exception("[PickShoot] GameHud: 플레이어에 PlayerAbility 없음 (능력 쿨다운 표시에 필요).");
             playerSprite = playerHealth.GetComponent<SpriteRenderer>();
             if (playerSprite == null)
                 throw new System.Exception("[PickShoot] GameHud: 플레이어에 SpriteRenderer 없음 (머리 위 게이지 위치 기준).");
@@ -160,7 +160,7 @@ namespace PickShoot
         {
             if (playerWeapons != null) playerWeapons.Fired -= OnWeaponFired;
             crosshair.Dispose();
-            dashDial.Dispose();
+            abilityDial.Dispose();
         }
 
         void Update()
@@ -234,14 +234,14 @@ namespace PickShoot
             PixelGui.DrawTextCentered(font, LevelLabel(experience.Level), centerX, (int)bar.y - gap - font.lineHeight * s, s);
         }
 
-        // 플레이어 스프라이트 위에 체력 비율 게이지와 대시 쿨다운 원판을 가운데 정렬로 띄운다 (숫자 없음).
-        // 게이지는 풀피면, 원판은 대시가 준비되면 그리지 않는다 — 다쳤을 때·쿨다운 중에만 눈에 띄게.
+        // 플레이어 스프라이트 위에 체력 비율 게이지와 능력 쿨다운 원판을 가운데 정렬로 띄운다 (숫자 없음).
+        // 게이지는 풀피면, 원판은 능력이 준비되면 그리지 않는다 — 다쳤을 때·쿨다운 중에만 눈에 띄게.
         // 캔버스 밖에서 호출한다 — 좌표·크기는 화면 픽셀.
         void DrawPlayerOverhead()
         {
             bool showGauge = playerHealth.Current < playerHealth.Max;
-            bool showDashDial = !playerMovement.DashReady;
-            if (!showGauge && !showDashDial) return;
+            bool showAbilityDial = !playerAbility.Ready;
+            if (!showGauge && !showAbilityDial) return;
             // 플레이어 그림은 러닝 시작 화면에서 고른 캐릭터의 것이다 (Characters §5). 그 화면이 떠 있는 동안 HUD는 숨으므로 여기서 비어 있으면 흐름이 어긋난 것.
             if (playerSprite.sprite == null)
                 throw new System.Exception("[PickShoot] GameHud: 플레이어 스프라이트가 비어 있음 — 캐릭터를 고르기 전에 HUD가 그려짐.");
@@ -271,12 +271,12 @@ namespace PickShoot
                 PixelGui.FillRect(new Rect(x, barY, fillW, barH), playerGaugeFillColor);
             }
 
-            if (showDashDial)
+            if (showAbilityDial)
             {
-                dashDial.Refresh(DashDialRadiusTexels, playerMovement.DashCooldownProgress, dashDialFillColor, playerGaugeBackColor);
-                int size = Mathf.RoundToInt(dashDial.SizeTexels * texelPx);
-                int y = barY - Mathf.RoundToInt(DashDialGapTexels * texelPx) - size;
-                GUI.DrawTexture(new Rect(centerX - size / 2, y, size, size), dashDial.Texture, ScaleMode.StretchToFill, true);
+                abilityDial.Refresh(AbilityDialRadiusTexels, playerAbility.CooldownProgress, abilityDialFillColor, playerGaugeBackColor);
+                int size = Mathf.RoundToInt(abilityDial.SizeTexels * texelPx);
+                int y = barY - Mathf.RoundToInt(AbilityDialGapTexels * texelPx) - size;
+                GUI.DrawTexture(new Rect(centerX - size / 2, y, size, size), abilityDial.Texture, ScaleMode.StretchToFill, true);
             }
         }
 

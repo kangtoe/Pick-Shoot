@@ -9,6 +9,7 @@ namespace PickShoot
     // 유물(PlayerStats, Relics §2)로 최대 체력이 오르면 오른 만큼 현재 체력도 더하고, 재생 스탯이 있으면 regenBaseInterval ÷ 재생 수치마다 체력 1을
     // 회복한다 — 가득 차면 타이머를 멈춰 피격 직후 바로 차지 않는다. 회복 때 머리 위에 "+1"이 레벨 업 문구와 같은 움직임으로 뜬다.
     [RequireComponent(typeof(PlayerMovement))]
+    [RequireComponent(typeof(PlayerAbility))]
     [RequireComponent(typeof(PlayerStats))]
     public class PlayerHealth : MonoBehaviour
     {
@@ -50,6 +51,7 @@ namespace PickShoot
         float damageFlashStart = -1f;
         SpriteRenderer sr;
         PlayerMovement movement;
+        PlayerAbility ability;
         Color originalColor;
 
         public int Current => current;
@@ -73,6 +75,9 @@ namespace PickShoot
             current = max;
             sr = GetComponent<SpriteRenderer>();
             movement = GetComponent<PlayerMovement>();
+            ability = GetComponent<PlayerAbility>();
+            if (ability == null)
+                throw new System.Exception("[PickShoot] PlayerHealth: 플레이어에 PlayerAbility 없음 (능력 발동 무적 판정에 필요).");
             if (sr != null) originalColor = sr.color;
             experience.LeveledUp += OnLeveledUp;
             stats.Changed += OnStatsChanged;
@@ -171,10 +176,11 @@ namespace PickShoot
         }
 
         // 회피 중(대시 + 끝난 뒤 짧은 유예)에는 어떤 피해도 받지 않는다 (GDD §3.5). 적의 몸은 PlayerMovement가 충돌을 꺼서 통과시키므로 접촉 피해는 애초에
-        // 들어오지 않고, 여기서는 접촉 없이 들어오는 피해(추후 적 탄환 등)까지 막는다. false를 받은 공격은 빗나간 것으로 다뤄야 한다.
+        // 들어오지 않고, 여기서는 접촉 없이 들어오는 피해(추후 적 탄환 등)까지 막는다. 능력 발동 무적(PlayerAbility, Characters §1)도 같이 막는다 — 이때는 몸이
+        // 부딪힌 채라 접촉이 계속 들어오고, 풀린 뒤에도 겹쳐 있으면 그때 피해를 입는다. false를 받은 공격은 빗나간 것으로 다뤄야 한다.
         public bool TryTakeDamage(int amount)
         {
-            if (!IsAlive || IsInvincible || movement.IsEvading) return false;
+            if (!IsAlive || IsInvincible || movement.IsEvading || ability.IsInvulnerable) return false;
             current -= amount;
             invincibleUntil = Time.time + invincibilityTime;
             damageFlashStart = Time.time;

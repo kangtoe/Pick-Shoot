@@ -138,6 +138,7 @@ GameObject:
   - component: {fileID: 142563685}
   - component: {fileID: 142563686}
   - component: {fileID: 142563687}
+  - component: {fileID: 142563688}
   m_Layer: 0
   m_Name: Player
   m_TagString: Player
@@ -173,14 +174,10 @@ MonoBehaviour:
   acceleration: 60
   friction: 15
   wallBounceRetention: 0.75
-  dashDistance: 3
   dashDuration: 0.1
-  dashEvadeGrace: 0.2
   dashPassThroughLayers:
     serializedVersion: 2
     m_Bits: 512
-  dashClip: {fileID: 8300000, guid: bdcad12f2d0bdfc4ba0ac15f83be152a, type: 3}
-  dashVolume: 0.8
   afterimageSpacing: 0.5
   afterimageDuration: 0.25
   afterimageColor: {r: 0.6, g: 0.85, b: 1, a: 0.6}
@@ -416,6 +413,25 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 2095a467c3fe4f8ab23be1c26b120fb2, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PickShoot.PlayerStats
+--- !u!114 &142563688
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 142563674}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: de1aae14ae5a4babb304cb1ceea46374, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::PickShoot.PlayerAbility
+  effectPrefab: {fileID: 5441777201564517008, guid: a5486bab73054b20888e22fc455e0e8e, type: 3}
+  pulseEffectColor: {r: 0.55, g: 0.9, b: 1, a: 0.9}
+  shockwaveEffectColor: {r: 1, g: 1, b: 1, a: 1}
+  shieldEffectColor: {r: 0.6, g: 0.85, b: 1, a: 1}
+  shockwaveLayers:
+    serializedVersion: 2
+    m_Bits: 512
 --- !u!1 &358240299
 GameObject:
   m_ObjectHideFlags: 0
@@ -1394,7 +1410,7 @@ MonoBehaviour:
   cursorRingReturnSpeed: 6
   playerGaugeBackColor: {r: 0, g: 0, b: 0, a: 1}
   playerGaugeFillColor: {r: 0.8666667, g: 0.40392157, b: 0.29803923, a: 1}
-  dashDialFillColor: {r: 1, g: 1, b: 1, a: 1}
+  abilityDialFillColor: {r: 1, g: 1, b: 1, a: 1}
 --- !u!114 &2100000201
 MonoBehaviour:
   m_ObjectHideFlags: 0

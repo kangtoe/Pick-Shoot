@@ -158,7 +158,7 @@ namespace PickShoot
         Sprite[] startTiles;
         // 플레이어 껍데기에 캐릭터를 채우는 곳 — stats와 같은 오브젝트 (Characters §5).
         SpriteWalkCycle playerWalkCycle;
-        PlayerMovement playerMovement;
+        PlayerAbility playerAbility;
 
         public bool IsActive => active;
 
@@ -187,9 +187,9 @@ namespace PickShoot
             playerWalkCycle = stats.GetComponent<SpriteWalkCycle>();
             if (playerWalkCycle == null)
                 throw new System.Exception("[PickShoot] UpgradeManager: 플레이어에 SpriteWalkCycle 없음 (캐릭터 그림을 채우는 데 필요).");
-            playerMovement = stats.GetComponent<PlayerMovement>();
-            if (playerMovement == null)
-                throw new System.Exception("[PickShoot] UpgradeManager: 플레이어에 PlayerMovement 없음 (캐릭터 능력을 채우는 데 필요).");
+            playerAbility = stats.GetComponent<PlayerAbility>();
+            if (playerAbility == null)
+                throw new System.Exception("[PickShoot] UpgradeManager: 플레이어에 PlayerAbility 없음 (캐릭터 능력을 채우는 데 필요).");
             if (characterPool.Count == 0)
                 throw new System.Exception("[PickShoot] UpgradeManager.characterPool이 비어있음. 최소 1종의 CharacterData 필요 (시작 화면 캐릭터 후보, Assets/Data/Characters).");
             characterTiles = new Sprite[characterPool.Count];
@@ -277,7 +277,7 @@ namespace PickShoot
             var character = characterPool[index];
             stats.SetCharacter(character);
             playerWalkCycle.SetFrames(character.Frames);
-            playerMovement.SetAbility(character.AbilityKind, character.AbilityCooldown);
+            playerAbility.SetCharacter(character);
 
             var startWeapons = character.StartWeapons;
             currentCards = new UpgradeOption[startWeapons.Count];

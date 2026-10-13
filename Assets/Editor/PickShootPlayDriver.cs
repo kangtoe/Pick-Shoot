@@ -8,7 +8,7 @@ namespace PickShoot
 {
     // 녹화용 자동 플레이 봇 (PlayRecorder의 IPlayDriver). 가상 키보드·마우스 장치에 매 프레임 상태 이벤트를 넣는다.
     // 이동: 가까운 적·스폰 예고에서 멀어지는 힘 + 정착한 탄환으로 끌리는 힘 + 아레나 안쪽으로 미는 힘의 합을 8방향 키로 양자화.
-    // 조준·사격: 가장 가까운 적에 커서를 두고 탄약이 있으면 좌클릭을 유지. 적이 붙으면 대시. 웨이브 사이 등 할 일이 없으면 중앙으로.
+    // 조준·사격: 가장 가까운 적에 커서를 두고 탄약이 있으면 좌클릭을 유지. 적이 붙으면 능력(대시·펄스·충격파 — 캐릭터마다 하나). 웨이브 사이 등 할 일이 없으면 중앙으로.
     // 카드 화면: IMGUI 버튼이라 가상 마우스로 못 누르므로 등장 연출이 끝난 뒤 UpgradeManager.Select를 reflection으로 부른다.
     // 러닝 시작 화면(startPick)도 같은 길이다 — characterPool에서 SelectCharacter로 무작위 캐릭터를 고르고 곧바로 currentCards(그 캐릭터의 시작 무기)에서 무작위
     // 무기를 Select한다 (Characters §5). 화면의 밀어내기 연출은 거치지 않는다.
@@ -20,11 +20,11 @@ namespace PickShoot
         const float MarkerAvoidRadius = 3f;
         const float BulletSeekRadius = 14f;
         const float SafeHalfExtent = 11f;         // 아레나 안쪽 면(14)에서 여유를 둔 활동 범위
-        const float DashDangerDistance = 1.8f;
+        const float AbilityDangerDistance = 1.8f;
         const float FireRange = 12f;
         const float CardWaitSeconds = 1.5f;       // 카드가 뽑힌 뒤 고르기까지 (실시간). 등장 연출(약 0.64초)보다 길어야 한다.
         const float RestartWaitSeconds = 3f;
-        const int DashRepeatFrames = 15;
+        const int AbilityRepeatFrames = 15;
         const float KeyThreshold = 0.383f;        // sin 22.5° — 8방향 양자화
         const float MoveDeadZone = 0.15f;
 
@@ -41,7 +41,7 @@ namespace PickShoot
         readonly List<Key> keys = new List<Key>(6);
         float selectedShownAt = -1f;
         float deathSeenAt = -1f;
-        int lastDashFrame = -1000;
+        int lastAbilityFrame = -1000;
         Vector2 lastAimDirection = Vector2.right;
         Vector2 lastScreen;
 
@@ -119,7 +119,7 @@ namespace PickShoot
         void TickPlay(GameObject player, int frame)
         {
             Vector2 position = player.transform.position;
-            var movement = player.GetComponent<PlayerMovement>();
+            var ability = player.GetComponent<PlayerAbility>();
             var weapons = player.GetComponent<PlayerWeapons>();
 
             Vector2 avoid = Vector2.zero;
@@ -171,11 +171,11 @@ namespace PickShoot
                 else if (direction.y < -KeyThreshold) keys.Add(Key.S);
             }
 
-            if (movement != null && nearestEnemyDistance < DashDangerDistance && movement.DashReady && !movement.IsDashing
-                && frame - lastDashFrame > DashRepeatFrames)
+            if (ability != null && nearestEnemyDistance < AbilityDangerDistance && ability.Ready
+                && frame - lastAbilityFrame > AbilityRepeatFrames)
             {
                 keys.Add(Key.Space);
-                lastDashFrame = frame;
+                lastAbilityFrame = frame;
             }
 
             Vector2 aimWorld;
