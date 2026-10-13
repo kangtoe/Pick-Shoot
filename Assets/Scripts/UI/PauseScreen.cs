@@ -13,7 +13,7 @@ namespace PickShoot
     // 버튼(RESUME·RESTART)을 더한 안, 두 열(왼쪽 상태 카드·버튼, 오른쪽 6열 격자) 안과 아이템이 적을 때·많을 때로 비교해 이 꼴을 골랐다
     // (Recordings/pause_mockup_2026-10-12_*.png). 아이템이 적으면 띠 양 끝 사이가 빈다.
     // 일시정지 중엔 HUD가 숨으므로 웨이브도 여기서 보이고, 누적 경험치 총량은 여기서만 보인다 (GDD §3.3).
-    // 타일에 마우스를 올리면 그 자루·유물의 보기 카드(UpgradeCardPainter.DrawOwnedWeapon·DrawOwnedRelic — 보상 화면 카드와 같은 틀의 회색 카드)가 뜬다
+    // 타일에 마우스를 올리면 그 자루·유물·캐릭터의 보기 카드(UpgradeCardPainter.DrawOwnedWeapon·DrawOwnedRelic·DrawOwnedCharacter — 보상 화면 카드와 같은 틀의 회색 카드)가 뜬다
     // (2026-10-12, 그전엔 툴팁). 하드웨어 커서는 멈춘 동안 GameHud가 되살린다.
     // 멈춤은 업그레이드 카드와 같은 방식(Time.timeScale = 0)이라 물리·코루틴·사격이 함께 멎는다.
     // 카드 선택 중(이미 멈춰 있음)과 플레이어 사망 뒤(데스 화면이 이어받음)에는 ESC를 받지 않는다.
@@ -136,7 +136,7 @@ namespace PickShoot
             int titleH = skin.FontOutlined.lineHeight * scale;
             int headerH = titleH + lineH;
             int headerGap = HeaderGapTexels * scale;
-            int relicRows = BuildGridPainter.RelicRows(BuildGridPainter.RelicKinds(stats).Count);
+            int relicRows = BuildGridPainter.RelicRows(BuildGridPainter.RelicCellCount(stats));
             // 격자 묶음 = 제목 줄 + 무기 줄 + 섹션 간격 + 제목 줄 + 유물 격자.
             int rowTitleH = BuildGridPainter.TitleHeight(skin);
             int tileH = ItemTilePainter.Size(gridScale);
@@ -166,11 +166,13 @@ namespace PickShoot
             int slot = BuildGridPainter.DrawWeaponRow(skin, weapons, left, weaponY, gridScale, mouse, out var weaponTile);
             int relicTitleY = weaponY + tileH + sectionGap;
             BuildGridPainter.DrawTitle(skin, BuildGridPainter.RelicTitle(stats), left, relicTitleY);
-            var relic = BuildGridPainter.DrawRelicGrid(skin, stats, left, relicTitleY + rowTitleH, gridScale, relicRows, mouse, out var relicTile);
+            var relic = BuildGridPainter.DrawRelicGrid(skin, stats, left, relicTitleY + rowTitleH, gridScale, relicRows, mouse, out bool characterHovered, out var relicTile);
 
             // 보기 카드는 다 그린 뒤 맨 마지막에 — 위 띠·이웃 타일 위로 뜬다.
             if (slot >= 0)
                 UpgradeCardPainter.DrawOwnedWeapon(skin, canvas, weapons.Slots[slot], stats, weaponTile);
+            else if (characterHovered)
+                UpgradeCardPainter.DrawOwnedCharacter(skin, canvas, stats.Character, relicTile);
             else if (relic != null)
                 UpgradeCardPainter.DrawOwnedRelic(skin, canvas, relic, stats.CountOf(relic), relicTile);
         }

@@ -61,6 +61,7 @@ namespace PickShoot
     // 같은 자리라 SubLine이 색을 따로 든다), 본문에 스탯 보너스를 유물 카드의 수정치 줄 꼴로 한 줄씩(`MOVE SPEED +20%`, 값 초록). 시작 무기 후보는 같은 화면의 무기
     // 줄이 보이므로 카드에 적지 않는다 (같은 날 낮엔 맨 아래 작은 타일 줄이었다 — 캐릭터 화면과 무기 화면이 따로였을 때). 시작 화면의 카드는 8타일 높이
     // (UpgradeManager.StartCardHeightTiles)이고 가장 긴 조합(COLLECTOR·HUNTER — 보너스 두 줄)의 내용이 384px라 아래 여백 88px.
+    // 러닝 중에는 빌드 격자 유물 줄 첫 칸의 캐릭터에 보기 카드(DrawOwnedCharacter, 2026-10-14)가 뜬다 — 유물 보기 카드와 같은 틀에 등급 줄 `CHARACTER`.
     public static class UpgradeCardPainter
     {
         const int CardWidthTiles = 7;
@@ -100,6 +101,8 @@ namespace PickShoot
         const string LevelLabel = "LEVEL";
         // 캐릭터 카드 첫 줄의 라벨 — 값은 능력 이름 (`ABILITY DASH`).
         const string AbilityLabel = "ABILITY";
+        // 캐릭터 보기 카드의 등급 줄 — 유물 보기 카드의 `COMMON` 자리 (2026-10-14). 캐릭터는 유물 등급이 아니라 RelicGrade에 두지 않는다.
+        const string CharacterGrade = "CHARACTER";
         // 줄이 없는 칸용 빈 묶음 (프레임마다 새로 만들지 않는다).
         static readonly string[] NoLines = new string[0];
         static readonly Color[] NoTints = new Color[0];
@@ -275,6 +278,37 @@ namespace PickShoot
                 BodyValues = effectValues.ToArray(),
                 BodyValuesGain = false,
                 Note = relic.Description,
+            };
+            DrawOwned(skin, canvas, c, anchor);
+        }
+
+        // 고른 캐릭터의 보기 카드 — 빌드 격자 유물 줄 첫 칸 (Characters §4, 2026-10-14). 유물 보기 카드와 같은 틀: 전시 칸은 격자와 같은 아이콘 타일 + `X1`,
+        // 첫 줄은 등급 자리의 `CHARACTER`. 그 아래 덩이(무기 카드의 스탯 줄 자리)에 능력 이름과 설명, 본문에 스탯 보너스 — 능력이 정체성이라 보너스보다 먼저 읽힌다.
+        // 보너스 뒤 설명 문단으로 능력을 두는 안(유물 카드와 줄 구성까지 같은 꼴)은 능력이 보너스 밑에 묻혀 뺐다 (Recordings/character_view_card_mockup_2026-10-14_v2.png).
+        // 이미 가진 것이라 값은 모두 흰색이다. 시작 화면의 캐릭터 카드(DrawCharacter)는 전신 초상 타일이고 이 등급 줄이 없다 — 거기서는 모두가 캐릭터다.
+        public static void DrawOwnedCharacter(PixelUiSkin skin, PixelGui.CanvasScope canvas, CharacterData character, Rect anchor)
+        {
+            var bonuses = new List<string>();
+            var bonusValues = new List<string>();
+            ModifierLines(character.Modifiers, $"캐릭터 '{character.DisplayName}'", bonuses, bonusValues);
+            var c = new CardContent
+            {
+                Title = null,
+                ShowcaseSprite = character.Icon,
+                ShowcaseBadge = ItemInfoText.RelicBadge(1),
+                Name = character.DisplayName.ToUpperInvariant(),
+                RowLabel = null,
+                RowNow = null,
+                RowNext = CharacterGrade,
+                RowTint = Color.white,
+                StatLabels = new[] { AbilityLabel, null },
+                StatNow = new string[2],
+                StatNext = new[] { CharacterData.AbilityUiName(character.AbilityKind), character.AbilityDescription },
+                StatTints = new[] { Color.white, Color.white },
+                BodyLines = bonuses.ToArray(),
+                BodyValues = bonusValues.ToArray(),
+                BodyValuesGain = false,
+                Note = null,
             };
             DrawOwned(skin, canvas, c, anchor);
         }

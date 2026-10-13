@@ -83,6 +83,15 @@ TextureImporter:
   - first:
       213: 4898938251895919142
     second: platformer_characters_26
+  - first:
+      213: 7000000000000000301
+    second: platformer_characters_icon_0
+  - first:
+      213: 7000000000000000302
+    second: platformer_characters_icon_4
+  - first:
+      213: 7000000000000000303
+    second: platformer_characters_icon_9
   externalObjects: {}
   serializedVersion: 13
   mipmaps:
@@ -784,6 +793,72 @@ TextureImporter:
       indices:
       edges: []
       weights: []
+    - serializedVersion: 2
+      name: platformer_characters_icon_0
+      rect:
+        serializedVersion: 2
+        x: 5
+        y: 74
+        width: 22
+        height: 14
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData:
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: f5977f7a284a4f56a7debd40f7b67f4a
+      internalID: 7000000000000000301
+      vertices: []
+      indices:
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: platformer_characters_icon_4
+      rect:
+        serializedVersion: 2
+        x: 133
+        y: 74
+        width: 22
+        height: 14
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData:
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 2a9ef8b30f4647d3a976b74025fcc34d
+      internalID: 7000000000000000302
+      vertices: []
+      indices:
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: platformer_characters_icon_9
+      rect:
+        serializedVersion: 2
+        x: 5
+        y: 42
+        width: 22
+        height: 14
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData:
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 1135bd43fff34ef29fd7f478e60a7302
+      internalID: 7000000000000000303
+      vertices: []
+      indices:
+      edges: []
+      weights: []
     outline: []
     customData:
     physicsShape: []
@@ -825,6 +900,9 @@ TextureImporter:
       platformer_characters_7: 90677783169194554
       platformer_characters_8: -2487436295482820672
       platformer_characters_9: -493977443929977592
+      platformer_characters_icon_0: 7000000000000000301
+      platformer_characters_icon_4: 7000000000000000302
+      platformer_characters_icon_9: 7000000000000000303
   mipmapLimitGroupName: 
   pSDRemoveMatte: 0
   userData: 

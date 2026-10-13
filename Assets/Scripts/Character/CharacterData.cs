@@ -17,6 +17,9 @@ namespace PickShoot
         // 걷기 주기 프레임 (platformer_characters.png의 헬멧 캐릭터, 32×32 격자 — 정지·걷기 2장). 0번이 정지 포즈이고 시작 화면의 타일·카드 전시 칸이 쓴다.
         // SpriteWalkCycle이 이동 거리로 돌린다 — 장 수에 제한은 없다.
         [SerializeField] Sprite[] frames = new Sprite[0];
+        // 빌드 격자 유물 줄 첫 칸과 그 보기 카드의 그림 (Characters §4) — 아이템 타일(28텍셀, 배지 띠)에 드는 크기. 지금은 같은 시트의 정지 포즈에서 얼굴과 돔 옆선을
+        // 잘라 낸 22×14 조각(`platformer_characters_icon_*`, 2026-10-14). 전신(32×32)은 타일에 들지 않는다 — 배율 3 타일의 그림 칸이 14텍셀이다.
+        [SerializeField] Sprite icon;
         // 러닝 내내 유물 총계에 더해지는 수정치 묶음 — 유물과 같은 척도 (Relics §2). 패널티는 두지 않으므로 음수면 Validate가 예외 (Characters §1).
         [SerializeField] PlayerStatModifiers modifiers;
         // 시작 화면 무기 단계의 후보 — 획득 풀(UpgradeManager.weaponPool)의 부분집합. 획득 카드 풀은 바꾸지 않는다 (Characters §1).
@@ -44,6 +47,7 @@ namespace PickShoot
         public string DisplayName => displayName;
         public Sprite[] Frames => frames;
         public Sprite IdleSprite => frames[0];
+        public Sprite Icon => icon;
         public PlayerStatModifiers Modifiers => modifiers;
         public IReadOnlyList<WeaponData> StartWeapons => startWeapons;
         public AbilityKind AbilityKind => abilityKind;
@@ -77,6 +81,8 @@ namespace PickShoot
             for (int i = 0; i < frames.Length; i++)
                 if (frames[i] == null)
                     throw new System.Exception($"[PickShoot] CharacterData '{name}'.frames[{i}] 미설정.");
+            if (icon == null)
+                throw new System.Exception($"[PickShoot] CharacterData '{name}'.icon 미설정. 빌드 격자 유물 줄 첫 칸의 그림 (Characters §4).");
             if (startWeapons.Count == 0)
                 throw new System.Exception($"[PickShoot] CharacterData '{name}'.startWeapons가 비어 있음. 시작 화면 무기 단계의 후보가 최소 1종 필요.");
             for (int i = 0; i < startWeapons.Count; i++)

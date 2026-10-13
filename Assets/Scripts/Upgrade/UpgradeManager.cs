@@ -22,7 +22,7 @@ namespace PickShoot
     // 리롤 버튼은 레벨 업(PlayerExperience)으로 적립한 리롤이 남아 있을 때 3장을 다시 뽑는다 — 보이는 카드 중 한 장은 반드시 바뀐다 (Weapons §3).
     // 버튼에는 남은 적립 횟수를 적는다. 쓰지 않은 횟수는 다음 카드 화면으로 이어진다.
     // 카드는 (다시) 뽑힐 때마다 화면 아래 밖에서 차례로 튀어 올라 스프링처럼 흔들리며 멎는다 — 멎기 전에는 카드도 버튼도 입력을 받지 않는다.
-    // 빌드 줄의 타일에 마우스를 올리면 그 자루·유물의 보기 카드(UpgradeCardPainter.DrawOwnedWeapon·DrawOwnedRelic)가 뜬다 — 카드·버튼을 다 그린 뒤 맨 마지막에
+    // 빌드 줄의 타일에 마우스를 올리면 그 자루·유물·캐릭터의 보기 카드(UpgradeCardPainter.DrawOwnedWeapon·DrawOwnedRelic·DrawOwnedCharacter)가 뜬다 — 카드·버튼을 다 그린 뒤 맨 마지막에
     // (2026-10-12. 그전 2026-10-06부터는 툴팁이었고 카드 전시 칸에도 떴다 — 카드가 다 담게 되어 전시 칸 호버는 걷었다).
     // 러닝 시작 화면(PresentStartAndWait, 2026-10-12)도 여기서 맡는다 — 고르기·멈춤·IsActive를 카드 화면과 같이 써서 HUD 숨김·커서·ESC 차단·녹화 봇(PickShootPlayDriver)이
     // 그대로 따른다. 캐릭터와 시작 무기를 **한 화면**에서 고른다 (Characters §4, 2026-10-13 저녁): 위에 `CHARACTER` 제목과 초상 타일 줄, 아래에 `WEAPON` 제목과
@@ -558,7 +558,7 @@ namespace PickShoot
             int slot = BuildGridPainter.DrawWeaponRow(skin, weapons, startX, stripY + rowTitleH, stripScale, mouse, out var weaponTile);
             stripY += rowH + sectionGap;
             BuildGridPainter.DrawTitle(skin, BuildGridPainter.RelicTitle(stats), startX, stripY);
-            var relic = BuildGridPainter.DrawRelicGrid(skin, stats, startX, stripY + rowTitleH, stripScale, 1, mouse, out var relicTile);
+            var relic = BuildGridPainter.DrawRelicGrid(skin, stats, startX, stripY + rowTitleH, stripScale, 1, mouse, out bool characterHovered, out var relicTile);
 
             for (int i = 0; i < currentCards.Length; i++)
             {
@@ -579,6 +579,8 @@ namespace PickShoot
             {
                 if (slot >= 0)
                     UpgradeCardPainter.DrawOwnedWeapon(skin, canvas, weapons.Slots[slot], stats, weaponTile);
+                else if (characterHovered)
+                    UpgradeCardPainter.DrawOwnedCharacter(skin, canvas, stats.Character, relicTile);
                 else if (relic != null)
                     UpgradeCardPainter.DrawOwnedRelic(skin, canvas, relic, stats.CountOf(relic), relicTile);
             }

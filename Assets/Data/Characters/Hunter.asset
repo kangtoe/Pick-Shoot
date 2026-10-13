@@ -16,6 +16,7 @@ MonoBehaviour:
   frames:
   - {fileID: -493977443929977592, guid: 13f2c52b0f0d4c2b9bf9ba0be02b4e44, type: 3}
   - {fileID: 4253226812021537371, guid: 13f2c52b0f0d4c2b9bf9ba0be02b4e44, type: 3}
+  icon: {fileID: 7000000000000000303, guid: 13f2c52b0f0d4c2b9bf9ba0be02b4e44, type: 3}
   modifiers:
     damagePercent: 0
     moveSpeedPercent: 0
