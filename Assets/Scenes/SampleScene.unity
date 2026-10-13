@@ -405,7 +405,7 @@ MonoBehaviour:
   frames:
   - {fileID: -3617217171684107962, guid: 8c4fc863c2ecf7c42830eb859ffede55, type: 3}
   - {fileID: 166411858142596255, guid: 8c4fc863c2ecf7c42830eb859ffede55, type: 3}
-  strideLength: 0.6
+  strideLength: 1.2
   idleSpeed: 0.3
 --- !u!114 &142563687
 MonoBehaviour:
