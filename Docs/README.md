@@ -19,6 +19,7 @@
 | 적 — 타입·웨이브·보스 ([GDD §8](GDD.md#8-적-시스템)) | [Enemies](Systems/Enemies.md) |
 | 유물 — 플레이어 스탯·효과 ([GDD §9](GDD.md#9-유물-시스템)) | [Relics](Systems/Relics.md) |
 | 무기 개조 — 4종·획득·표시·회수와의 관계 ([GDD §10](GDD.md#10-무기-개조-시스템)) | [Mods](Systems/Mods.md) |
+| 캐릭터 — 능력 3종·스탯·시작 무기·선택 화면 ([GDD §11](GDD.md#11-캐릭터-시스템)) | [Characters](Systems/Characters.md) |
 | 아트·픽셀 UI — 기준 캔버스·배율·타일·글꼴·월드 아트·외곽선 규칙 | [PixelArtUI](Systems/PixelArtUI.md) |
 
 ## 다시 실행할 절차 — `Docs/Guides/`
