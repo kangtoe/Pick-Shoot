@@ -88,9 +88,7 @@ namespace PickShoot
             int lineH = skin.FontPlain.lineHeight * textScale;
 
             // 어둡게 덮는 막은 화면 픽셀 그대로 (캔버스를 열기 전).
-            GUI.color = new Color(0f, 0f, 0f, dimAlpha);
-            GUI.DrawTexture(new Rect(0, 0, Screen.width, Screen.height), Texture2D.whiteTexture);
-            GUI.color = Color.white;
+            PixelGui.FillScreen(new Color(0f, 0f, 0f, dimAlpha));
 
             using var canvas = PixelGui.BeginCanvas();
 

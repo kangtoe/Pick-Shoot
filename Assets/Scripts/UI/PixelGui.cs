@@ -5,10 +5,10 @@ namespace PickShoot
 {
     // OnGUI 안에서 스프라이트 시트 조각을 그리는 도우미.
     // 픽셀 UI는 월드 카메라와 같은 규칙으로 보인다: 화면 세로가 항상 ReferenceHeightTexels(270)텍셀. 그래서 월드 스프라이트처럼
-    // 해상도가 달라도 화면에서 차지하는 비율이 같고, 종횡비는 가로로 보이는 범위만 바꿀 뿐 크기에는 영향을 주지 않는다.
-    // 구현: 세로 DesignHeight(1080)짜리 기준 캔버스 위에 정수 배율로 배치하고, BeginCanvas가 GUI.matrix로 캔버스 전체를
-    // 화면 높이에 맞춰 늘리거나 줄인다 (1080p에서는 캔버스 = 화면). 이 클래스의 좌표·크기는 모두 캔버스 픽셀이고,
-    // scale은 텍셀 1개가 차지하는 캔버스 픽셀 수(정수)다.
+    // 해상도가 달라도 화면에서 차지하는 비율이 같다. 화면비는 16:9로 고정이다(ScreenLetterbox, 2026-10-14) — 캔버스는 늘 DesignWidth × DesignHeight
+    // (1920×1080)이고 화면의 16:9 영역에 놓인다. 그전엔 캔버스 가로가 화면비를 따라 바뀌었다.
+    // 구현: 기준 캔버스 위에 정수 배율로 배치하고, BeginCanvas가 GUI.matrix로 캔버스 전체를 16:9 영역의 높이에 맞춰 늘리거나 줄여 그 영역의 좌상단에
+    // 옮긴다 (1080p에서는 캔버스 = 화면). 이 클래스의 좌표·크기는 모두 캔버스 픽셀이고, scale은 텍셀 1개가 차지하는 캔버스 픽셀 수(정수)다.
     public static class PixelGui
     {
         // 화면 세로에 해당하는 텍셀 수. 월드 카메라의 세로 텍셀 수(직교 크기 8.4375 × 2 × PPU 16)와 같다.
@@ -17,6 +17,7 @@ namespace PickShoot
         public const int PanelScale = 4;
         public const int TextScale = 2;
         public const int DesignHeight = ReferenceHeightTexels * PanelScale;
+        public const int DesignWidth = DesignHeight * ScreenLetterbox.AspectWidth / ScreenLetterbox.AspectHeight;
 
         // 지금 열려 있는 캔버스의 1픽셀이 차지하는 화면 픽셀 수. 캔버스 밖에서는 1. SnapToScreenPixels가 쓴다.
         static float currentPixelSize = 1f;
@@ -27,27 +28,30 @@ namespace PickShoot
         {
             readonly Matrix4x4 savedMatrix;
             readonly float savedPixelSize;
-            // 캔버스 1픽셀이 차지하는 화면 픽셀 수 (화면 높이 / DesignHeight).
+            // 캔버스 좌상단의 화면 위치 (화면 픽셀, 원점 좌상단 — 16:9 영역의 좌상단, 띠가 없으면 0). 정수라 화면 픽셀 맞춤(SnapToScreenPixels)이 그대로 맞는다.
+            readonly Vector2Int origin;
+            // 캔버스 1픽셀이 차지하는 화면 픽셀 수 (16:9 영역 높이 / DesignHeight).
             public readonly float PixelSize;
-            // 캔버스 크기 (캔버스 픽셀). 세로는 항상 DesignHeight, 가로는 화면비에 따라 달라진다.
+            // 캔버스 크기 (캔버스 픽셀) — 늘 DesignWidth × DesignHeight.
             public readonly int Width;
             public readonly int Height;
 
-            internal CanvasScope(float pixelSize)
+            internal CanvasScope(RectInt viewport)
             {
                 savedMatrix = GUI.matrix;
                 savedPixelSize = currentPixelSize;
-                PixelSize = pixelSize;
-                Width = Mathf.RoundToInt(Screen.width / pixelSize);
+                origin = viewport.position;
+                PixelSize = viewport.height / (float)DesignHeight;
+                Width = DesignWidth;
                 Height = DesignHeight;
-                GUI.matrix = savedMatrix * Matrix4x4.Scale(new Vector3(pixelSize, pixelSize, 1f));
-                currentPixelSize = savedPixelSize * pixelSize;
+                GUI.matrix = savedMatrix * Matrix4x4.Translate(new Vector3(origin.x, origin.y, 0f)) * Matrix4x4.Scale(new Vector3(PixelSize, PixelSize, 1f));
+                currentPixelSize = savedPixelSize * PixelSize;
             }
 
             // Camera.WorldToScreenPoint 결과(화면 픽셀, 원점 좌하단)를 캔버스 좌표(원점 좌상단)로 바꾼다.
             public Vector2 FromScreenPoint(Vector3 screenPoint)
             {
-                return new Vector2(screenPoint.x / PixelSize, (Screen.height - screenPoint.y) / PixelSize);
+                return new Vector2((screenPoint.x - origin.x) / PixelSize, (Screen.height - screenPoint.y - origin.y) / PixelSize);
             }
 
             public void Dispose()
@@ -60,7 +64,17 @@ namespace PickShoot
         // 기준 캔버스를 연다. 클릭 판정(GUI.Button)을 하는 화면은 Repaint뿐 아니라 모든 이벤트에서 열어야 한다.
         public static CanvasScope BeginCanvas()
         {
-            return new CanvasScope(Screen.height / (float)DesignHeight);
+            return new CanvasScope(ScreenLetterbox.GuiRect);
+        }
+
+        // 화면을 덮는 막(어두운 막·피격 플래시)을 16:9 영역에만 — 띠는 늘 검다. 캔버스를 열기 전(GUI.matrix가 화면 픽셀일 때) 부른다.
+        public static void FillScreen(Color color)
+        {
+            var r = ScreenLetterbox.GuiRect;
+            var prev = GUI.color;
+            GUI.color = color;
+            GUI.DrawTexture(new Rect(r.x, r.y, r.width, r.height), Texture2D.whiteTexture);
+            GUI.color = prev;
         }
         // 단색 사각형. 시트 조각 없이 평면 색으로 칠하는 면(머리 위 게이지 등)에 쓴다. 색은 그대로 쓰되 알파에는 GUI.color의 알파를 곱한다 — 시트 조각·글자처럼
         // 바깥에서 GUI.color 알파로 묶음 전체를 투명하게(시작 화면의 캐릭터 카드) 할 수 있게 (2026-10-13). RGB는 곱하지 않는다 — 어둡게 보일 판(리롤 버튼)은 호출자가 색에 곱한다.
