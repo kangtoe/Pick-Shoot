@@ -81,3 +81,7 @@ Unity 6 (URP 2D) · C# · Input System · ScriptableObject 데이터 · IMGUI �
 ## 크레딧
 
 그림과 효과음은 모두 [Kenney](https://kenney.nl)의 CC0 에셋이다 — Desert Shooter Pack, Pixel Platformer, Cursor Pixel Pack. 소개 영상의 자막 글꼴은 Kenney Fonts(CC0).
+
+## 라이선스
+
+코드와 문서의 저작권은 kangtoe에게 있다 (All rights reserved). 포트폴리오로 보여 주려고 공개한 것이며, 허락 없이 사용·복제·수정·배포할 수 없다. Kenney 에셋은 CC0 그대로다 — [LICENSE](LICENSE).
