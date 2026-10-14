@@ -25,6 +25,8 @@ namespace PickShoot
         public bool Propelled { get; set; } = true;
         // 정지 포즈. 이 컴포넌트를 끄고 포즈를 직접 정하는 쪽이 돌아갈 그림으로 쓴다.
         public Sprite IdleFrame => frames[0];
+        // 지금 프레임 주기. 등급을 입는 적이 같은 주기의 사본으로 바꿀 때 읽는다 (Enemies §7).
+        public Sprite[] Frames => frames;
 
         void Awake()
         {
@@ -33,7 +35,7 @@ namespace PickShoot
             sr = GetComponent<SpriteRenderer>();
         }
 
-        // 프레임 주기를 바꾼다 — 캐릭터를 고를 때 (UpgradeManager). 멈춘 화면에서 부르므로 정지 포즈를 바로 보인다 (LateUpdate는 deltaTime 0이면 그리지 않는다).
+        // 프레임 주기를 바꾼다 — 캐릭터를 고를 때 (UpgradeManager), 적이 등급의 몸 색 사본을 입을 때 (EnemyHealth). 캐릭터는 멈춘 화면에서 부르므로 정지 포즈를 바로 보인다 (LateUpdate는 deltaTime 0이면 그리지 않는다).
         public void SetFrames(Sprite[] newFrames)
         {
             RequireFrames(newFrames);

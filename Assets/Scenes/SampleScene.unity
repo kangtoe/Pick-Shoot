@@ -1072,6 +1072,7 @@ MonoBehaviour:
   spawnAbortDistance: 2.5
   baseMaxEnemies: 5
   maxEnemiesPerWaveIncrement: 3
+  tierArt: {fileID: 11400000, guid: 42e2aef2d763661ecec89b5f6e8fb593, type: 2}
 --- !u!114 &1698421208
 MonoBehaviour:
   m_ObjectHideFlags: 0

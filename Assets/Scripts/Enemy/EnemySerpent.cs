@@ -19,7 +19,7 @@ namespace PickShoot
     //   다른 적과는 머리 자리로 겨루고, 그룹 안에서는 머리 → 첫 몸통 → … → 꼬리 순으로 앞 마디가 뒤 마디 위에 온다. 분열하면 새 머리가 새 루트를 만든다.
     [RequireComponent(typeof(EnemyHealth))]
     [RequireComponent(typeof(SpriteWalkCycle))]
-    public class EnemySerpent : EnemyMover
+    public class EnemySerpent : EnemyMover, IEnemyTierSprites
     {
         [SerializeField] Sprite bodySprite; // 몸통 마디의 그림. 머리 그림(2프레임)은 SpriteWalkCycle이 보관한다
 
@@ -60,8 +60,9 @@ namespace PickShoot
             if (promoted) return;
             // 갓 스폰된 머리. 플레이어 쪽을 보고, 몸통을 낳아 모두 이 자리에 겹쳐 둔다.
             heading = InitialHeading();
-            // 몸통은 머리의 등급을 물려받는다 (Enemies §7) — 복제는 렌더러 색만 옮기고 HP·속도 같은 런타임 값은 옮기지 않으므로 명시적으로 입힌다.
-            // 보스 등급에는 챔피언(크기)이 없다 — 복제가 이미 커진 크기를 옮겨 크기가 두 번 곱해지는 일이 없다.
+            // 몸통은 머리의 등급을 물려받는다 (Enemies §7) — 복제는 이미 바꾼 사본 그림(직렬화 필드)은 옮기지만 HP·속도 같은 런타임 값은 옮기지 않으므로
+            // 명시적으로 입힌다. 사본을 다시 사본으로 바꾸면 그대로다(EnemyTierArt.For). 보스 등급에는 챔피언(크기)이 없다 — 복제가 이미 커진 크기를 옮겨
+            // 크기가 두 번 곱해지는 일이 없다.
             var headRank = GetComponent<EnemyHealth>().Rank;
             for (int i = 0; i < serpent.SegmentCount; i++)
             {
@@ -73,6 +74,9 @@ namespace PickShoot
             }
             BuildChain();
         }
+
+        // 등급의 몸 색 사본 (Enemies §7). 머리 그림(걷기 프레임)은 EnemyHealth가 SpriteWalkCycle에서 바꾼다.
+        public void UseTierSprites(EnemyTierArt art, int tier) => bodySprite = art.For(bodySprite, tier);
 
         // 스폰 시의 진행 방향: 플레이어 쪽. 플레이어가 없거나 겹쳐 있으면 오른쪽.
         Vector2 InitialHeading()

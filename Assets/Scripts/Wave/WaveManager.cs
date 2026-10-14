@@ -43,7 +43,7 @@ namespace PickShoot
         [SerializeField] int baseMaxEnemies = 8;
         [SerializeField] int maxEnemiesPerWaveIncrement = 2;
 
-        // 적 등급 (Enemies §7, 2026-10-14) — 단계마다 HP·이동 속도·접촉 피해·경험치 배율과 틴트, 웨이브에 따른 등장 확률.
+        // 적 등급 (Enemies §7, 2026-10-14) — 단계마다 HP·이동 속도·접촉 피해·경험치 배율, 웨이브에 따른 등장 확률. 몸 색은 tierArt의 사본 그림이다.
         // 확률은 startWave부터 웨이브마다 chancePerWave씩 maxChance까지. 3단계를 먼저 뽑고 그다음 2단계, 나머지는 1단계(EnemyRank.Normal).
         [System.Serializable]
         public class TierSettings
@@ -52,15 +52,16 @@ namespace PickShoot
             [Min(0.1f)] public float speedMultiplier = 1f;
             [Min(0)] public int damageBonus;
             [Min(0f)] public float expMultiplier = 1f;
-            public Color tint = Color.white;
             [Min(1)] public int startWave = 1;
             [Range(0f, 1f)] public float chancePerWave;
             [Range(0f, 1f)] public float maxChance;
 
             public float Chance(int wave) => wave < startWave ? 0f : Mathf.Min(maxChance, (wave - startWave + 1) * chancePerWave);
         }
-        [SerializeField] TierSettings tier2 = new TierSettings { hpMultiplier = 2f, speedMultiplier = 1.15f, expMultiplier = 2f, tint = new Color(1f, 0.85f, 0.55f), startWave = 3, chancePerWave = 0.1f, maxChance = 0.55f };
-        [SerializeField] TierSettings tier3 = new TierSettings { hpMultiplier = 4f, speedMultiplier = 1.3f, damageBonus = 1, expMultiplier = 4f, tint = new Color(1f, 0.55f, 0.55f), startWave = 6, chancePerWave = 0.08f, maxChance = 0.4f };
+        [SerializeField] TierSettings tier2 = new TierSettings { hpMultiplier = 2f, speedMultiplier = 1.15f, expMultiplier = 2f, startWave = 3, chancePerWave = 0.1f, maxChance = 0.55f };
+        [SerializeField] TierSettings tier3 = new TierSettings { hpMultiplier = 4f, speedMultiplier = 1.3f, damageBonus = 1, expMultiplier = 4f, startWave = 6, chancePerWave = 0.08f, maxChance = 0.4f };
+        // 2·3단계의 몸 색 사본 짝 (Enemies §7, PixelArtUI §7) — 등급에 실어 보내 EnemyHealth가 그림을 바꿔 끼운다.
+        [SerializeField] EnemyTierArt tierArt;
         // 챔피언 (Enemies §7) — 웨이브 스폰의 일반 적에만, 단계 위에 덧붙는다: 크기·HP·접촉 피해·경험치. 보스·소환 졸개는 단계만 받고 챔피언이 되지 않는다.
         [SerializeField, Min(1f)] float championScale = 1.5f;
         [SerializeField, Min(1f)] float championHpMultiplier = 3f;
@@ -113,6 +114,8 @@ namespace PickShoot
                 throw new System.Exception($"[PickShoot] WaveManager.spawnWarningDuration이 0 이하 ({spawnWarningDuration}).");
             if (maxSpawnDistanceFromPlayer <= minSpawnDistanceFromPlayer)
                 throw new System.Exception($"[PickShoot] WaveManager 스폰 거리 범위가 비어 있음 (min {minSpawnDistanceFromPlayer} ≥ max {maxSpawnDistanceFromPlayer}).");
+            if (tierArt == null)
+                throw new System.Exception("[PickShoot] WaveManager.tierArt 미설정 (적 등급의 몸 색 사본 짝, Assets/Data/Enemies/EnemyTierArt).");
             if (tier2.maxChance + tier3.maxChance > 1f)
                 throw new System.Exception($"[PickShoot] WaveManager 2·3단계 최대 확률의 합({tier2.maxChance + tier3.maxChance})이 1을 넘음.");
             if (spawnAbortDistance >= minSpawnDistanceFromPlayer)
@@ -285,8 +288,8 @@ namespace PickShoot
             }
         }
 
-        static EnemyRank FromTier(int tier, TierSettings s) =>
-            new EnemyRank(tier, false, s.hpMultiplier, s.speedMultiplier, s.damageBonus, s.expMultiplier, s.tint, 1f);
+        EnemyRank FromTier(int tier, TierSettings s) =>
+            new EnemyRank(tier, false, s.hpMultiplier, s.speedMultiplier, s.damageBonus, s.expMultiplier, tierArt, 1f);
 
         // 지금 웨이브의 확률로 단계를 뽑고, allowChampion이면 챔피언도 뽑아 단계 위에 덧붙인다.
         EnemyRank RollRank(bool allowChampion)
@@ -297,7 +300,7 @@ namespace PickShoot
             var rank = TierRank(tier);
             if (!allowChampion || Random.value >= ChampionChance()) return rank;
             return new EnemyRank(rank.Tier, true, rank.HpMultiplier * championHpMultiplier, rank.SpeedMultiplier,
-                rank.DamageBonus + championDamageBonus, rank.ExpMultiplier * championExpMultiplier, rank.Tint, championScale);
+                rank.DamageBonus + championDamageBonus, rank.ExpMultiplier * championExpMultiplier, rank.Art, championScale);
         }
 
         float ChampionChance() =>

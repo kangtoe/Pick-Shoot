@@ -60,7 +60,7 @@ namespace PickShoot
         }
 
         // 등급·챔피언을 입힌다 (Enemies §7) — 스폰 직후 한 번, 맞기 전에. HP·접촉 피해·경험치는 여기서 바뀌고 이동 속도는 EnemyMover가 SpeedMultiplier로 읽는다.
-        // 틴트는 렌더러 색에 곱하고(흰 테두리가 그 색이 된다) 크기는 몸 전체(콜라이더 포함)를 키운다.
+        // 2·3단계는 몸 색을 바꾼 사본 그림으로 갈아 끼우고(테두리는 그대로), 크기는 몸 전체(콜라이더 포함)를 키운다.
         public void ApplyRank(EnemyRank newRank)
         {
             if (rankApplied)
@@ -70,8 +70,20 @@ namespace PickShoot
             rank = newRank;
             rankApplied = true;
             current = Mathf.Max(1, Mathf.RoundToInt(data.MaxHp * rank.HpMultiplier));
-            sr.color = rank.Tint;
+            if (rank.Tier > 1) UseTierSprites();
             transform.localScale *= rank.Scale;
+        }
+
+        // 지금 보이는 그림, 걷기 프레임, 상태에 따라 끼울 그림을 쥔 컴포넌트(돌진 포즈·서펜트 몸통)를 모두 이 단계의 사본으로 바꾼다.
+        void UseTierSprites()
+        {
+            if (rank.Art == null)
+                throw new System.Exception($"[PickShoot] EnemyHealth.ApplyRank: {rank.Tier}단계인데 몸 색 사본 짝(EnemyTierArt)이 없음 ({name}).");
+            sr.sprite = rank.Art.For(sr.sprite, rank.Tier);
+            if (TryGetComponent(out SpriteWalkCycle walkCycle))
+                walkCycle.SetFrames(rank.Art.For(walkCycle.Frames, rank.Tier));
+            foreach (var holder in GetComponents<IEnemyTierSprites>())
+                holder.UseTierSprites(rank.Art, rank.Tier);
         }
 
         public void TakeDamage(int amount)
