@@ -6,7 +6,8 @@ namespace PickShoot
     // ESC로 게임을 멈추고 화면을 어둡게 덮는 일시정지 화면. PixelUiSkin(Kenney Interface 시트)으로 OnGUI에 그린다.
     // 구성은 보상 화면(UpgradeManager)과 같은 결 (2026-10-12): 빌드 격자의 12칸 폭이 묶음의 좌우 끝이고, 그 위 띠의 왼쪽에 제목 `PAUSED`(패널 없는
     // 아웃라인 글꼴, 패널 배율)와 부제 재개 안내(일반 글꼴, 글자 배율), 오른쪽 끝에 같은 꼴의 `WAVE N`과 `LEVEL 5   XP 230`(라벨 일반·값 아웃라인 글꼴)을 둔다.
-    // 띠 아래 160px(HeaderGapTexels — 보기 카드가 무기 줄 위에 들 자리)에 현재 빌드 격자(BuildGridPainter — 제목 `WEAPONS (7/12)` 아래 보유 무기 한 줄,
+    // 띠 아래 160px(HeaderGapTexels — 보기 카드가 무기 줄 위에 들 자리. 그 가운데에 스탯 총계 표 3열, StatPanelPainter, 2026-10-14) 아래에
+    // 현재 빌드 격자(BuildGridPainter — 제목 `WEAPONS (7/12)` 아래 보유 무기 한 줄,
     // 제목 `RELICS (5)` 아래 유물 격자, 패널 배율 타일).
     // 그전(2026-10-02 ~ 10-12)엔 가운데 회색 상태 카드(위 끝에 걸친 파란 `PAUSED` 배지, WAVE·LEVEL·XP 표) 아래 격자, 맨 아래 가운데 재개 안내였다 — 카드는
     // 화면 가운데, 격자는 12칸 폭의 왼쪽 끝이라 정렬 축이 둘로 갈려 자루가 적을 때 흩어져 보였고, 배지는 보상 화면이 2026-10-08 걷은 꼴이 여기만 남아 있었다.
@@ -44,6 +45,9 @@ namespace PickShoot
         // 보기 카드가 더 길어지면 위 여백이 그만큼 줄고, 24px를 넘으면 다시 화면 끝에 붙는다.
         const int HeaderGapTexels = 40;
         const int SectionGapTexels = 12;     // 무기 줄 아래 → 유물 제목 (글자 텍셀). 제목과 그 타일 사이(BuildGridPainter, 4)보다 넓어 섹션이 갈린다.
+        // 스탯 표 (StatPanelPainter) — 3열이면 8개가 3줄(96px)로 띠 → 격자 간격(160px)에 든다. 열 사이는 패널 텍셀 16(64px).
+        const int StatColumns = 3;
+        const int StatGutterTexels = 16;
 
         bool paused;
         float prevTimeScale;
@@ -125,8 +129,9 @@ namespace PickShoot
 
             // 묶음의 좌우 끝은 12칸 격자의 폭 — 자루가 늘어도 띠·격자가 움직이지 않는다.
             int gridScale = scale;
-            BuildGridPainter.RequireFits(gridScale, canvas.Width);
-            int blockW = BuildGridPainter.Width(gridScale);
+            int columns = BuildGridPainter.WideColumns;
+            BuildGridPainter.RequireFits(gridScale, columns, canvas.Width);
+            int blockW = BuildGridPainter.Width(gridScale, columns);
             int left = canvas.Width / 2 - blockW / 2;
             int right = left + blockW;
 
@@ -134,7 +139,7 @@ namespace PickShoot
             int titleH = skin.FontOutlined.lineHeight * scale;
             int headerH = titleH + lineH;
             int headerGap = HeaderGapTexels * scale;
-            int relicRows = BuildGridPainter.RelicRows(BuildGridPainter.RelicCellCount(stats));
+            int relicRows = BuildGridPainter.RelicRows(BuildGridPainter.RelicCellCount(stats), columns);
             // 격자 묶음 = 제목 줄 + 무기 줄 + 섹션 간격 + 제목 줄 + 유물 격자.
             int rowTitleH = BuildGridPainter.TitleHeight(skin);
             int tileH = ItemTilePainter.Size(gridScale);
@@ -157,14 +162,21 @@ namespace PickShoot
             PixelGui.DrawTextRight(skin.FontOutlined, wave, right, y, scale);
             DrawStatLine(right, y + titleH, textScale);
 
+            // 스탯 총계 표는 띠와 격자 사이 간격의 세로 가운데에, 묶음 폭 3열 (StatPanelPainter, 2026-10-14). 이 간격은 무기 줄 위에 보기 카드가 들 자리라
+            // 타일에 마우스를 올리면 카드가 표를 잠시 덮는다 — 띠와 격자 자리를 그대로 두는 쪽을 골랐다 (Recordings/pause_two_column_mockup_2026-10-14_*.png).
+            int statsH = StatPanelPainter.Height(skin, StatColumns);
+            if (statsH > headerGap)
+                throw new System.Exception($"[PickShoot] PauseScreen: 스탯 표 높이 {statsH}px가 띠 → 격자 간격 {headerGap}px를 넘음. 열 수를 늘릴 것.");
+            StatPanelPainter.Draw(skin, stats.Total, null, left, y + headerH + (headerGap - statsH) / 2, blockW, StatColumns, StatGutterTexels * scale);
+
             int gridY = y + headerH + headerGap;
             var mouse = Event.current.mousePosition;
             BuildGridPainter.DrawTitle(skin, BuildGridPainter.WeaponTitle(weapons), left, gridY);
             int weaponY = gridY + rowTitleH;
-            int slot = BuildGridPainter.DrawWeaponRow(skin, weapons, left, weaponY, gridScale, mouse, out var weaponTile);
+            int slot = BuildGridPainter.DrawWeaponGrid(skin, weapons, left, weaponY, gridScale, columns, mouse, out var weaponTile);
             int relicTitleY = weaponY + tileH + sectionGap;
             BuildGridPainter.DrawTitle(skin, BuildGridPainter.RelicTitle(stats), left, relicTitleY);
-            var relic = BuildGridPainter.DrawRelicGrid(skin, stats, left, relicTitleY + rowTitleH, gridScale, relicRows, mouse, out bool characterHovered, out var relicTile);
+            var relic = BuildGridPainter.DrawRelicGrid(skin, stats, left, relicTitleY + rowTitleH, gridScale, columns, relicRows, mouse, out bool characterHovered, out var relicTile);
 
             // 보기 카드는 다 그린 뒤 맨 마지막에 — 위 띠·이웃 타일 위로 뜬다.
             if (slot >= 0)

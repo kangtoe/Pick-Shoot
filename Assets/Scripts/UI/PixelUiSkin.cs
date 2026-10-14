@@ -62,6 +62,9 @@ namespace PickShoot
         [SerializeField] Sprite iconCross;
         // 해골. 데스 화면 배너 장식용.
         [SerializeField] Sprite iconSkull;
+        // 되돌이 화살표 16×16 — 보상 화면의 리롤 칸 (Assets/Art/UI/reroll_icon.png, 2026-10-14). Kenney Cursor Pixel Pack의 `cursors_209`에서 순검정 외곽선만
+        // 잉크색으로 바꾼 사본이다 — 사막 팩 인터페이스 시트에 되돌이 아이콘이 없다. 그전엔 리롤 버튼에 글자 `R`이 자리를 맡고 있었다.
+        [SerializeField] Sprite iconReroll;
         // 무기 스프라이트 밑의 작은 판(HUD 무기 줄·빌드 띠, PixelGui.DrawWeaponPlate) 색: 시트 외곽선 색 테두리 + 회색 패널 바탕색 (DEVELOPMENT §2).
         [SerializeField] Color weaponPlateFill = new Color32(153, 154, 196, 255);
         [SerializeField] Color weaponPlateOutline = new Color32(71, 50, 75, 255);
@@ -73,6 +76,10 @@ namespace PickShoot
         // 개조 카드의 `MOD` 제목과 빌드 타일 배지의 개조 머리글자(`LV5H`의 `H`) 글자색 — Pixel Platformer 팩의 분홍. 노란 `NEW`·초록 `UPGRADE`·파란 카드
         // 패널과 가장 잘 갈렸다. 청록은 다음으로 읽혔고, 살구색은 `NEW`와, 라벤더는 패널과 묻혔다 (2026-10-10, Recordings/mod_card_color_mockup_2026-10-10.png).
         [SerializeField] Color modText = new Color32(255, 154, 186, 255);
+        // 스탯 표(StatPanelPainter)의 음수 총계와 남은 리롤 0의 글자색 — 피해 숫자(PlayerHealth.damageNumberColor)와 같은 결의 밝은 빨강.
+        [SerializeField] Color penaltyText = new Color32(255, 110, 110, 255);
+        // 스탯 표에서 0인 줄(라벨·값)의 글자색 — 아직 오르지 않은 스탯이 덜 눈에 띄게. 글리프의 흰 획에 곱한다.
+        [SerializeField] Color mutedText = new Color32(130, 130, 140, 255);
 
         public int TileSize => tileSize;
         public NineSlice PanelBlue => panelBlue;
@@ -91,11 +98,14 @@ namespace PickShoot
         public Sprite IconBulletPlain => iconBulletPlain;
         public Sprite IconCross => iconCross;
         public Sprite IconSkull => iconSkull;
+        public Sprite IconReroll => iconReroll;
         public Color WeaponPlateFill => weaponPlateFill;
         public Color WeaponPlateOutline => weaponPlateOutline;
         public Color HighlightText => highlightText;
         public Color UpgradeText => upgradeText;
         public Color ModText => modText;
+        public Color PenaltyText => penaltyText;
+        public Color MutedText => mutedText;
 
         // 누락된 참조를 필드 이름까지 지목해 예외로 알린다. 사용하는 쪽이 Awake에서 호출.
         public void Validate()
@@ -116,6 +126,7 @@ namespace PickShoot
             if (iconBulletPlain == null) throw Missing(nameof(iconBulletPlain));
             if (iconCross == null) throw Missing(nameof(iconCross));
             if (iconSkull == null) throw Missing(nameof(iconSkull));
+            if (iconReroll == null) throw Missing(nameof(iconReroll));
         }
 
         System.Exception Missing(string field)

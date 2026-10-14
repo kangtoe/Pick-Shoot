@@ -194,3 +194,4 @@ MonoBehaviour:
   iconBulletPlain: {fileID: 5388012248069828287, guid: 65de3997573b9644a9473502c275f409, type: 3}
   iconCross: {fileID: 6650710102705227488, guid: 65de3997573b9644a9473502c275f409, type: 3}
   iconSkull: {fileID: 4964711048362582589, guid: 65de3997573b9644a9473502c275f409, type: 3}
+  iconReroll: {fileID: 7000000000000000401, guid: b4f9d0651238448ca2cfebaf09f15e1f, type: 3}

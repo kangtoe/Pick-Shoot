@@ -8,18 +8,20 @@ namespace PickShoot
     // 무기 줄은 슬롯 순서로 보유 자루만 한 줄 — 남은 슬롯 수는 제목의 `n/12`가 말한다. 처음엔 빈 슬롯을 어두운 타일로 12칸 채웠는데 제목에
     // 수량이 붙으면서 같은 정보의 반복이라 뺐다 (2026-10-06, 같은 날 뒤집음). 줄의 왼쪽 끝은 12칸(PlayerWeapons.MaxSlots) 폭을 가운데 둔 자리라
     // 자루가 늘어도 줄이 움직이지 않는다.
-    // 유물 격자는 종류별(처음 얻은 순서) 한 칸씩 같은 12열에 왼쪽부터 채우고 넘치면 다음 줄 — 종류가 레어·유니크로 늘어도 접힌다. 없어도 한 줄 자리는 둔다.
+    // 유물 격자는 종류별(처음 얻은 순서) 한 칸씩 무기와 같은 열 수에 왼쪽부터 채우고 넘치면 다음 줄 — 종류가 언커먼·레어로 늘어도 접힌다. 없어도 한 줄 자리는 둔다.
     // 첫 칸은 늘 캐릭터다 (2026-10-14, Characters §4) — 캐릭터를 러닝 시작에 받는 유물로 보고 같은 줄에 둔다. 그림은 캐릭터의 아이콘(CharacterData.Icon),
     // 배지는 `X1`, 제목 수량에도 센다. 러닝 중 능력·보너스를 다시 볼 곳이 여기뿐이다 (보기 카드 UpgradeCardPainter.DrawOwnedCharacter).
-    // 일시정지 화면(PauseScreen)은 패널 배율로 두 격자를 다 보이고(전체 인벤토리), 보상 화면(UpgradeManager)은 타일 배율 3(배지 `LV5`가 들어가는 최소 타일)으로
-    // 무기 줄·유물 줄을 카드 밑에 둘 다 둔다 (2026-10-07 — 그전엔 제목 배너·리롤 버튼이 세로를 차지해 그 화면 종류의 한 줄뿐이었다). 10월 4일 "보상 화면에는 두지 않는다"를
-    // 뒤집은 것 — 제목의 남은 슬롯 수와 호버(보유 자루와 카드 비교)로 줄에 기능이 생겼다 (Roadmap).
+    // 일시정지 화면(PauseScreen)은 패널 배율 12열(WideColumns)로 두 격자를 다 보이고(전체 인벤토리), 보상 화면(UpgradeManager)도 같은 패널 배율에
+    // 6열로 왼쪽 상태 열에 둘 다 둔다 — 열 수는 그리는 쪽이 넘기고, 무기도 그 열 수에서 다음 줄로 접힌다 (2026-10-14 보상 화면 가로 카드 배치. 그전엔
+    // 카드 밑 12열 한 줄씩이었다). 10월 4일 "보상 화면에는 두지 않는다"를 2026-10-07에 뒤집은 것 — 제목의 남은 슬롯 수와 호버(보유 자루와 카드 비교)로 줄에
+    // 기능이 생겼다 (Roadmap).
     // 패널 배경은 없다 — 어두운 막 위에 바로 그린다. 줄 제목은 "총과 열쇠라 그림으로 갈린다"며 두지 않다가 수량이 붙어 쓸모가 생기면서 넣었다.
     // 무기 줄은 탄창을 보이지 않는다 — 카드 화면은 sweep 직후라 늘 가득하고, 여기서 필요한 것은 종류와 레벨뿐이다 (Weapons §3).
     // 호버한 타일을 돌려주고, 그 보기 카드(UpgradeCardPainter.DrawOwnedWeapon·DrawOwnedRelic·DrawOwnedCharacter)는 화면이 맨 마지막에 그린다 (2026-10-12, 그전엔 툴팁).
     public static class BuildGridPainter
     {
-        public const int Columns = PlayerWeapons.MaxSlots;
+        // 일시정지 화면의 열 수 — 무기 최대 슬롯이 한 줄에 든다.
+        public const int WideColumns = PlayerWeapons.MaxSlots;
         const int ColumnGapTexels = 4;   // 타일 사이 (타일 배율)
         const int RowGapTexels = 4;      // 줄 사이 (타일 배율)
         const int TitleGapTexels = 4;    // 제목 줄 아래 → 타일 (글자 배율)
@@ -48,10 +50,17 @@ namespace PickShoot
             return $"RELICS ({RelicCellCount(stats)})";
         }
 
-        // 12칸 폭. 무기 줄이 가득 찼을 때이자 유물 격자의 한 줄 — 격자 묶음을 가운데 두는 기준.
-        public static int Width(int scale)
+        // columns칸 폭 — 격자의 한 줄. 일시정지 화면은 12칸이 격자 묶음을 가운데 두는 기준이다.
+        public static int Width(int scale, int columns)
         {
-            return Columns * ItemTilePainter.Size(scale) + (Columns - 1) * ColumnGapTexels * scale;
+            return columns * ItemTilePainter.Size(scale) + (columns - 1) * ColumnGapTexels * scale;
+        }
+
+        // 그 폭에 드는 최대 열 수 (보상 화면 상태 열 768px · 패널 배율 → 6).
+        public static int ColumnsFitting(int scale, int width)
+        {
+            int pitch = ItemTilePainter.Size(scale) + ColumnGapTexels * scale;
+            return (width + ColumnGapTexels * scale) / pitch;
         }
 
         // 줄 위 가장자리 → 다음 줄 위 가장자리.
@@ -66,10 +75,16 @@ namespace PickShoot
             return rows * RowPitch(skin, scale) - RowGapTexels * scale;
         }
 
-        // 12칸이 캔버스 폭을 넘으면 예외 — 패널 배율에서 1520px라 16:10(1728)까지 들어가고 4:3(1440)은 안 된다.
-        public static void RequireFits(int scale, int canvasWidth)
+        // height 안에 드는 줄 수 (보상 화면 상태 열의 유물 격자 자리).
+        public static int RowsFitting(PixelUiSkin skin, int scale, int height)
         {
-            int w = Width(scale);
+            return (height + RowGapTexels * scale) / RowPitch(skin, scale);
+        }
+
+        // 한 줄이 캔버스 폭을 넘으면 예외 — 패널 배율 12칸은 1520px, 캔버스는 늘 1920px (화면비 16:9 고정, ScreenLetterbox).
+        public static void RequireFits(int scale, int columns, int canvasWidth)
+        {
+            int w = Width(scale, columns);
             if (w > canvasWidth)
                 throw new System.Exception($"[PickShoot] BuildGridPainter: 격자 폭 {w}px가 캔버스 폭 {canvasWidth}px를 넘음 (배율 {scale}). 열 수를 줄이거나 배율을 낮출 것.");
         }
@@ -92,24 +107,32 @@ namespace PickShoot
         }
 
         // 칸 수가 차지하는 줄 수. 한 줄 자리는 늘 있다 — 첫 칸이 캐릭터다.
-        public static int RelicRows(int cells)
+        public static int RelicRows(int cells, int columns)
         {
-            return Mathf.Max(1, (cells + Columns - 1) / Columns);
+            return Mathf.Max(1, (cells + columns - 1) / columns);
         }
 
-        // 무기 줄 (보유 자루만). (x, y)는 격자 좌상단. 반환: 마우스가 올라간 자루의 슬롯 인덱스, 없으면 -1. hovered는 그 타일.
-        public static int DrawWeaponRow(PixelUiSkin skin, PlayerWeapons weapons, int x, int y, int scale, Vector2 mouse, out Rect hovered)
+        // 무기 격자가 차지할 줄 수 — 최대 슬롯 기준이라 자루가 늘어도 아래 유물 구역이 움직이지 않는다.
+        public static int WeaponRows(int columns)
+        {
+            return (PlayerWeapons.MaxSlots + columns - 1) / columns;
+        }
+
+        // 무기 격자 (보유 자루만, 슬롯 순서로 columns칸마다 다음 줄). (x, y)는 격자 좌상단. 반환: 마우스가 올라간 자루의 슬롯 인덱스, 없으면 -1. hovered는 그 타일.
+        public static int DrawWeaponGrid(PixelUiSkin skin, PlayerWeapons weapons, int x, int y, int scale, int columns, Vector2 mouse, out Rect hovered)
         {
             var slots = weapons.Slots;
             int pitch = ItemTilePainter.Size(scale) + ColumnGapTexels * scale;
+            int rowPitch = RowPitch(skin, scale);
             int result = -1;
             hovered = default;
             for (int i = 0; i < slots.Count; i++)
             {
-                int tx = x + i * pitch;
+                int tx = x + (i % columns) * pitch;
+                int ty = y + (i / columns) * rowPitch;
                 var w = slots[i];
-                ItemTilePainter.Draw(skin, w.Data.WeaponSprite, ItemInfoText.WeaponBadge(w.Level), ItemInfoText.ModMark(w.Mod), tx, y, scale);
-                var r = TileRect(skin, tx, y, scale);
+                ItemTilePainter.Draw(skin, w.Data.WeaponSprite, ItemInfoText.WeaponBadge(w.Level), ItemInfoText.ModMark(w.Mod), tx, ty, scale);
+                var r = TileRect(skin, tx, ty, scale);
                 if (r.Contains(mouse))
                 {
                     result = i;
@@ -121,13 +144,13 @@ namespace PickShoot
 
         // 유물 격자 — 첫 칸 캐릭터, 그 뒤 유물 종류. maxRows를 넘치면 예외. 반환: 마우스가 올라간 유물, 없으면 null. characterHovered는 첫 칸(캐릭터)에 올라갔는가.
         // hovered는 그 타일.
-        public static RelicData DrawRelicGrid(PixelUiSkin skin, PlayerStats stats, int x, int y, int scale, int maxRows, Vector2 mouse, out bool characterHovered, out Rect hovered)
+        public static RelicData DrawRelicGrid(PixelUiSkin skin, PlayerStats stats, int x, int y, int scale, int columns, int maxRows, Vector2 mouse, out bool characterHovered, out Rect hovered)
         {
             int cells = RelicCellCount(stats);
             var kinds = RelicKinds(stats);
-            int rows = RelicRows(cells);
+            int rows = RelicRows(cells, columns);
             if (rows > maxRows)
-                throw new System.Exception($"[PickShoot] BuildGridPainter: 유물 줄 {cells}칸(캐릭터 + 유물 {kinds.Count}종)이 {maxRows}줄({maxRows * Columns}칸)을 넘음. 보상 화면의 한 줄 한계 — 종류가 늘면 접는 방식을 정할 것 (Relics §5).");
+                throw new System.Exception($"[PickShoot] BuildGridPainter: 유물 격자 {cells}칸(캐릭터 + 유물 {kinds.Count}종)이 {maxRows}줄({maxRows * columns}칸)을 넘음. 그 화면의 자리 한계 — 종류가 늘면 접는 방식을 정할 것 (Relics §5).");
             int pitch = ItemTilePainter.Size(scale) + ColumnGapTexels * scale;
             int rowPitch = RowPitch(skin, scale);
             RelicData result = null;
@@ -135,8 +158,8 @@ namespace PickShoot
             hovered = default;
             for (int i = 0; i < cells; i++)
             {
-                int tx = x + (i % Columns) * pitch;
-                int ty = y + (i / Columns) * rowPitch;
+                int tx = x + (i % columns) * pitch;
+                int ty = y + (i / columns) * rowPitch;
                 var relic = i == 0 ? null : kinds[i - 1];
                 if (relic == null)
                     ItemTilePainter.Draw(skin, stats.Character.Icon, ItemInfoText.RelicBadge(1), tx, ty, scale);

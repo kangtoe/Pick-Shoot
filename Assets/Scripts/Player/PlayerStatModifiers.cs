@@ -102,7 +102,7 @@ namespace PickShoot
         }
 
         // 총계 표기: 배율은 "10%", 가산은 "3". 부호는 음수(언커먼·레어 유물의 패널티)에만 — "+"를 늘 붙이면 값 열이 넓어져 100중첩 전에 넘친다.
-        // 0도 "0%"·"0"으로 적는다. 일시정지·디버그 창의 스탯 총계가 쓴다.
+        // 0도 "0%"·"0"으로 적는다. 스탯 표(StatPanelPainter — 일시정지·보상 화면)와 디버그 창의 스탯 총계가 쓴다.
         public static string Format(PlayerStat stat, int value)
         {
             return IsPercent(stat) ? $"{value}%" : value.ToString();

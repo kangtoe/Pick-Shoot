@@ -83,6 +83,13 @@ namespace PickShoot
         public const int HoverOutlineTexels = 1;
         // 보기 카드 ↔ 가리키는 타일 (패널 텍셀). 툴팁 때와 같은 값.
         const int AnchorGapTexels = 2;
+        // 보상 화면의 가로 카드 (DrawLandscape, 2026-10-14) — 14×4타일(896×256px). 왼쪽부터 전시 타일(세로 가운데) · 가운데 열(종류 제목·이름·첫 줄·개조 줄,
+        // 위 여백부터) · 오른쪽 표(스탯 줄·본문 줄·설명, 세로 가운데). 표 폭 85텍셀(340px)은 가장 긴 줄(`FIRE RATE`·`34 -> 40`)에 여유를 둔 값.
+        const int LandscapeWidthTiles = 14;
+        const int LandscapeHeightTiles = 4;
+        const int LandscapeTableWidthTexels = 85;
+        const int LandscapeShowcaseGapTexels = 8;   // 전시 타일 → 가운데 열 (32px)
+        const int LandscapeColumnGapTexels = 4;     // 가운데 열 → 표 (16px, 넘침 검사용)
         // 종류 제목의 일반 글꼴 배율 — 이름(아웃라인 배율 2)보다 한 단계 커 종류가 먼저 읽힌다 (2026-10-08, 글자 배율 2에서 키움). 보너스 꼬리 `(+n)`은 글자 배율 그대로
         // 제목 뒤에 글리프 상자 아래 변을 맞춰 붙인다.
         const int TitleScale = 3;
@@ -200,6 +207,161 @@ namespace PickShoot
                 Note = null,
             };
             DrawSelectable(skin, c, rect, scale, textScale, hovered);
+        }
+
+        // 보상 화면의 가로 카드 크기 (14×4타일).
+        public static Vector2Int LandscapeSize(PixelUiSkin skin, int scale)
+        {
+            int tile = skin.TileSize * scale;
+            return new Vector2Int(LandscapeWidthTiles * tile, LandscapeHeightTiles * tile);
+        }
+
+        // 보상 화면의 선택 카드 — 세로 카드(Draw)와 같은 내용(Build)을 가로로 편다 (2026-10-14). 세 장을 세로로 쌓아 오른쪽 표가 같은 x에 서므로 카드끼리
+        // 값을 위아래로 비교한다. 시작 화면·보기 카드는 세로 카드 그대로다. 크기는 고정(LandscapeSize)이라 내용이 넘치면 예외.
+        public static void DrawLandscape(PixelUiSkin skin, UpgradeOption option, PlayerWeapons weapons, PlayerStats stats, Rect rect, int scale, int textScale, bool hovered)
+        {
+            var c = Build(skin, option, weapons, stats);
+            if (c.Title == null || c.ShowcasePortrait)
+                throw new System.Exception($"[PickShoot] UpgradeCardPainter.DrawLandscape: '{c.Name}' — 가로 카드는 종류 제목이 있고 아이템 타일인 선택 카드만 그린다.");
+            int lineH = skin.FontPlain.lineHeight * textScale;
+            int space = skin.FontPlain.spaceWidth * textScale;
+            int iconSize = skin.TileSize * textScale;
+            int pad = SidePaddingTexels * scale;
+            int tableW = LandscapeTableWidthTexels * scale;
+            int textX = LandscapeTextX(rect, scale);
+            int tableX = (int)rect.xMax - pad - tableW;
+            int middleW = tableX - LandscapeColumnGapTexels * scale - textX;
+
+            // 가운데 열의 폭·높이 검사.
+            RequireFits(TitleWidth(skin, c, textScale, out int titleTextW), middleW, $"{c.Title} {c.TitleTag}", "가로 카드 가운데 열(제목)");
+            RequireFits(PixelGui.MeasureText(skin.FontOutlined, c.Name, NameScale), middleW, c.Name, "가로 카드 가운데 열(이름)");
+            RequireFits(RowWidth(skin, c.RowLabel, c.RowNow, c.RowNext, iconSize, space, textScale), middleW, $"{c.RowLabel} {c.RowNow} > {c.RowNext}", "가로 카드 가운데 열");
+            if (c.SubLine != null)
+                RequireFits(PixelGui.MeasureText(skin.FontPlain, c.SubLine, textScale), middleW, c.SubLine, "가로 카드 가운데 열");
+            int middleH = skin.FontPlain.lineHeight * TitleScale + TitleNameGapTexels * scale + skin.FontOutlined.lineHeight * NameScale
+                + NameShowcaseGapTexels * scale + (c.SubLine != null ? 2 : 1) * lineH;
+            int innerTop = (int)rect.y + TopMarginTexels * scale;
+            int innerBottom = (int)rect.yMax - BottomMinTexels * scale;
+            if (innerTop + middleH > innerBottom)
+                throw new System.Exception($"[PickShoot] UpgradeCardPainter.DrawLandscape: '{c.Name}' 가운데 열 높이 {middleH}px가 카드 안쪽을 넘음.");
+
+            // 표: 스탯 줄 → (본문 간격) → 본문 줄 → 설명. 줄마다 라벨 왼쪽, 값 덩이 오른쪽 끝.
+            for (int i = 0; i < c.StatLabels.Length; i++)
+                RequireFits(PixelGui.MeasureText(skin.FontPlain, c.StatLabels[i], textScale) + space + RowWidth(skin, null, c.StatNow[i], c.StatNext[i], iconSize, space, textScale),
+                    tableW, $"{c.StatLabels[i]} {c.StatNow[i]} > {c.StatNext[i]}", "가로 카드 표");
+            for (int i = 0; i < c.BodyLines.Length; i++)
+                RequireFits(PixelGui.MeasureText(skin.FontPlain, BodyText(c.BodyLines[i], c.BodyValues[i]), textScale), tableW, BodyText(c.BodyLines[i], c.BodyValues[i]), "가로 카드 표");
+            var noteLines = string.IsNullOrEmpty(c.Note) ? EmptyLines : PixelGui.WrapText(skin.FontPlain, c.Note, textScale, tableW);
+            int bodyCount = c.BodyLines.Length + noteLines.Count;
+            int tableH = c.StatLabels.Length * lineH + bodyCount * lineH;
+            if (c.StatLabels.Length > 0 && bodyCount > 0) tableH += BodyGapTexels * scale;
+            int tableTop = (int)rect.y + BottomMinTexels * scale;
+            int tableRoom = (int)rect.height - 2 * BottomMinTexels * scale;
+            if (tableH > tableRoom)
+                throw new System.Exception($"[PickShoot] UpgradeCardPainter.DrawLandscape: '{c.Name}' 표 높이 {tableH}px({c.StatLabels.Length + bodyCount}줄)가 카드 안쪽 {tableRoom}px를 넘음.");
+
+            if (hovered)
+            {
+                int o = HoverOutlineTexels * scale;
+                PixelGui.FillPlateShape(new Rect(rect.x - o, rect.y - o, rect.width + 2 * o, rect.height + 2 * o), scale, Color.white);
+            }
+            PixelGui.DrawNineSlice(skin.PanelBlue, rect, skin.TileSize, scale);
+
+            // 전시 타일 — 세로 가운데.
+            int showcase = ItemTilePainter.Size(ShowcaseTileScale);
+            ItemTilePainter.Draw(skin, c.ShowcaseSprite, c.ShowcaseBadge, c.ShowcaseModMark, (int)rect.x + pad, (int)rect.center.y - showcase / 2, ShowcaseTileScale);
+
+            // 가운데 열 — 위 여백부터 왼쪽 맞춤. 제목 글자색은 GUI.color로 곱한다 (세로 카드와 같다).
+            int y = innerTop;
+            var prevColor = GUI.color;
+            GUI.color = prevColor * c.TitleTint;
+            PixelGui.DrawText(skin.FontPlain, c.Title, textX, y, TitleScale);
+            if (c.TitleTag != null)
+                PixelGui.DrawText(skin.FontPlain, c.TitleTag, textX + titleTextW + space, y + (skin.FontPlain.capTop + skin.FontPlain.capHeight) * (TitleScale - textScale), textScale);
+            GUI.color = prevColor;
+            y += skin.FontPlain.lineHeight * TitleScale + TitleNameGapTexels * scale;
+            PixelGui.DrawText(skin.FontOutlined, c.Name, textX, y, NameScale);
+            y += skin.FontOutlined.lineHeight * NameScale + NameShowcaseGapTexels * scale;
+            DrawRowAt(skin, c.RowLabel, c.RowNow, c.RowNext, c.RowTint, textX, y, iconSize, space, textScale);
+            y += lineH;
+            if (c.SubLine != null)
+                DrawRowAt(skin, null, null, c.SubLine, c.SubLineTint, textX, y, iconSize, space, textScale);
+
+            // 오른쪽 표 — 세로 가운데.
+            int tableRight = tableX + tableW;
+            y = tableTop + (tableRoom - tableH) / 2;
+            for (int i = 0; i < c.StatLabels.Length; i++)
+            {
+                PixelGui.DrawText(skin.FontPlain, c.StatLabels[i], tableX, y, textScale);
+                int valueW = RowWidth(skin, null, c.StatNow[i], c.StatNext[i], iconSize, space, textScale);
+                DrawRowAt(skin, null, c.StatNow[i], c.StatNext[i], c.StatTints[i], tableRight - valueW, y, iconSize, space, textScale);
+                y += lineH;
+            }
+            if (c.StatLabels.Length > 0 && bodyCount > 0) y += BodyGapTexels * scale;
+            var valueTint = c.BodyValuesGain ? skin.UpgradeText : Color.white;
+            for (int i = 0; i < c.BodyLines.Length; i++)
+            {
+                PixelGui.DrawText(skin.FontPlain, c.BodyLines[i], tableX, y, textScale);
+                if (c.BodyValues[i] != null)
+                {
+                    GUI.color = prevColor * valueTint;
+                    PixelGui.DrawTextRight(skin.FontPlain, c.BodyValues[i], tableRight, y, textScale);
+                    GUI.color = prevColor;
+                }
+                y += lineH;
+            }
+            for (int i = 0; i < noteLines.Count; i++)
+            {
+                PixelGui.DrawText(skin.FontPlain, noteLines[i], tableX, y, textScale);
+                y += lineH;
+            }
+        }
+
+        // 가로 카드의 가운데 열 왼쪽 끝 — 전시 타일 오른쪽. 리롤 칸(DrawLandscapeAction)의 제목도 여기에 맞춘다.
+        static int LandscapeTextX(Rect rect, int scale)
+        {
+            return (int)rect.x + SidePaddingTexels * scale + ItemTilePainter.Size(ShowcaseTileScale) + LandscapeShowcaseGapTexels * scale;
+        }
+
+        // 가로 카드 열 아래의 행동 칸 (보상 화면의 리롤, 2026-10-14) — 선택지가 아니라는 것이 읽히게 회색 패널에 높이는 카드의 절반(2타일, 9-slice 최소)이다.
+        // 아이콘은 판 없이 전시 타일 열의 가운데에(아이템이 아니라 행동), 제목(일반 글꼴 배율 3)과 설명 한 줄은 가운데 열 x에, rightText는 표의 오른쪽 끝에.
+        // tint는 칸 전체(패널·아이콘·글자)에 곱한다 — 누를 수 없을 때 어둡게. rightTint는 rightText에만 더 곱한다.
+        // R 타일·아이콘 없음·수량을 제목에 넣는 안과 비교해 골랐다 (Recordings/reward_reroll_icon_mockup_2026-10-14.png).
+        public static void DrawLandscapeAction(PixelUiSkin skin, Rect rect, Sprite icon, string title, string description, string rightText, Color rightTint, Color tint, bool hovered, int scale, int textScale)
+        {
+            int minH = 2 * skin.TileSize * scale;
+            if ((int)rect.height < minH)
+                throw new System.Exception($"[PickShoot] UpgradeCardPainter.DrawLandscapeAction: 높이 {rect.height}px가 9-slice 최소 {minH}px보다 작음.");
+            int lineH = skin.FontPlain.lineHeight * textScale;
+            int titleH = skin.FontPlain.lineHeight * TitleScale;
+            int textX = LandscapeTextX(rect, scale);
+            int right = (int)rect.xMax - SidePaddingTexels * scale;
+            int textW = PixelGui.MeasureText(skin.FontPlain, title, TitleScale);
+            int descW = PixelGui.MeasureText(skin.FontPlain, description, textScale);
+            int rightW = PixelGui.MeasureText(skin.FontPlain, rightText, textScale);
+            if (textX + Mathf.Max(textW, descW) + LandscapeColumnGapTexels * scale > right - rightW)
+                throw new System.Exception($"[PickShoot] UpgradeCardPainter.DrawLandscapeAction: '{title}'·'{description}'이 오른쪽 '{rightText}'과 맞닿음. 문구를 줄일 것.");
+            int iconW = (int)icon.rect.width * scale;
+            int iconH = (int)icon.rect.height * scale;
+            if (iconH > (int)rect.height - 2 * BottomMinTexels * scale)
+                throw new System.Exception($"[PickShoot] UpgradeCardPainter.DrawLandscapeAction: 아이콘 높이 {iconH}px가 칸 안쪽을 넘음.");
+
+            var prev = GUI.color;
+            if (hovered)
+            {
+                int o = HoverOutlineTexels * scale;
+                PixelGui.FillPlateShape(new Rect(rect.x - o, rect.y - o, rect.width + 2 * o, rect.height + 2 * o), scale, Color.white);
+            }
+            GUI.color = prev * tint;
+            PixelGui.DrawNineSlice(skin.PanelGrey, rect, skin.TileSize, scale);
+            int iconCenterX = (int)rect.x + SidePaddingTexels * scale + ItemTilePainter.Size(ShowcaseTileScale) / 2;
+            PixelGui.DrawSprite(icon, new Rect(iconCenterX - iconW / 2, (int)rect.center.y - iconH / 2, iconW, iconH));
+            int textTop = (int)rect.center.y - (titleH + TitleNameGapTexels * scale + lineH) / 2;
+            PixelGui.DrawText(skin.FontPlain, title, textX, textTop, TitleScale);
+            PixelGui.DrawText(skin.FontPlain, description, textX, textTop + titleH + TitleNameGapTexels * scale, textScale);
+            GUI.color = prev * tint * rightTint;
+            PixelGui.DrawTextRight(skin.FontPlain, rightText, right, (int)rect.center.y - lineH / 2, textScale);
+            GUI.color = prev;
         }
 
         // 선택 카드의 공통 그리기 — 파란 패널, 호버면 테두리 넓히기. 크기는 고정이라 내용이 넘치면 예외.
@@ -754,7 +916,7 @@ namespace PickShoot
             return levels >= 2 ? $"(+{levels})" : null;
         }
 
-        // 등급 줄 값의 글자색 (Relics §1). 커먼은 흰색 — 배지 시절(2026-10-08까지)엔 회색 패널로 무기 카드의 노란 NEW!·파란 LV UP과 갈랐다. 레어·유니크는 그 단계에서 정한다 (Relics §5).
+        // 등급 줄 값의 글자색 (Relics §1). 커먼은 흰색 — 배지 시절(2026-10-08까지)엔 회색 패널로 무기 카드의 노란 NEW!·파란 LV UP과 갈랐다. 언커먼·레어는 그 단계에서 정한다 (Relics §6).
         static Color GradeTint(RelicGrade grade)
         {
             switch (grade)
@@ -784,7 +946,12 @@ namespace PickShoot
         // 스탯 줄 한 줄을 centerX 가운데에. 다음 값만 nextTint로 곱한다 — 얻는 값의 초록·유물 등급 색·개조 이름의 개조 색. 라벨·현재 값·화살표는 흰색.
         static void DrawRow(PixelUiSkin skin, string label, string now, string next, Color nextTint, int centerX, int y, int iconSize, int space, int textScale)
         {
-            int x = centerX - RowWidth(skin, label, now, next, iconSize, space, textScale) / 2;
+            DrawRowAt(skin, label, now, next, nextTint, centerX - RowWidth(skin, label, now, next, iconSize, space, textScale) / 2, y, iconSize, space, textScale);
+        }
+
+        // 같은 줄을 왼쪽 끝 x부터 (가로 카드의 가운데 열·표의 값 덩이).
+        static void DrawRowAt(PixelUiSkin skin, string label, string now, string next, Color nextTint, int x, int y, int iconSize, int space, int textScale)
+        {
             if (label != null)
             {
                 PixelGui.DrawText(skin.FontPlain, label, x, y, textScale);
