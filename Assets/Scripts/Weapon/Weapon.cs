@@ -49,7 +49,7 @@ namespace PickShoot
         }
 
         // 최대 탄약 = 자산 값 + 레벨 가산 × (레벨−1) + 플레이어 가산 (Weapons §3, Characters §5). 고정 탄창(가산 0) 무기에도 플레이어 가산은 더한다.
-        // 가산이 음수(앞으로의 유니크 유물 패널티)라 탄창이 1 미만이면 쏠 수 없는 자루라 예외.
+        // 가산이 음수(앞으로의 언커먼·레어 유물 패널티)라 탄창이 1 미만이면 쏠 수 없는 자루라 예외.
         public static int MaxAmmoAtLevel(WeaponData data, int level, int playerBonus)
         {
             int ammo = data.MaxAmmo + (level - 1) * data.LevelMaxAmmoAdd + playerBonus;

@@ -2,8 +2,9 @@ using UnityEngine;
 
 namespace PickShoot
 {
-    // 유물 등급 (Relics §1). 지금 정의된 것은 커먼뿐 — 레어·유니크는 로드맵 3·4단계(Relics §5)에서 채운다. 카드 배지 문구는 이름의 영문 대문자.
-    public enum RelicGrade { Common, Rare, Unique }
+    // 유물 등급 (Relics §1). 지금 정의된 것은 커먼뿐 — 언커먼·레어는 로드맵 3단계(Relics §5)에서 채운다. 2026-10-14 커먼·레어·유니크에서 바꿨다 (값 1·2는
+    // 그때 쓰는 자산이 없어 그대로 옮겼다). 카드 배지 문구는 이름의 영문 대문자.
+    public enum RelicGrade { Common, Uncommon, Rare }
 
     // 유물 정의 (Relics §2). 자산은 Assets/Data/Relics — 수치의 SSOT. 보상 화면(UpgradeManager.relicPool)이 후보로 쓰고, 획득하면 PlayerStats에 쌓인다.
     // 커먼 유물은 반복 획득·중첩이 가능하고 스탯 수정치 묶음 하나로 효과가 끝난다 — 새 플레이 규칙은 두지 않는다.
@@ -14,7 +15,7 @@ namespace PickShoot
         [SerializeField] RelicGrade grade = RelicGrade.Common;
         // 카드 전시 칸의 그림. 지금은 임시 조각 — Tiles 시트의 열쇠를 유물별 색으로 바꾼 사본(Assets/Art/UI/relic_keys.png). 유물별 그림은 고유 아트 때 (Relics §2).
         [SerializeField] Sprite icon;
-        // 선택 카드·보기 카드 본문의 설명 문단 — 스탯 줄(PlayerStatModifiers.Label + 수정치)이 못 하는 말만 적는다. 유니크 유물의 조건 효과 같은 것이고,
+        // 선택 카드·보기 카드 본문의 설명 문단 — 스탯 줄(PlayerStatModifiers.Label + 수정치)이 못 하는 말만 적는다. 레어 유물의 조건 효과 같은 것이고,
         // 커먼 7종은 2026-10-07부터 비어 있다 (Relics §2). 시트 글꼴 문자(영문 대문자·숫자·% + - ! ( ) / .)만, 단어 단위로 접힌다 — 한 단어가 폭을 넘치면 그릴 때 예외.
         [SerializeField] string description = "";
         [SerializeField] PlayerStatModifiers modifiers;
