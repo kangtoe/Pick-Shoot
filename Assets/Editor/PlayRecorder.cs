@@ -3,6 +3,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.IO;
 using System.Reflection;
+using Unity.Collections;
 using UnityEditor;
 using UnityEditor.Media;
 using UnityEngine;
@@ -12,7 +13,7 @@ namespace PickShoot
 {
     // 플레이 영상 자동 녹화 도구 (메뉴 PickShoot/Record Play, 또는 Recordings/record.request 파일). 장기 보존 도구 (DEVELOPMENT §2.1) —
     // 아트 교체 전후를 같은 봇·해상도·길이로 찍어 비교하는 동안 둔다. 구조·절차·함정은 Docs/Guides/AutoPlayRecording.md.
-    // 흐름: 요청 파일 → 플레이 모드 진입 → 세션 MonoBehaviour가 봇(IPlayDriver)을 돌리며 매 프레임을 MediaEncoder에 넣는다 → 플레이 종료.
+    // 흐름: 요청 파일 → 플레이 모드 진입 → 세션 MonoBehaviour가 봇(IPlayDriver)을 돌리며 매 프레임의 화면과 소리를 MediaEncoder에 넣는다 → 플레이 종료.
     // 상태는 전부 Recordings/record.* 파일로 주고받는다 — 플레이 모드 진입·종료의 도메인 리로드가 static 상태를 지우기 때문.
     public interface IPlayDriver
     {
@@ -51,6 +52,7 @@ namespace PickShoot
             // 중단된 세션이 남긴 active 파일은 다음 수동 플레이를 가로채므로 치운다. 플레이 진입 리로드 중에는 살아 있어야 한다.
             if (!EditorApplication.isPlayingOrWillChangePlaymode && File.Exists(ActivePath))
             {
+                RestorePlayFocused(File.ReadAllText(ActivePath));
                 File.Delete(ActivePath);
                 Log("stale record.active removed.");
             }
@@ -106,9 +108,29 @@ namespace PickShoot
             string text = File.ReadAllText(RequestPath);
             File.Delete(RequestPath);
             if (File.Exists(DonePath)) File.Delete(DonePath);
+            // 플레이 진입 때 Game view가 포커스를 가져가면 에디터 창이 앞으로 나와 사용자가 쓰던 창을 가로챈다 — 녹화 동안만 끈다.
+            // 되돌릴 값은 active 파일에 남겨 세션 종료나 중단된 세션 정리(도메인 리로드 너머)가 되돌린다.
+            text = text.TrimEnd() + $"\n{RestorePlayFocusedKey}={(PlayModeWindow.GetPlayModeFocused() ? 1 : 0)}\n";
+            PlayModeWindow.SetPlayModeFocused(false);
             File.WriteAllText(ActivePath, text);
             Log("request accepted: " + text.Trim().Replace("\r", "").Replace("\n", " | "));
             EditorApplication.EnterPlaymode();
+        }
+
+        const string RestorePlayFocusedKey = "restore_play_focused";
+
+        // active 파일에 남긴 Game view 포커스 설정을 되돌린다. 키가 없는 파일(이 기능 전의 세션)이면 그대로 둔다.
+        public static void RestorePlayFocused(string activeText)
+        {
+            foreach (var raw in activeText.Split('\n'))
+            {
+                string line = raw.Trim();
+                if (!line.StartsWith(RestorePlayFocusedKey + "=")) continue;
+                bool focused = line.Substring(RestorePlayFocusedKey.Length + 1) != "0";
+                PlayModeWindow.SetPlayModeFocused(focused);
+                Log($"play focused restored: {focused}");
+                return;
+            }
         }
 
         static void OnPlayModeChanged(PlayModeStateChange state)
@@ -132,9 +154,11 @@ namespace PickShoot
     {
         string output;
         int seconds, fps, width, height, restoreIndex;
-        bool flip, useDriver;
+        bool flip, useDriver, recordAudio;
 
         MediaEncoder encoder;
+        int audioChannels;
+        bool audioStarted, muteChanged;
         RenderTexture captureRT, flipRT;
         Texture2D frameTex;
         IPlayDriver driver;
@@ -144,12 +168,20 @@ namespace PickShoot
         bool sizeChanged, inputChanged;
         InputSettings.BackgroundBehavior savedBackground;
         InputSettings.EditorInputBehaviorInPlayMode savedEditorInput;
+        bool runInBackgroundChanged, savedRunInBackground;
+        // 녹화 동안 끈 실제 입력 장치 (ApplyInputSettings). 종료 때 다시 켠다.
+        readonly List<InputDevice> disabledDevices = new List<InputDevice>();
 
         void Awake()
         {
             DontDestroyOnLoad(gameObject);
             EditorApplication.playModeStateChanged += OnPlayModeChanged;
             AssemblyReloadEvents.beforeAssemblyReload += OnBeforeReload;
+            // 프로젝트 설정 runInBackground가 꺼져 있으면 에디터가 포커스를 잃는 순간 플레이 루프가 멈춘다 — 사용자가 다른 창을 쓰는 동안에도
+            // 찍히도록 세션 동안만 켠다(런타임 값이라 프로젝트 설정은 그대로). 첫 프레임이 돌기 전이어야 해서 Start가 아니라 여기서 켠다.
+            savedRunInBackground = Application.runInBackground;
+            Application.runInBackground = true;
+            runInBackgroundChanged = true;
         }
 
         void Start()
@@ -193,6 +225,7 @@ namespace PickShoot
             height = ReadInt(values, "height", 0);
             useDriver = ReadInt(values, "driver", 1) != 0;
             restoreIndex = ReadInt(values, "restore_index", -1);
+            recordAudio = ReadInt(values, "audio", 1) != 0;
             if (seconds <= 0 || fps <= 0)
                 throw new Exception($"[PickShoot] PlayRecorder: seconds({seconds})·fps({fps})는 양수여야 함.");
         }
@@ -243,20 +276,35 @@ namespace PickShoot
                 Time.captureFramerate = fps;
                 if (File.Exists(output)) File.Delete(output);
                 Directory.CreateDirectory(Path.GetDirectoryName(output));
-                encoder = new MediaEncoder(output, new VideoTrackAttributes
+                var video = new VideoTrackAttributes
                 {
                     frameRate = new MediaRational(fps),
                     width = (uint)width,
                     height = (uint)height,
                     includeAlpha = false,
                     bitRateMode = VideoBitrateMode.High,
-                });
+                };
+                if (recordAudio)
+                {
+                    audioChannels = SpeakerChannels(AudioSettings.speakerMode);
+                    encoder = new MediaEncoder(output, video, new AudioTrackAttributes
+                    {
+                        sampleRate = new MediaRational(AudioSettings.outputSampleRate),
+                        channelCount = (ushort)audioChannels,
+                        language = "",
+                    });
+                    StartAudioCapture();
+                }
+                else
+                {
+                    encoder = new MediaEncoder(output, video);
+                }
                 captureRT = new RenderTexture(width, height, 0, RenderTextureFormat.ARGB32);
                 flipRT = new RenderTexture(width, height, 0, RenderTextureFormat.ARGB32);
                 frameTex = new Texture2D(width, height, TextureFormat.RGBA32, false);
                 totalFrames = seconds * fps;
                 capturing = true;
-                PlayRecorderTrigger.Log($"capture start: {output}");
+                PlayRecorderTrigger.Log($"capture start: {output} audio={(recordAudio ? $"{AudioSettings.outputSampleRate}Hz {audioChannels}ch" : "off")}");
             }
             catch (Exception e)
             {
@@ -297,6 +345,8 @@ namespace PickShoot
 
         // 에디터는 Game view에 포커스가 없으면 가상 장치의 이벤트도 버리므로 녹화 중에만 우회한다. 프로젝트에 InputSettings 자산이
         // 없어 값은 저장되지 않지만, 있는 경우를 위해 종료 시 되돌린다.
+        // 이 우회는 사용자의 실제 마우스·키보드도 게임에 들여보낸다 — 뒤에서 찍는 동안 다른 앱에서 마우스를 움직이거나 타이핑하면 조준·이동·
+        // 일시정지가 된다. 그래서 지금 붙어 있는 장치를 녹화 동안 모두 끈다. 봇의 가상 장치는 이 뒤에 driver.Begin이 더하므로 영향이 없다.
         void ApplyInputSettings()
         {
             var settings = InputSystem.settings;
@@ -305,6 +355,13 @@ namespace PickShoot
             settings.backgroundBehavior = InputSettings.BackgroundBehavior.IgnoreFocus;
             settings.editorInputBehaviorInPlayMode = InputSettings.EditorInputBehaviorInPlayMode.AllDeviceInputAlwaysGoesToGameView;
             inputChanged = true;
+            foreach (var device in InputSystem.devices)
+            {
+                if (!device.enabled) continue;
+                InputSystem.DisableDevice(device);
+                disabledDevices.Add(device);
+            }
+            PlayRecorderTrigger.Log($"input devices disabled for capture: {disabledDevices.Count}");
         }
 
         void RestoreInputSettings()
@@ -313,6 +370,9 @@ namespace PickShoot
             inputChanged = false;
             InputSystem.settings.backgroundBehavior = savedBackground;
             InputSystem.settings.editorInputBehaviorInPlayMode = savedEditorInput;
+            foreach (var device in disabledDevices)
+                if (device.added) InputSystem.EnableDevice(device);
+            disabledDevices.Clear();
         }
 
         // DX11/DX12 캡처는 상하 반전이라 flip=1이면 Blit으로 뒤집는다.
@@ -331,6 +391,55 @@ namespace PickShoot
             frameTex.Apply(false);
             RenderTexture.active = previous;
             encoder.AddFrame(frameTex);
+            if (audioStarted)
+            {
+                // captureFramerate로 고정된 이번 프레임 길이만큼의 소리를 오프라인으로 계산해 받는다 — 인코딩이 실제 속도보다 느려도 영상과 맞는다.
+                using (var samples = new NativeArray<float>(AudioRenderer.GetSampleCountForCaptureFrame() * audioChannels, Allocator.Temp))
+                {
+                    AudioRenderer.Render(samples);
+                    encoder.AddSamples(samples);
+                }
+            }
+        }
+
+        // AudioRenderer.Render는 스피커 모드의 채널 수만큼 번갈아 놓인 샘플을 준다. mp4에는 모노·스테레오만 넣는다.
+        static int SpeakerChannels(AudioSpeakerMode mode)
+        {
+            switch (mode)
+            {
+                case AudioSpeakerMode.Mono: return 1;
+                case AudioSpeakerMode.Stereo: return 2;
+                default: throw new Exception($"[PickShoot] PlayRecorder: 스피커 모드 {mode} — 오디오 녹화는 모노·스테레오만 된다 (Project Settings > Audio를 바꾸거나 audio=0).");
+            }
+        }
+
+        // 녹화 중에는 AudioRenderer가 소리를 가져가 스피커로는 나오지 않는다. Game view의 Mute Audio가 켜져 있으면 녹화에도 소리가 빠질 수 있어
+        // 녹화 동안만 끄고 종료 시 되돌린다.
+        void StartAudioCapture()
+        {
+            if (EditorUtility.audioMasterMute)
+            {
+                EditorUtility.audioMasterMute = false;
+                muteChanged = true;
+                PlayRecorderTrigger.Log("game view mute turned off for capture");
+            }
+            if (!AudioRenderer.Start())
+                throw new Exception("[PickShoot] PlayRecorder: AudioRenderer.Start 실패 — 다른 녹화(Recorder 패키지 등)가 오디오를 잡고 있는지 확인하거나 audio=0.");
+            audioStarted = true;
+        }
+
+        void StopAudioCapture()
+        {
+            if (audioStarted)
+            {
+                audioStarted = false;
+                AudioRenderer.Stop();
+            }
+            if (muteChanged)
+            {
+                muteChanged = false;
+                EditorUtility.audioMasterMute = true;
+            }
         }
 
         void SaveSnapshot()
@@ -352,10 +461,21 @@ namespace PickShoot
             finished = true;
             capturing = false;
             PlayRecorderTrigger.Log($"finish ({reason}) frames={frame}");
+            Try("audio stop", StopAudioCapture);
             Try("encoder dispose", () => { encoder?.Dispose(); encoder = null; });
             Try("captureFramerate", () => Time.captureFramerate = 0);
             Try("driver end", () => driver?.End());
             Try("input restore", RestoreInputSettings);
+            Try("run in background restore", () =>
+            {
+                if (!runInBackgroundChanged) return;
+                runInBackgroundChanged = false;
+                Application.runInBackground = savedRunInBackground;
+            });
+            Try("play focused restore", () =>
+            {
+                if (File.Exists(PlayRecorderTrigger.ActivePath)) PlayRecorderTrigger.RestorePlayFocused(File.ReadAllText(PlayRecorderTrigger.ActivePath));
+            });
             Try("game view restore", () =>
             {
                 if (sizeChanged) GameViewSizeUtil.Restore(restoreIndex >= 0 ? restoreIndex : savedSizeIndex, PlayRecorderTrigger.CustomSizeName);
