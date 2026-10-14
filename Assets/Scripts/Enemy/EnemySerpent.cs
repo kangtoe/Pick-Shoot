@@ -60,10 +60,14 @@ namespace PickShoot
             if (promoted) return;
             // 갓 스폰된 머리. 플레이어 쪽을 보고, 몸통을 낳아 모두 이 자리에 겹쳐 둔다.
             heading = InitialHeading();
+            // 몸통은 머리의 등급을 물려받는다 (Enemies §7) — 복제는 렌더러 색만 옮기고 HP·속도 같은 런타임 값은 옮기지 않으므로 명시적으로 입힌다.
+            // 보스 등급에는 챔피언(크기)이 없다 — 복제가 이미 커진 크기를 옮겨 크기가 두 번 곱해지는 일이 없다.
+            var headRank = GetComponent<EnemyHealth>().Rank;
             for (int i = 0; i < serpent.SegmentCount; i++)
             {
                 var segment = Instantiate(gameObject, Body.position, Quaternion.identity).GetComponent<EnemySerpent>();
                 segment.name = name;
+                segment.GetComponent<EnemyHealth>().ApplyRank(headRank);
                 segment.BecomeBody(this);
                 followers.Add(segment);
             }
@@ -99,7 +103,7 @@ namespace PickShoot
                 heading = Rotate(heading, turn).normalized;
             }
             Face(heading.x);
-            return heading * Data.MoveSpeed * SpeedMultiplier();
+            return heading * MoveSpeed * SpeedMultiplier();
         }
 
         // 남은 마디가 적을수록 빠르다: 몸통이 스폰 수만큼 있으면 1배, 머리만 남으면 배율만큼, 사이는 몸통 수에 선형. 분열체는 짧은 만큼 처음부터 빠르다.

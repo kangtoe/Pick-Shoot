@@ -41,7 +41,7 @@ namespace PickShoot
             Vector2 edge = ScreenEdgeSide();
             if (edge != Vector2.zero) TurnFrom(edge);
             Face(heading.x);
-            return heading * Data.MoveSpeed;
+            return heading * MoveSpeed;
         }
 
         // 지금 자리에서 화면 안을 지나는 새 경로를 잡는다.

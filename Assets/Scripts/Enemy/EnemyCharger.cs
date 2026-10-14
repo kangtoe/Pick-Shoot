@@ -82,7 +82,7 @@ namespace PickShoot
                 BeginWindup(delta);
                 return Vector2.zero;
             }
-            return delta.normalized * Data.MoveSpeed;
+            return delta.normalized * MoveSpeed;
         }
 
         Vector2 SteerWindup()

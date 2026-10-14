@@ -52,7 +52,7 @@ namespace PickShoot
                 return Vector2.zero;
             }
             Face(heading.x);
-            return heading * Data.MoveSpeed;
+            return heading * MoveSpeed;
         }
 
         protected override void OnWallBlocked(Vector2 blockedSide) => health.Kill();

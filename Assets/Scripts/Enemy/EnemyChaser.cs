@@ -11,7 +11,7 @@ namespace PickShoot
             Vector2 delta = (Vector2)Target.position - Body.position;
             Face(delta.x);
             if (delta.sqrMagnitude <= 0.0001f) return Vector2.zero;
-            return delta.normalized * Data.MoveSpeed;
+            return delta.normalized * MoveSpeed;
         }
     }
 }

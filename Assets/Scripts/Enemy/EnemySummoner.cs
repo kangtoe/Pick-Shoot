@@ -95,7 +95,9 @@ namespace PickShoot
             {
                 float angle = Mathf.PI * 2f * i / count;
                 Vector2 pos = Body.position + new Vector2(Mathf.Cos(angle), Mathf.Sin(angle)) * DeathMinionRadius;
-                Instantiate(minionPrefab, pos, Quaternion.identity);
+                // 졸개는 소환사의 단계를 물려받는다 (Enemies §7). 쏘는 졸개는 WaveManager.SummonWithWarning이 같은 규칙으로 입힌다.
+                var minion = Instantiate(minionPrefab, pos, Quaternion.identity);
+                minion.GetComponent<EnemyHealth>().ApplyRank(waves.TierRank(GetComponent<EnemyHealth>().Rank.Tier));
             }
         }
     }

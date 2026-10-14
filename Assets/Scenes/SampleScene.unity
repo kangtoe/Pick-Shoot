@@ -1071,7 +1071,7 @@ MonoBehaviour:
   maxSpawnDistanceFromPlayer: 8
   spawnAbortDistance: 2.5
   baseMaxEnemies: 5
-  maxEnemiesPerWaveIncrement: 2
+  maxEnemiesPerWaveIncrement: 3
 --- !u!114 &1698421208
 MonoBehaviour:
   m_ObjectHideFlags: 0

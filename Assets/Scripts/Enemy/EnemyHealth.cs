@@ -26,12 +26,18 @@ namespace PickShoot
 
         // 원래 그림의 머티리얼 — 피격 점멸 중에는 렌더러의 것이 잠시 SpriteFlash라, 몸의 모습을 베끼는 쪽(돌진 잔상)이 대신 쓴다.
         public Material BodyMaterial => originalMaterial;
-        // 몸이 닿은 플레이어가 입는 피해. PlayerHealth가 접촉 충돌에서 읽는다 (Enemies §1).
-        public int ContactDamage => data.ContactDamage;
+        // 몸이 닿은 플레이어가 입는 피해. PlayerHealth가 접촉 충돌에서 읽는다 (Enemies §1). 등급·챔피언의 가산이 붙는다 (Enemies §7).
+        public int ContactDamage => data.ContactDamage + rank.DamageBonus;
         // HP가 다해 이번 프레임 끝에 파괴될 적. 유도 탄환(Bullet)이 표적에서 뺀다.
         public bool IsDead => current <= 0;
+        // 등급의 이동 속도 배율. EnemyMover가 EnemyData의 이동 속도에 곱한다.
+        public float SpeedMultiplier => rank.SpeedMultiplier;
+        // 입은 등급. 서펜트의 몸통·소환사의 졸개가 물려받는다 (Enemies §7).
+        public EnemyRank Rank => rank;
 
         int current;
+        EnemyRank rank = EnemyRank.Normal;
+        bool rankApplied;
         float flashUntil;
         bool flashing;
         SpriteRenderer sr;
@@ -51,6 +57,21 @@ namespace PickShoot
         void Update()
         {
             if (flashing && Time.time >= flashUntil) EndFlash();
+        }
+
+        // 등급·챔피언을 입힌다 (Enemies §7) — 스폰 직후 한 번, 맞기 전에. HP·접촉 피해·경험치는 여기서 바뀌고 이동 속도는 EnemyMover가 SpeedMultiplier로 읽는다.
+        // 틴트는 렌더러 색에 곱하고(흰 테두리가 그 색이 된다) 크기는 몸 전체(콜라이더 포함)를 키운다.
+        public void ApplyRank(EnemyRank newRank)
+        {
+            if (rankApplied)
+                throw new System.Exception($"[PickShoot] EnemyHealth.ApplyRank: 등급을 두 번 입힘 ({name}).");
+            if (current != data.MaxHp)
+                throw new System.Exception($"[PickShoot] EnemyHealth.ApplyRank: 이미 피해를 입은 적에 등급을 입힘 ({name}, HP {current}/{data.MaxHp}). 스폰 직후에만 부른다.");
+            rank = newRank;
+            rankApplied = true;
+            current = Mathf.Max(1, Mathf.RoundToInt(data.MaxHp * rank.HpMultiplier));
+            sr.color = rank.Tint;
+            transform.localScale *= rank.Scale;
         }
 
         public void TakeDamage(int amount)
@@ -105,7 +126,7 @@ namespace PickShoot
             if (deathEffectPrefab != null)
                 Instantiate(deathEffectPrefab, transform.position, Quaternion.identity);
             // 처치 경험치는 플레이어가 죽인 때만 (GDD §3.3). 플로팅 텍스트는 데미지 숫자와 같은 자리를 기준으로 뜬다 — PlayerExperience가 한 줄 위로 올린다.
-            if (slain) PlayerExperience.Award(data.ExpValue, DamageNumberOrigin());
+            if (slain) PlayerExperience.Award(Mathf.RoundToInt(data.ExpValue * rank.ExpMultiplier), DamageNumberOrigin());
             if (slain) Slain?.Invoke();
             Died?.Invoke();
             Destroy(gameObject);

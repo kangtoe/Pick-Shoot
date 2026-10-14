@@ -43,6 +43,37 @@ namespace PickShoot
         [SerializeField] int baseMaxEnemies = 8;
         [SerializeField] int maxEnemiesPerWaveIncrement = 2;
 
+        // 적 등급 (Enemies §7, 2026-10-14) — 단계마다 HP·이동 속도·접촉 피해·경험치 배율과 틴트, 웨이브에 따른 등장 확률.
+        // 확률은 startWave부터 웨이브마다 chancePerWave씩 maxChance까지. 3단계를 먼저 뽑고 그다음 2단계, 나머지는 1단계(EnemyRank.Normal).
+        [System.Serializable]
+        public class TierSettings
+        {
+            [Min(0.1f)] public float hpMultiplier = 1f;
+            [Min(0.1f)] public float speedMultiplier = 1f;
+            [Min(0)] public int damageBonus;
+            [Min(0f)] public float expMultiplier = 1f;
+            public Color tint = Color.white;
+            [Min(1)] public int startWave = 1;
+            [Range(0f, 1f)] public float chancePerWave;
+            [Range(0f, 1f)] public float maxChance;
+
+            public float Chance(int wave) => wave < startWave ? 0f : Mathf.Min(maxChance, (wave - startWave + 1) * chancePerWave);
+        }
+        [SerializeField] TierSettings tier2 = new TierSettings { hpMultiplier = 2f, speedMultiplier = 1.15f, expMultiplier = 2f, tint = new Color(1f, 0.85f, 0.55f), startWave = 3, chancePerWave = 0.1f, maxChance = 0.55f };
+        [SerializeField] TierSettings tier3 = new TierSettings { hpMultiplier = 4f, speedMultiplier = 1.3f, damageBonus = 1, expMultiplier = 4f, tint = new Color(1f, 0.55f, 0.55f), startWave = 6, chancePerWave = 0.08f, maxChance = 0.4f };
+        // 챔피언 (Enemies §7) — 웨이브 스폰의 일반 적에만, 단계 위에 덧붙는다: 크기·HP·접촉 피해·경험치. 보스·소환 졸개는 단계만 받고 챔피언이 되지 않는다.
+        [SerializeField, Min(1f)] float championScale = 1.5f;
+        [SerializeField, Min(1f)] float championHpMultiplier = 3f;
+        [SerializeField, Min(0)] int championDamageBonus = 1;
+        [SerializeField, Min(1f)] float championExpMultiplier = 3f;
+        [SerializeField, Min(1)] int championStartWave = 3;
+        [SerializeField, Range(0f, 1f)] float championChancePerWave = 0.02f;
+        [SerializeField, Range(0f, 1f)] float championMaxChance = 0.15f;
+        // 스폰 강화 (Enemies §7) — 스폰 간격은 웨이브마다 spawnIntervalDecay배(하한 minSpawnInterval), 한 번에 나오는 수는 spawnGroupEveryWaves 웨이브마다 하나씩 는다.
+        [SerializeField, Range(0.5f, 1f)] float spawnIntervalDecay = 0.9f;
+        [SerializeField, Min(0.05f)] float minSpawnInterval = 0.25f;
+        [SerializeField, Min(1)] int spawnGroupEveryWaves = 3;
+
         // 기각 표집 시도 횟수. 채택률이 절반 안팎이라 정상 설정에서는 사실상 소진되지 않는다.
         const int SpawnPointAttempts = 32;
 
@@ -82,6 +113,8 @@ namespace PickShoot
                 throw new System.Exception($"[PickShoot] WaveManager.spawnWarningDuration이 0 이하 ({spawnWarningDuration}).");
             if (maxSpawnDistanceFromPlayer <= minSpawnDistanceFromPlayer)
                 throw new System.Exception($"[PickShoot] WaveManager 스폰 거리 범위가 비어 있음 (min {minSpawnDistanceFromPlayer} ≥ max {maxSpawnDistanceFromPlayer}).");
+            if (tier2.maxChance + tier3.maxChance > 1f)
+                throw new System.Exception($"[PickShoot] WaveManager 2·3단계 최대 확률의 합({tier2.maxChance + tier3.maxChance})이 1을 넘음.");
             if (spawnAbortDistance >= minSpawnDistanceFromPlayer)
                 throw new System.Exception($"[PickShoot] WaveManager.spawnAbortDistance({spawnAbortDistance})가 최소 스폰 거리({minSpawnDistanceFromPlayer}) 이상 — 플레이어가 가만히 있어도 스폰이 건너뛰어진다.");
 
@@ -112,6 +145,8 @@ namespace PickShoot
                 if (currentWaveDuration <= 0f)
                     throw new System.Exception($"[PickShoot] Wave {currentWave}의 지속시간이 0 이하 ({currentWaveDuration}). baseWaveDuration·waveDurationIncrement 확인.");
                 int maxAlive = baseMaxEnemies + (currentWave - 1) * maxEnemiesPerWaveIncrement;
+                float interval = Mathf.Max(minSpawnInterval, spawnInterval * Mathf.Pow(spawnIntervalDecay, currentWave - 1));
+                int group = 1 + (currentWave - 1) / spawnGroupEveryWaves;
                 waveTimeRemaining = currentWaveDuration;
                 phase = WavePhase.Countdown;
 
@@ -135,9 +170,13 @@ namespace PickShoot
                     {
                         // 예고가 끝나기 전에 웨이브가 끝나면 스폰되지 않으므로 그런 예고는 아예 띄우지 않는다.
                         bool warningFits = elapsed + spawnWarningDuration <= currentWaveDuration;
-                        if (warningFits && CountCommittedEnemies() < maxAlive)
-                            StartCoroutine(SpawnWithWarning(PickEnemyPrefab(), mustSpawn: false));
-                        nextSpawnAt += spawnInterval;
+                        if (warningFits)
+                        {
+                            int count = Mathf.Min(group, maxAlive - CountCommittedEnemies());
+                            for (int i = 0; i < count; i++)
+                                StartCoroutine(SpawnWithWarning(PickEnemyPrefab(), mustSpawn: false));
+                        }
+                        nextSpawnAt += interval;
                     }
                     waveTimeRemaining = currentWaveDuration - elapsed;
                     yield return null;
@@ -195,7 +234,8 @@ namespace PickShoot
                 if (!WaveStillActive()) yield break;
                 if (!PlayerTooClose(pos))
                 {
-                    SpawnEnemy(prefab, pos);
+                    // 등급은 스폰 순간의 웨이브로 뽑는다. 보스(mustSpawn)는 단계만, 일반 적은 챔피언도 (Enemies §7).
+                    SpawnEnemy(prefab, pos).GetComponent<EnemyHealth>().ApplyRank(RollRank(allowChampion: !mustSpawn));
                     yield break;
                 }
                 if (!mustSpawn) yield break;
@@ -222,8 +262,46 @@ namespace PickShoot
             yield return Warn(pos);
             if (owner == null) yield break;
             GameObject spawned = WaveStillActive() && !PlayerTooClose(pos) ? SpawnEnemy(prefab, pos) : null;
+            if (spawned != null)
+            {
+                // 낳은 적은 낳은 쪽의 단계를 물려받는다 (Enemies §7).
+                var ownerHealth = owner.GetComponent<EnemyHealth>();
+                if (ownerHealth == null)
+                    throw new System.Exception($"[PickShoot] WaveManager.SummonWithWarning: owner({owner.name})에 EnemyHealth 없음 — 물려줄 등급이 없다.");
+                spawned.GetComponent<EnemyHealth>().ApplyRank(TierRank(ownerHealth.Rank.Tier));
+            }
             onFinished(spawned);
         }
+
+        // 단계만 입힌 등급 (챔피언 아님, Enemies §7). 보스와 소환 졸개가 쓴다.
+        public EnemyRank TierRank(int tier)
+        {
+            switch (tier)
+            {
+                case 1: return EnemyRank.Normal;
+                case 2: return FromTier(2, tier2);
+                case 3: return FromTier(3, tier3);
+                default: throw new System.Exception($"[PickShoot] WaveManager.TierRank: 단계 {tier} — 1~3만 있다.");
+            }
+        }
+
+        static EnemyRank FromTier(int tier, TierSettings s) =>
+            new EnemyRank(tier, false, s.hpMultiplier, s.speedMultiplier, s.damageBonus, s.expMultiplier, s.tint, 1f);
+
+        // 지금 웨이브의 확률로 단계를 뽑고, allowChampion이면 챔피언도 뽑아 단계 위에 덧붙인다.
+        EnemyRank RollRank(bool allowChampion)
+        {
+            float r = Random.value;
+            float c3 = tier3.Chance(currentWave);
+            int tier = r < c3 ? 3 : r < c3 + tier2.Chance(currentWave) ? 2 : 1;
+            var rank = TierRank(tier);
+            if (!allowChampion || Random.value >= ChampionChance()) return rank;
+            return new EnemyRank(rank.Tier, true, rank.HpMultiplier * championHpMultiplier, rank.SpeedMultiplier,
+                rank.DamageBonus + championDamageBonus, rank.ExpMultiplier * championExpMultiplier, rank.Tint, championScale);
+        }
+
+        float ChampionChance() =>
+            currentWave < championStartWave ? 0f : Mathf.Min(championMaxChance, (currentWave - championStartWave + 1) * championChancePerWave);
 
         // pos에 예고 마커를 띄우고 예고 시간을 기다린 뒤 치운다. 기다리는 동안은 스폰 대기 수에 든다.
         IEnumerator Warn(Vector2 pos)

@@ -31,12 +31,15 @@ namespace PickShoot
         const float WallSkin = 0.05f;
 
         Vector2 knockback;
+        EnemyHealth health;
         Camera mainCamera;
         readonly Collider2D[] neighbors = new Collider2D[16]; // 반경 안 이웃. 서펜트 사슬이 뭉쳐 지나도 넘치지 않을 만큼
         ContactFilter2D wallFilter;
         readonly RaycastHit2D[] wallHits = new RaycastHit2D[4];
 
         protected EnemyData Data => data;
+        // 등급(Enemies §7)의 배율을 곱한 이동 속도. 파생 클래스는 Data.MoveSpeed 대신 이것을 쓴다.
+        protected float MoveSpeed => data.MoveSpeed * health.SpeedMultiplier;
         protected Rigidbody2D Body { get; private set; }
         protected SpriteRenderer Sprite { get; private set; }
         // 몸의 콜라이더. 뚫을 수 없는 이웃과의 겹침을 재는 데 쓴다.
@@ -62,6 +65,9 @@ namespace PickShoot
                 throw new System.Exception($"[PickShoot] {GetType().Name}.wallLayerMask 미설정 ({name}). 넘지 못할 벽 레이어(Wall) 필요.");
             Body = GetComponent<Rigidbody2D>();
             Sprite = GetComponent<SpriteRenderer>();
+            health = GetComponent<EnemyHealth>();
+            if (health == null)
+                throw new System.Exception($"[PickShoot] {GetType().Name}: EnemyHealth 없음 ({name}). 등급의 이동 속도 배율을 읽는다.");
             Shape = GetComponent<Collider2D>();
             if (Shape == null)
                 throw new System.Exception($"[PickShoot] {GetType().Name}: Collider2D 없음 ({name}). 뚫을 수 없는 몸과의 겹침 판정에 필요.");

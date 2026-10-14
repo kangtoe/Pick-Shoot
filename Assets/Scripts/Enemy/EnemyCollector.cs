@@ -75,7 +75,7 @@ namespace PickShoot
                 Vector2 delta = bulletPosition - Body.position;
                 Face(delta.x);
                 if (delta.sqrMagnitude <= 0.0001f) return Vector2.zero;
-                return delta.normalized * (Data.MoveSpeed * factor);
+                return delta.normalized * (MoveSpeed * factor);
             }
             if (seeking)
             {
