@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using System.Reflection;
+using UnityEditor;
 using UnityEngine;
 using UnityEngine.InputSystem;
 using UnityEngine.InputSystem.LowLevel;
@@ -13,8 +14,16 @@ namespace PickShoot
     // 러닝 시작 화면(startPick)도 같은 길이다 — characterPool에서 SelectCharacter로 무작위 캐릭터를 고르고 곧바로 currentCards(그 캐릭터의 시작 무기)에서 무작위
     // 무기를 Select한다 (Characters §5). 화면의 밀어내기 연출은 거치지 않는다.
     // 사망: 데스 화면이 뜬 뒤 R을 한 프레임 눌러 재시작한다. 난수는 고정 시드 — 카드 선택만 봇의 몫이고 스폰은 게임의 난수를 따른다.
+    // 녹화 요청(record.active)의 봇 옵션 — 소개 영상의 장면 연출용 (2026-10-14). 없으면 평소 플레이(scenario=run).
+    //   scenario=late — 시작 무기를 고른 뒤 무기를 weapons자루까지 채우고(종류를 돌아가며), 모두 Lv.level로 올리고, mods=1이면 개조를 돌아가며 붙이고,
+    //                   유물 몇 개를 얻은 다음 웨이브를 skip_to까지 즉시 끝내며 건너뛴다(카드는 평소처럼 고른다). 죽어서 재시작하면 다시 붙인다.
+    //   card_wait — 카드 화면이 뜬 뒤 고르기까지 초 (기본 CardWaitSeconds).
     public class PickShootPlayDriver : IPlayDriver
     {
+        static readonly string[] LateWeapons = { "SMG", "Shotgun", "Launcher", "SniperRifle", "AssaultRifle", "MachineGun", "Pistol" };
+        static readonly string[] LateMods = { "Explosive", "Ricochet", "Homing", "Drill" };
+        static readonly string[] LateRelics = { "PowerCore", "PowerCore", "ArmorPlate", "ArmorPlate", "ArmorPlate", "RegenUnit", "LightFrame" };
+
         const float EnemyAvoidRadius = 5f;
         const float ChargerAvoidRadius = 7f;      // 돌진형은 멀리서부터 피한다
         const float MarkerAvoidRadius = 3f;
@@ -45,6 +54,14 @@ namespace PickShoot
         Vector2 lastAimDirection = Vector2.right;
         Vector2 lastScreen;
 
+        string scenario = "run";
+        int skipTo = 5;
+        int lateLevel = 6;
+        int lateWeapons = 12;
+        bool lateMods = true;
+        float cardWait = CardWaitSeconds;
+        GameObject setupFor;
+
         public string Status { get; private set; } = "";
 
         public void Begin()
@@ -52,6 +69,7 @@ namespace PickShoot
             if (SelectMethod == null || CardsShownAtField == null || CurrentCardsField == null
                 || SelectCharacterMethod == null || StartPickField == null || CharacterPoolField == null)
                 throw new System.Exception("[PickShoot] PickShootPlayDriver: UpgradeManager의 Select/cardsShownAt/currentCards/SelectCharacter/startPick/characterPool을 찾지 못함 — 이름이 바뀌었으면 봇도 고쳐야 한다.");
+            ReadOptions();
             keyboard = InputSystem.AddDevice<Keyboard>();
             mouse = InputSystem.AddDevice<Mouse>();
             lastScreen = new Vector2(Screen.width * 0.5f, Screen.height * 0.5f);
@@ -81,7 +99,78 @@ namespace PickShoot
                 return;
             }
             deathSeenAt = -1f;
+            if (scenario == "late") TickLate(player);
             TickPlay(player, frame);
+        }
+
+        void ReadOptions()
+        {
+            foreach (var raw in System.IO.File.ReadAllLines(PlayRecorderTrigger.ActivePath))
+            {
+                string line = raw.Trim();
+                int eq = line.IndexOf('=');
+                if (eq <= 0) continue;
+                string key = line.Substring(0, eq).Trim();
+                string value = line.Substring(eq + 1).Trim();
+                switch (key)
+                {
+                    case "scenario": scenario = value; break;
+                    case "skip_to": skipTo = int.Parse(value); break;
+                    case "level": lateLevel = int.Parse(value); break;
+                    case "weapons": lateWeapons = int.Parse(value); break;
+                    case "mods": lateMods = int.Parse(value) != 0; break;
+                    case "card_wait": cardWait = float.Parse(value, System.Globalization.CultureInfo.InvariantCulture); break;
+                }
+            }
+            if (scenario != "run" && scenario != "late")
+                throw new System.Exception($"[PickShoot] PickShootPlayDriver: scenario={scenario} — run·late만 된다.");
+        }
+
+        // 시작 무기를 고른 뒤 한 번 후반 빌드를 붙이고(재시작하면 새 플레이어에 다시), 웨이브를 skip_to까지 건너뛴다.
+        void TickLate(GameObject player)
+        {
+            if (setupFor != player)
+            {
+                var weapons = player.GetComponent<PlayerWeapons>();
+                if (weapons.Slots.Count == 0) return;   // 시작 무기 고르기 전
+                SetupLateBuild(player, weapons);
+                setupFor = player;
+            }
+            var waves = Object.FindFirstObjectByType<WaveManager>();
+            // EndWaveNow는 요청 플래그만 세우므로 웨이브가 실제로 끝나기 전 몇 프레임 더 불러도 같다.
+            if (waves != null && waves.Phase == WavePhase.Active && waves.CurrentWave < skipTo)
+                waves.EndWaveNow();
+        }
+
+        void SetupLateBuild(GameObject player, PlayerWeapons weapons)
+        {
+            for (int i = 0; weapons.Slots.Count < lateWeapons && weapons.HasEmptySlot; i++)
+                weapons.AddWeapon(LoadAsset<WeaponData>($"Assets/Data/Weapons/{LateWeapons[i % LateWeapons.Length]}.asset"));
+            var mods = new ModData[LateMods.Length];
+            for (int i = 0; i < mods.Length; i++)
+            {
+                mods[i] = LoadAsset<ModData>($"Assets/Data/Mods/{LateMods[i]}.asset");
+                mods[i].Validate();
+            }
+            var slots = weapons.Slots;
+            for (int i = 0; i < slots.Count; i++)
+            {
+                var w = slots[i];
+                while (w.Level < lateLevel && !w.IsMaxLevel) w.LevelUp();
+                if (lateMods && w.Mod == null) w.AttachMod(mods[i % mods.Length]);
+            }
+            var stats = player.GetComponent<PlayerStats>();
+            foreach (var name in LateRelics)
+                stats.AddRelic(LoadAsset<RelicData>($"Assets/Data/Relics/{name}.asset"));
+            Status = $"late build: {slots.Count} weapons Lv{lateLevel}";
+        }
+
+        static T LoadAsset<T>(string path) where T : Object
+        {
+            var asset = AssetDatabase.LoadAssetAtPath<T>(path);
+            if (asset == null)
+                throw new System.Exception($"[PickShoot] PickShootPlayDriver: 자산 없음 — {path}");
+            return asset;
         }
 
         void TickCards(UpgradeManager upgrades)
@@ -89,7 +178,7 @@ namespace PickShoot
             float shownAt = (float)CardsShownAtField.GetValue(upgrades);
             // Select 뒤 PresentAndWait가 다음 프레임에 닫으므로 한 화면에 두 번 고르지 않도록 뽑힌 시각으로 구분한다.
             if (shownAt == selectedShownAt) { Status = "card chosen, closing"; return; }
-            if (Time.unscaledTime - shownAt < CardWaitSeconds) { Status = "cards shown"; return; }
+            if (Time.unscaledTime - shownAt < cardWait) { Status = "cards shown"; return; }
             // 시작 화면 — 캐릭터를 고르면 currentCards가 그 캐릭터의 시작 무기로 바뀌므로 이어서 무기를 고른다.
             string character = "";
             if ((bool)StartPickField.GetValue(upgrades))
