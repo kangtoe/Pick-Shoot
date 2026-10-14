@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.InputSystem;
 
 namespace PickShoot
 {
@@ -197,7 +198,7 @@ namespace PickShoot
             DrawWeaponRows(canvas, hudScale, leftSide: false);
             DrawWaveBanner(canvas, hudScale);
             // 커서는 패널 위로 지나갈 수 있으므로 마지막에 그려 항상 패널 위에 보이게 한다. 월드 위에 뜨는 표시라 월드 텍셀 배율로 그린다.
-            DrawCrosshair(PixelGui.PanelScale);
+            DrawCrosshair(canvas, PixelGui.PanelScale);
         }
 
         // 좌상단 한 줄: "HP" · 시트 게이지(웨이브 남은 시간 바와 같은 조각) · 현재/최대 숫자. 패널 배경은 두지 않는다 — 무기 줄·웨이브 바처럼
@@ -417,15 +418,20 @@ namespace PickShoot
         // 커서 자리에 크로스헤어(중심점 + 전체 탄창 비율 링). 텍스처는 상태가 바뀔 때만 다시 그린다. s는 텍셀 1개의 캔버스 픽셀 수.
         // 사격으로 벌어진 양은 텍셀 단위로 반올림해 반경에 더한다 — 링이 늘 온전한 텍셀 원 모양으로 한 칸씩 조여든다
         // (소수 반경을 그대로 쓰면 되돌아오는 동안 둘레 텍셀이 제각각 깜빡인다).
-        void DrawCrosshair(int s)
+        void DrawCrosshair(PixelGui.CanvasScope canvas, int s)
         {
+            // 커서 위치는 조준(PlayerAiming)과 같은 Input System 마우스에서 읽는다 — Event.current.mousePosition은 OS 커서라 녹화 봇의 가상 마우스를
+            // 따라가지 않아 봇 영상에 크로스헤어가 보이지 않았다 (2026-10-14). 마우스가 없으면 조준처럼 건너뛴다.
+            var mouse = Mouse.current;
+            if (mouse == null) return;
+
             int radius = cursorRingRadiusTexels + Mathf.RoundToInt(cursorRingKick);
             crosshair.Refresh(playerWeapons.Slots, radius, cursorRingThicknessTexels, cursorDotRadiusTexels, cursorRingFillColor, cursorRingEmptyColor);
 
             int size = crosshair.SizeTexels * s;
-            // 캔버스가 열린 동안 Repaint 이벤트의 mousePosition은 캔버스 좌표(위가 0)라 그대로 중심으로 쓴다.
+            // 화면 픽셀(좌하단 원점)을 캔버스 좌표(위가 0)로 바꿔 중심으로 쓴다.
             // 한 변은 홀수 텍셀이지만 배율이 짝수라 반은 정수 — 중심 텍셀의 한가운데가 커서 위치에 온다.
-            Vector2 m = Event.current.mousePosition;
+            Vector2 m = canvas.FromScreenPoint(mouse.position.ReadValue());
             var rect = new Rect(Mathf.RoundToInt(m.x) - size / 2, Mathf.RoundToInt(m.y) - size / 2, size, size);
             GUI.DrawTexture(rect, crosshair.Texture, ScaleMode.StretchToFill, true);
         }
