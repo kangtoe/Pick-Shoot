@@ -13,8 +13,7 @@ Unity 6 프로토타입 · 2026.09 – 10 · 잠정 중단
 
 <img src="Docs/Media/preview.gif" alt="Pick & Shoot 플레이 장면" width="820">
 
-<!-- 영상 링크: GitHub 웹에서 이 파일을 편집하며 mp4를 끌어다 놓으면 플레이어가 붙습니다. 붙인 뒤 아래 줄을 그 링크로 바꿉니다. -->
-**▶ 소개 영상 (1분) · 플레이 영상 (2분)**
+**▶ [소개 영상 (1분)](https://github.com/user-attachments/assets/0e4f5792-4f5f-472d-8d35-99d7b47b8456) · [플레이 영상 (2분)](https://github.com/user-attachments/assets/332c39ac-b163-4099-be50-e3d989c68cdb)**
 
 [어떤 게임인가요](#어떤-게임인가요) · [실행](#실행) · [만든 것](#만든-것) · [개발 과정](#개발-과정) · [개발 방법](#개발-방법) · [회고](#회고)
 
