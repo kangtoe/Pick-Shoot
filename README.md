@@ -40,7 +40,7 @@ Unity 6 프로토타입 · 2026.09 – 10 · 잠정 중단
   <tr>
     <td colspan="2" align="center">
       <img src="Docs/Media/combat.png" alt="전투"><br>
-      <b>전투</b> — 웨이브 8, 능력 충격파와 바닥에 쌓인 탄
+      <b>전투</b> — 웨이브 8, 회수 펄스와 바닥에 쌓인 탄
     </td>
   </tr>
   <tr>
@@ -92,7 +92,7 @@ Unity 6 프로토타입 · 2026.09 – 10 · 잠정 중단
     </td>
     <td width="50%" align="center">
       <img src="Docs/Media/enemies.png" alt="적 8종과 등급"><br>
-      <b>적</b><br>수집형·소환사·돌진형 등 6종과 분열하는 서펜트 보스. 후반엔 초록·빨강 등급과 큰 챔피언이 섞입니다.
+      <b>적</b><br>수집형·소환사·돌진형 등 6종과 분열하는 서펜트 보스. 후반엔 1.5배 챔피언과 2배 울트라가 섞입니다.
     </td>
   </tr>
   <tr>
