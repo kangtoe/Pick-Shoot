@@ -1,5 +1,7 @@
 <div align="center">
 
+[English](README.md) · **한국어**
+
 # Pick & Shoot
 
 **발사한 탄환을 회수하며 싸우는 탑다운 슈팅**
