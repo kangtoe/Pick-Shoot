@@ -23,8 +23,9 @@ namespace PickShoot
         // 능력의 연출 (AbilityEffect 프리팹). 색의 알파는 연출 전체의 불투명도 — 모양마다의 옅고 진함은 AbilityEffect가 정한다.
         // 무적 막은 능력과 무관하게 한 색이다 — 어느 캐릭터든 "지금 피해를 받지 않는다"로 같게 읽히도록. 모래 바닥에 묻히지 않는 색이어야 한다 — 따뜻한 흰색·금색은
         // 바닥과 색조가 같아 거의 보이지 않았다 (Recordings/ability_fx_*_mockup_2026-10-14.png).
+        // 회수 펄스는 초록 — 하늘색이던 때는 흰 충격파·하늘색 무적 막과 모래 위에서 갈리지 않았다 (2026-10-15, Recordings/ability_fx_color_mockup_2026-10-15.png).
         [SerializeField] AbilityEffect effectPrefab;
-        [SerializeField] Color pulseEffectColor = new Color(0.55f, 0.9f, 1f, 0.9f);
+        [SerializeField] Color pulseEffectColor = new Color(0.42f, 0.88f, 0.55f, 0.9f);
         [SerializeField] Color shockwaveEffectColor = Color.white;
         [SerializeField] Color shieldEffectColor = new Color(0.6f, 0.85f, 1f, 1f);
         // 충격파가 미는 레이어 (적).

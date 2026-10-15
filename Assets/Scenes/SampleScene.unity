@@ -426,7 +426,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PickShoot.PlayerAbility
   effectPrefab: {fileID: 5441777201564517008, guid: a5486bab73054b20888e22fc455e0e8e, type: 3}
-  pulseEffectColor: {r: 0.55, g: 0.9, b: 1, a: 0.9}
+  pulseEffectColor: {r: 0.42, g: 0.88, b: 0.55, a: 0.9}
   shockwaveEffectColor: {r: 1, g: 1, b: 1, a: 1}
   shieldEffectColor: {r: 0.6, g: 0.85, b: 1, a: 1}
   shockwaveLayers:
