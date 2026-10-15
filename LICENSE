@@ -12,6 +12,12 @@ extent provided by the GitHub Terms of Service.
 Third-party assets
 ------------------
 The Kenney asset packs under Assets/kenney_* (Desert Shooter Pack, Pixel
-Platformer, Cursor Pixel Pack) and Kenney Fonts are released into the public
-domain under CC0 1.0 by Kenney (https://kenney.nl) and are not covered by the
-notice above.
+Platformer, Cursor Pixel Pack), the copies of their images with adjusted
+outlines or colors under Assets/Art, and Kenney Fonts are released into the
+public domain under CC0 1.0 by Kenney (https://kenney.nl) and are not covered
+by the notice above.
+
+The trailer (Recordings/intro_2026-10-15_v9_1080p.mp4) uses "Dope Video Game
+Boss Music" by Seth_Makes_Sounds (https://freesound.org/s/683457/, CC0 1.0)
+and sound effects from the Sonniss GDC game audio bundle, used under its
+license. The original audio files are not included in this repository.

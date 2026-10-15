@@ -209,6 +209,7 @@ https://github.com/user-attachments/assets/0e4f5792-4f5f-472d-8d35-99d7b47b8456
 
 ## 크레딧 · 라이선스
 
-그림과 효과음은 모두 [Kenney](https://kenney.nl)의 CC0 에셋입니다 — Desert Shooter Pack, Pixel Platformer, Cursor Pixel Pack. 소개 영상의 자막 글꼴은 Kenney Fonts(CC0)입니다.
+게임의 그림과 효과음은 모두 [Kenney](https://kenney.nl)의 CC0 에셋입니다 — Desert Shooter Pack, Pixel Platformer, Cursor Pixel Pack. `Assets/Art`의 일부 그림은 그 그림의 외곽선·색을 고친 사본입니다.<br>
+소개 영상의 음악은 Seth_Makes_Sounds의 [Dope Video Game Boss Music](https://freesound.org/s/683457/)(CC0), 효과음은 Sonniss GDC 번들과 Kenney(CC0), 자막 글꼴은 Kenney Fonts(CC0)입니다.
 
 코드와 문서의 저작권은 kangtoe에게 있습니다 (All rights reserved). 포트폴리오로 보여 드리려고 공개한 것이며, 허락 없이 사용·복제·수정·배포할 수 없습니다. Kenney 에셋은 CC0 그대로입니다 — [LICENSE](LICENSE).

@@ -209,6 +209,7 @@ Weighed on equal footing against my other projects in progress, this is where it
 
 ## Credits · license
 
-All art and sound effects are CC0 assets by [Kenney](https://kenney.nl) — Desert Shooter Pack, Pixel Platformer, Cursor Pixel Pack. The trailer captions use Kenney Fonts (CC0).
+All in-game art and sound effects are CC0 assets by [Kenney](https://kenney.nl) — Desert Shooter Pack, Pixel Platformer, Cursor Pixel Pack. Some images in `Assets/Art` are copies of them with adjusted outlines or colors.<br>
+The trailer uses [Dope Video Game Boss Music](https://freesound.org/s/683457/) by Seth_Makes_Sounds (CC0), sound effects from the Sonniss GDC bundle and Kenney (CC0), and Kenney Fonts (CC0) for the captions.
 
 The code and documents are copyright kangtoe (All rights reserved). They are published as a portfolio and may not be used, copied, modified or distributed without permission. Kenney assets remain CC0 — see [LICENSE](LICENSE).
