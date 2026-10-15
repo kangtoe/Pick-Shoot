@@ -21,31 +21,64 @@ https://github.com/user-attachments/assets/0e4f5792-4f5f-472d-8d35-99d7b47b8456
 
 <sub>🔊 소리가 있는 영상입니다 — GitHub는 음소거로 재생하니 플레이어의 스피커 아이콘을 눌러 켜 주세요</sub>
 
-[어떤 게임인가요](#어떤-게임인가요) · [실행](#실행) · [만든 것](#만든-것) · [개발 과정](#개발-과정) · [개발 방법](#개발-방법) · [회고](#회고)
-
 </div>
 
-> *A top-down roguelike shooter where every bullet you fire stays on the field — walk over it to reload. Built in five weeks with Unity 6 (URP 2D) and documented end to end, then paused once it became clear its growth systems were working against the core loop. Docs are in Korean; the [retrospective](#회고) explains why it stopped.*
+<br>
 
----
+## 목차
+
+- [어떤 게임인가요](#어떤-게임인가요)
+- [실행](#실행)
+- [개발 과정](#개발-과정)
+- [개발 방법](#개발-방법)
+- [회고](#회고)
+
+<br>
 
 ## 어떤 게임인가요
 
-<div align="center">
-
-**쏜다 → 탄이 전장에 남는다 → 주우러 간다 → 다시 쏜다**
-
-</div>
-
-- **쏜 탄은 바닥에 남습니다**<br>사라지지 않고, 가까이 가면 자석처럼 끌려와 다시 장전됩니다.
-- **탄이 떨어지면 주우러 갑니다**<br>적 사이로 들어가야 하니, 어디에 쏘고 언제 주울지가 핵심입니다.
-- **웨이브마다 빌드를 키웁니다**<br>무기·개조·유물을 고르고, 무기는 최대 12자루까지 동시에 쏩니다.
+<table>
+  <tr>
+    <td width="50%" align="center">
+      <img src="Docs/Media/bullets.gif" alt="바닥에 남은 탄을 주우며 싸우는 장면"><br>
+      <b>탄환</b><br>쏜 탄은 바닥에 멈춰 남고,<br>가까이 가면 쏜 무기로 돌아갑니다.
+    </td>
+    <td width="50%" align="center">
+      <img src="Docs/Media/weapons.png" alt="무기 7종"><br>
+      <b>무기</b><br>권총부터 런처까지 7종.<br>레벨업하며 최대 12자루를 함께 씁니다.
+    </td>
+  </tr>
+  <tr>
+    <td width="50%" align="center">
+      <img src="Docs/Media/mod.png" alt="개조 카드"><br>
+      <b>개조</b><br>폭발·유도·도탄·천공 4종.<br>무기 한 자루의 탄 성질을 바꿉니다.
+    </td>
+    <td width="50%" align="center">
+      <img src="Docs/Media/enemies.png" alt="적 8종과 등급, 늘어선 서펜트"><br>
+      <b>적</b><br>6종과 분열하는 서펜트 보스.<br>후반엔 큰 챔피언·울트라가 섞입니다.
+    </td>
+  </tr>
+  <tr>
+    <td width="50%" align="center">
+      <img src="Docs/Media/growth.png" alt="유물 보상 화면"><br>
+      <b>성장</b><br>웨이브마다 카드 한 장을 고르고,<br>캐릭터 3종은 능력이 다릅니다.
+    </td>
+    <td width="50%" align="center">
+      <img src="Docs/Media/hud.png" alt="인게임 HUD"><br>
+      <b>화면</b><br>Kenney CC0 그림 위에<br>HUD와 카드를 직접 그린 픽셀 UI입니다.
+    </td>
+  </tr>
+</table>
 
 <br>
 
 ## 실행
 
-- Unity **6000.3.10f1**로 열고 `Assets/Scenes/SampleScene`을 플레이합니다.
+### [https://kangtoe.github.io/Pick-Shoot/](https://kangtoe.github.io/Pick-Shoot/)
+
+<sub>데스크톱 브라우저에서 키보드와 마우스로 · 소리는 첫 클릭 뒤 납니다</sub>
+
+- **에디터** — Unity **6000.3.10f1**로 열고 `Assets/Scenes/SampleScene`을 플레이합니다.
 - 디버그 도구: 메뉴 `PickShoot/Debug Tools` — 무기·개조·유물 추가, 적 소환, 웨이브 즉시 종료
 
 | 조작 | |
@@ -53,45 +86,8 @@ https://github.com/user-attachments/assets/0e4f5792-4f5f-472d-8d35-99d7b47b8456
 | 이동 | <kbd>W</kbd> <kbd>A</kbd> <kbd>S</kbd> <kbd>D</kbd> |
 | 조준 · 사격 | 마우스 · 좌클릭 |
 | 능력 | <kbd>Space</kbd> |
-| 일시정지 | <kbd>Esc</kbd> |
+| 일시정지 | <kbd>Esc</kbd> — 처음 화면으로는 일시정지 화면의 `MAIN MENU` |
 | 재시작 (사망 후) | <kbd>R</kbd> |
-
-<br>
-
-## 만든 것
-
-<table>
-  <tr>
-    <td width="50%" align="center">
-      <img src="Docs/Media/bullets.gif" alt="바닥에 남은 탄을 주우며 싸우는 장면"><br>
-      <b>탄환</b><br>쏜 탄은 튕기다가 바닥에 멈춰 남고, 가까이 가면 쏜 무기로 돌아갑니다.
-    </td>
-    <td width="50%" align="center">
-      <img src="Docs/Media/weapons.png" alt="무기 7종"><br>
-      <b>무기</b><br>권총부터 런처까지 7종. 자루마다 레벨업하며 최대 12자루를 함께 씁니다.
-    </td>
-  </tr>
-  <tr>
-    <td width="50%" align="center">
-      <img src="Docs/Media/mod.png" alt="개조 카드"><br>
-      <b>개조</b><br>폭발·유도·도탄·천공 4종. 무기 한 자루에 붙어 탄의 성질을 바꿉니다.
-    </td>
-    <td width="50%" align="center">
-      <img src="Docs/Media/enemies.png" alt="적 8종과 등급"><br>
-      <b>적</b><br>수집형·소환사·돌진형 등 6종과 분열하는 서펜트 보스. 후반엔 1.5배 챔피언과 2배 울트라가 섞입니다.
-    </td>
-  </tr>
-  <tr>
-    <td width="50%" align="center">
-      <img src="Docs/Media/growth.png" alt="유물 보상 화면"><br>
-      <b>성장</b><br>웨이브마다 카드 3장 중 하나 — 새 무기·강화·개조·유물. 캐릭터 3종은 능력이 다릅니다.
-    </td>
-    <td width="50%" align="center">
-      <img src="Docs/Media/hud.png" alt="인게임 HUD"><br>
-      <b>화면</b><br>Kenney CC0 그림 위에 직접 그린 픽셀 UI입니다.
-    </td>
-  </tr>
-</table>
 
 <br>
 
@@ -112,7 +108,7 @@ https://github.com/user-attachments/assets/0e4f5792-4f5f-472d-8d35-99d7b47b8456
 | 09-16 ~ 09-22 | 아트 · 로그라이크 | Kenney 픽셀 아트와 픽셀 UI, 무기 12자루 슬롯, 대시 | [`1c1a4d7`…`d5f90dc`](https://github.com/kangtoe/Pick-Shoot/compare/6bdd10c...d5f90dc) · 107 |
 | 09-24 ~ 10-02 | 적 · 무기 | 런처와 폭발, 돌진형·서펜트 보스·수집형·소환사, 자동 녹화 봇 | [`ace2f90`…`0275702`](https://github.com/kangtoe/Pick-Shoot/compare/d5f90dc...0275702) · 68 |
 | 10-04 ~ 10-14 | 빌드 | 유물 7종·개조 4종·캐릭터 3종, 자루마다 동시 사격, 보상 화면과 빌드 격자 개편 | [`4f20e4e`…`6e19195`](https://github.com/kangtoe/Pick-Shoot/compare/0275702...6e19195) · 61 |
-| 10-14 | 잠정 중단 | 회고를 남기고 공개 준비 — 적 등급·챔피언, 영상, README | [`6e93915`…](https://github.com/kangtoe/Pick-Shoot/compare/6e19195...main) |
+| 10-14 ~ 10-15 | 잠정 중단 · 공개 | 회고와 재개 조건을 남기고 공개 준비 — 소개 영상, README, 웹 빌드 | [`6e93915`…](https://github.com/kangtoe/Pick-Shoot/compare/6e19195...main) |
 
 <br>
 
