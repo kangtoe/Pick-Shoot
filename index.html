@@ -6,12 +6,13 @@
     <title>Pick &amp; Shoot</title>
     <!--
       Pick&Shoot 웹 빌드 템플릿 (2026-10-15). Unity Base/Default 템플릿에서 줄였다.
-      캔버스가 브라우저 창을 꽉 채운다 — 게임이 16:9 띠(ScreenLetterbox)와 1920×1080 기준 UI 배율(PixelGui)을 스스로 맞추므로
-      고정 크기 캔버스(창보다 크면 잘림)나 크게 그려 CSS로 줄이기(픽셀 아트가 뭉개짐)보다 창 크기 그대로 그리는 쪽이 가장 크고 선명하다.
+      캔버스는 브라우저 창 안에 드는 가장 큰 16:9 상자로 가운데에 둔다(바깥은 검정) — 고정 크기 캔버스는 창보다 크면 잘린다.
+      그리는 해상도(canvas.width·height)는 그 상자의 장치 픽셀이되 세로 1080 아래로는 내리지 않는다 — 픽셀 UI(PixelGui, 1920×1080 기준)는 1보다 작은
+      배율에서 점이 빠지고 겹쳐 노이즈처럼 보였으므로, 작은 창에서는 1080으로 그리고 브라우저가 부드럽게 줄인다. 1080 이상이면 창 그대로 그린다.
     -->
     <style>
       html, body { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; background: #000; }
-      #unity-canvas { position: fixed; inset: 0; width: 100%; height: 100%; display: block; background: #000; outline: none; }
+      #unity-canvas { position: fixed; display: block; background: #000; outline: none; }
       #loading { position: fixed; left: 50%; top: 50%; transform: translate(-50%, -50%); width: 320px; text-align: center;
                  font: 14px/1.4 system-ui, sans-serif; color: #bebad6; }
       #loading .title { font-size: 20px; letter-spacing: 0.15em; color: #fff; margin-bottom: 14px; }
@@ -59,6 +60,24 @@
         showBanner: unityShowBanner,
       };
 
+      // 캔버스 크기는 아래 fitCanvas가 정한다 (머리 주석).
+      config.matchWebGLToCanvasSize = false;
+      var MinRenderHeight = 1080;
+      function fitCanvas() {
+        var vw = window.innerWidth, vh = window.innerHeight;
+        var cssW = Math.min(vw, vh * 16 / 9), cssH = cssW * 9 / 16;
+        canvas.style.width = cssW + "px";
+        canvas.style.height = cssH + "px";
+        canvas.style.left = (vw - cssW) / 2 + "px";
+        canvas.style.top = (vh - cssH) / 2 + "px";
+        var h = Math.max(MinRenderHeight, Math.round(cssH * (window.devicePixelRatio || 1)));
+        var w = Math.round(h * 16 / 9);
+        if (canvas.width != w) canvas.width = w;
+        if (canvas.height != h) canvas.height = h;
+      }
+      fitCanvas();
+      window.addEventListener("resize", fitCanvas);
+
       // 클릭하면 캔버스가 키보드를 받는다 (Space·WASD가 페이지 스크롤로 새지 않게).
       canvas.addEventListener("pointerdown", function () { canvas.focus(); });
 
@@ -68,6 +87,7 @@
         createUnityInstance(canvas, config, function (progress) {
           document.querySelector("#bar-full").style.width = 100 * progress + "%";
         }).then(function () {
+          fitCanvas();   // 엔진이 시작하며 캔버스 크기를 건드렸어도 다시 맞춘다
           document.querySelector("#loading").style.display = "none";
           canvas.focus();
         }).catch(function (message) {
