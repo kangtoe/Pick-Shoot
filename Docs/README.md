@@ -31,6 +31,7 @@
 | Unity 프로젝트라면 어디서나 같은 원칙 (자동화·데이터·네임스페이스·솔루션 이름·임포트·IMGUI) | [UnityPrinciples](Guides/UnityPrinciples.md) | 비의존 |
 | 에디터를 열지 않고 검증 — 컴파일 검사·로직 하니스·시트 디코드 | [OfflineVerification](Guides/OfflineVerification.md) | 비의존 |
 | 플레이 영상 자동 녹화 | [AutoPlayRecording](Guides/AutoPlayRecording.md) | 비의존 |
+| 소개·플레이 영상 만들기 — 연출 원칙·촬영·편집·음악·압축과 GitHub 공개 | [GameVideoProduction](Guides/GameVideoProduction.md) | 비의존 |
 | 로그라이크 보상 선택 화면 — 카드 표기·색·배치·리롤·후보 뽑기·버린 안 | [RewardChoiceUX](Guides/RewardChoiceUX.md) | 비의존 |
 | 픽셀 UI 배치·배율·문구안을 실제 시트로 합성해 비교 | [PixelUiMockup](Guides/PixelUiMockup.md) | 전용 |
 
