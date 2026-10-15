@@ -43,11 +43,13 @@ namespace PickShoot
         [SerializeField] int baseMaxEnemies = 8;
         [SerializeField] int maxEnemiesPerWaveIncrement = 2;
 
-        // 적 등급 (Enemies §7, 2026-10-14) — 단계마다 HP·이동 속도·접촉 피해·경험치 배율, 웨이브에 따른 등장 확률. 몸 색은 tierArt의 사본 그림이다.
-        // 확률은 startWave부터 웨이브마다 chancePerWave씩 maxChance까지. 3단계를 먼저 뽑고 그다음 2단계, 나머지는 1단계(EnemyRank.Normal).
+        // 적 등급 (Enemies §7, 2026-10-15 개편) — 노멀·챔피언·울트라는 색 없이 크기(몸·예고 마커)로만 읽힌다. 등급마다 크기·HP·이동 속도·접촉 피해·경험치 배율과
+        // 웨이브에 따른 등장 확률. 확률은 startWave부터 웨이브마다 chancePerWave씩 maxChance까지. 울트라를 먼저 뽑고 그다음 챔피언, 나머지는 노멀.
+        // 웨이브 스폰의 일반 적만 등급을 받는다 — 보스·소환 졸개는 노멀 크기에 웨이브 강화만.
         [System.Serializable]
-        public class TierSettings
+        public class RankSettings
         {
+            [Min(1f)] public float scale = 1f;
             [Min(0.1f)] public float hpMultiplier = 1f;
             [Min(0.1f)] public float speedMultiplier = 1f;
             [Min(0)] public int damageBonus;
@@ -58,18 +60,10 @@ namespace PickShoot
 
             public float Chance(int wave) => wave < startWave ? 0f : Mathf.Min(maxChance, (wave - startWave + 1) * chancePerWave);
         }
-        [SerializeField] TierSettings tier2 = new TierSettings { hpMultiplier = 2f, speedMultiplier = 1.15f, expMultiplier = 2f, startWave = 3, chancePerWave = 0.1f, maxChance = 0.55f };
-        [SerializeField] TierSettings tier3 = new TierSettings { hpMultiplier = 4f, speedMultiplier = 1.3f, damageBonus = 1, expMultiplier = 4f, startWave = 6, chancePerWave = 0.08f, maxChance = 0.4f };
-        // 2·3단계의 몸 색 사본 짝 (Enemies §7, PixelArtUI §7) — 등급에 실어 보내 EnemyHealth가 그림을 바꿔 끼운다.
-        [SerializeField] EnemyTierArt tierArt;
-        // 챔피언 (Enemies §7) — 웨이브 스폰의 일반 적에만, 단계 위에 덧붙는다: 크기·HP·접촉 피해·경험치. 보스·소환 졸개는 단계만 받고 챔피언이 되지 않는다.
-        [SerializeField, Min(1f)] float championScale = 1.5f;
-        [SerializeField, Min(1f)] float championHpMultiplier = 3f;
-        [SerializeField, Min(0)] int championDamageBonus = 1;
-        [SerializeField, Min(1f)] float championExpMultiplier = 3f;
-        [SerializeField, Min(1)] int championStartWave = 3;
-        [SerializeField, Range(0f, 1f)] float championChancePerWave = 0.02f;
-        [SerializeField, Range(0f, 1f)] float championMaxChance = 0.15f;
+        [SerializeField] RankSettings champion = new RankSettings { scale = 1.5f, hpMultiplier = 3f, damageBonus = 1, expMultiplier = 3f, startWave = 3, chancePerWave = 0.03f, maxChance = 0.25f };
+        [SerializeField] RankSettings ultra = new RankSettings { scale = 2f, hpMultiplier = 8f, damageBonus = 2, expMultiplier = 8f, startWave = 6, chancePerWave = 0.02f, maxChance = 0.1f };
+        // 웨이브 강화 (Enemies §7) — 웨이브 스폰(보스·졸개 포함)의 HP·경험치에 1 + waveGrowth × (웨이브 − 1)을 곱한다. 화면에 보이지 않는 배율.
+        [SerializeField, Min(0f)] float waveGrowth = 0.15f;
         // 스폰 강화 (Enemies §7) — 스폰 간격은 웨이브마다 spawnIntervalDecay배(하한 minSpawnInterval), 한 번에 나오는 수는 spawnGroupEveryWaves 웨이브마다 하나씩 는다.
         [SerializeField, Range(0.5f, 1f)] float spawnIntervalDecay = 0.9f;
         [SerializeField, Min(0.05f)] float minSpawnInterval = 0.25f;
@@ -114,10 +108,8 @@ namespace PickShoot
                 throw new System.Exception($"[PickShoot] WaveManager.spawnWarningDuration이 0 이하 ({spawnWarningDuration}).");
             if (maxSpawnDistanceFromPlayer <= minSpawnDistanceFromPlayer)
                 throw new System.Exception($"[PickShoot] WaveManager 스폰 거리 범위가 비어 있음 (min {minSpawnDistanceFromPlayer} ≥ max {maxSpawnDistanceFromPlayer}).");
-            if (tierArt == null)
-                throw new System.Exception("[PickShoot] WaveManager.tierArt 미설정 (적 등급의 몸 색 사본 짝, Assets/Data/Enemies/EnemyTierArt).");
-            if (tier2.maxChance + tier3.maxChance > 1f)
-                throw new System.Exception($"[PickShoot] WaveManager 2·3단계 최대 확률의 합({tier2.maxChance + tier3.maxChance})이 1을 넘음.");
+            if (champion.maxChance + ultra.maxChance > 1f)
+                throw new System.Exception($"[PickShoot] WaveManager 챔피언·울트라 최대 확률의 합({champion.maxChance + ultra.maxChance})이 1을 넘음.");
             if (spawnAbortDistance >= minSpawnDistanceFromPlayer)
                 throw new System.Exception($"[PickShoot] WaveManager.spawnAbortDistance({spawnAbortDistance})가 최소 스폰 거리({minSpawnDistanceFromPlayer}) 이상 — 플레이어가 가만히 있어도 스폰이 건너뛰어진다.");
 
@@ -226,19 +218,52 @@ namespace PickShoot
             SpawnEnemy(prefab, PickSpawnPoint());
         }
 
+        // 등급을 정해 예고와 함께 스폰한다 (디버그 도구·녹화 봇용, 2026-10-15). SpawnNow처럼 편성·확률·동시 수 상한과 무관하고, 예고 마커는 등급 크기로 커지며
+        // 웨이브 강화는 지금 웨이브 값을 입힌다 (Enemies §7). 웨이브 진행 여부도 보지 않는다 — 예고가 끝날 때 플레이어가 살아 있으면 낳는다.
+        public void SpawnNow(GameObject prefab, EnemyRankKind kind)
+        {
+            if (prefab == null)
+                throw new System.Exception("[PickShoot] WaveManager.SpawnNow: prefab이 null.");
+            if (!CanSpawn())
+                throw new System.Exception("[PickShoot] WaveManager.SpawnNow: 플레이어가 없음 (사망 후).");
+            StartCoroutine(SpawnRankedRoutine(prefab, RankOf(kind)));
+        }
+
+        IEnumerator SpawnRankedRoutine(GameObject prefab, EnemyRank rank)
+        {
+            Vector2 pos = PickSpawnPoint();
+            yield return Warn(pos, rank.Scale);
+            if (!CanSpawn()) yield break;
+            SpawnEnemy(prefab, pos).GetComponent<EnemyHealth>().ApplyRank(rank);
+        }
+
+        // 그 등급의 지금 웨이브 배율 묶음 (디버그 도구·녹화 봇이 자리를 정해 놓은 적에 입힌다).
+        public EnemyRank RankOf(EnemyRankKind kind)
+        {
+            float w = WaveMultiplier();
+            switch (kind)
+            {
+                case EnemyRankKind.Normal: return WaveOnlyRank(w);
+                case EnemyRankKind.Champion: return FromSettings(EnemyRankKind.Champion, champion, w);
+                case EnemyRankKind.Ultra: return FromSettings(EnemyRankKind.Ultra, ultra, w);
+                default: throw new System.Exception($"[PickShoot] WaveManager.RankOf: 알 수 없는 등급 {kind}.");
+            }
+        }
+
         // 예고 마커를 띄운 뒤 그 자리에 스폰한다. 예고 중 플레이어가 마커까지 다가왔으면 그 스폰은 건너뛴다 (Enemies §1).
         // 평소 스폰은 건너뛰고 끝이다 — 다음 주기가 새 지점을 고른다. 보스(mustSpawn)는 그 웨이브에 반드시 나와야 하므로 새 지점에 다시 예고한다.
         IEnumerator SpawnWithWarning(GameObject prefab, bool mustSpawn)
         {
             while (true)
             {
+                // 등급은 예고 전에 뽑는다 — 큰 적은 예고 마커부터 크다 (Enemies §7). 보스(mustSpawn)는 노멀에 웨이브 강화만.
+                var rank = mustSpawn ? WaveOnlyRank(WaveMultiplier()) : RollRank();
                 Vector2 pos = PickSpawnPoint();
-                yield return Warn(pos);
+                yield return Warn(pos, rank.Scale);
                 if (!WaveStillActive()) yield break;
                 if (!PlayerTooClose(pos))
                 {
-                    // 등급은 스폰 순간의 웨이브로 뽑는다. 보스(mustSpawn)는 단계만, 일반 적은 챔피언도 (Enemies §7).
-                    SpawnEnemy(prefab, pos).GetComponent<EnemyHealth>().ApplyRank(RollRank(allowChampion: !mustSpawn));
+                    SpawnEnemy(prefab, pos).GetComponent<EnemyHealth>().ApplyRank(rank);
                     yield break;
                 }
                 if (!mustSpawn) yield break;
@@ -262,55 +287,50 @@ namespace PickShoot
 
         IEnumerator SummonWithWarningRoutine(GameObject prefab, Vector2 pos, Component owner, System.Action<GameObject> onFinished)
         {
-            yield return Warn(pos);
+            yield return Warn(pos, 1f);
             if (owner == null) yield break;
             GameObject spawned = WaveStillActive() && !PlayerTooClose(pos) ? SpawnEnemy(prefab, pos) : null;
             if (spawned != null)
             {
-                // 낳은 적은 낳은 쪽의 단계를 물려받는다 (Enemies §7).
+                // 낳은 적은 노멀 크기로 나오고 낳은 쪽의 웨이브 강화만 물려받는다 (Enemies §7).
                 var ownerHealth = owner.GetComponent<EnemyHealth>();
                 if (ownerHealth == null)
-                    throw new System.Exception($"[PickShoot] WaveManager.SummonWithWarning: owner({owner.name})에 EnemyHealth 없음 — 물려줄 등급이 없다.");
-                spawned.GetComponent<EnemyHealth>().ApplyRank(TierRank(ownerHealth.Rank.Tier));
+                    throw new System.Exception($"[PickShoot] WaveManager.SummonWithWarning: owner({owner.name})에 EnemyHealth 없음 — 물려줄 웨이브 강화가 없다.");
+                spawned.GetComponent<EnemyHealth>().ApplyRank(OffspringRank(ownerHealth.Rank));
             }
             onFinished(spawned);
         }
 
-        // 단계만 입힌 등급 (챔피언 아님, Enemies §7). 보스와 소환 졸개가 쓴다.
-        public EnemyRank TierRank(int tier)
-        {
-            switch (tier)
-            {
-                case 1: return EnemyRank.Normal;
-                case 2: return FromTier(2, tier2);
-                case 3: return FromTier(3, tier3);
-                default: throw new System.Exception($"[PickShoot] WaveManager.TierRank: 단계 {tier} — 1~3만 있다.");
-            }
-        }
+        // 낳은 적의 등급 (Enemies §7) — 노멀 크기에 낳은 쪽의 웨이브 강화만. 소환 졸개가 쓴다.
+        public EnemyRank OffspringRank(EnemyRank parent) => WaveOnlyRank(parent.WaveMultiplier);
 
-        EnemyRank FromTier(int tier, TierSettings s) =>
-            new EnemyRank(tier, false, s.hpMultiplier, s.speedMultiplier, s.damageBonus, s.expMultiplier, tierArt, 1f);
+        // 노멀 크기에 웨이브 강화(HP·경험치)만 입힌 등급. 보스와 낳은 적이 쓴다.
+        static EnemyRank WaveOnlyRank(float waveMultiplier) =>
+            new EnemyRank(EnemyRankKind.Normal, waveMultiplier, 1f, 0, waveMultiplier, 1f, waveMultiplier);
 
-        // 지금 웨이브의 확률로 단계를 뽑고, allowChampion이면 챔피언도 뽑아 단계 위에 덧붙인다.
-        EnemyRank RollRank(bool allowChampion)
+        // 지금 웨이브의 웨이브 강화 배율 (Enemies §7).
+        float WaveMultiplier() => 1f + waveGrowth * (currentWave - 1);
+
+        // 지금 웨이브의 확률로 등급을 뽑는다 — 울트라, 챔피언, 나머지는 노멀. 웨이브 강화를 HP·경험치에 곱해 둔다.
+        EnemyRank RollRank()
         {
+            float w = WaveMultiplier();
             float r = Random.value;
-            float c3 = tier3.Chance(currentWave);
-            int tier = r < c3 ? 3 : r < c3 + tier2.Chance(currentWave) ? 2 : 1;
-            var rank = TierRank(tier);
-            if (!allowChampion || Random.value >= ChampionChance()) return rank;
-            return new EnemyRank(rank.Tier, true, rank.HpMultiplier * championHpMultiplier, rank.SpeedMultiplier,
-                rank.DamageBonus + championDamageBonus, rank.ExpMultiplier * championExpMultiplier, rank.Art, championScale);
+            float ultraChance = ultra.Chance(currentWave);
+            if (r < ultraChance) return FromSettings(EnemyRankKind.Ultra, ultra, w);
+            if (r < ultraChance + champion.Chance(currentWave)) return FromSettings(EnemyRankKind.Champion, champion, w);
+            return WaveOnlyRank(w);
         }
 
-        float ChampionChance() =>
-            currentWave < championStartWave ? 0f : Mathf.Min(championMaxChance, (currentWave - championStartWave + 1) * championChancePerWave);
+        static EnemyRank FromSettings(EnemyRankKind kind, RankSettings s, float waveMultiplier) =>
+            new EnemyRank(kind, s.hpMultiplier * waveMultiplier, s.speedMultiplier, s.damageBonus, s.expMultiplier * waveMultiplier, s.scale, waveMultiplier);
 
-        // pos에 예고 마커를 띄우고 예고 시간을 기다린 뒤 치운다. 기다리는 동안은 스폰 대기 수에 든다.
-        IEnumerator Warn(Vector2 pos)
+        // pos에 예고 마커를 띄우고 예고 시간을 기다린 뒤 치운다. 기다리는 동안은 스폰 대기 수에 든다. 마커는 나올 적의 등급 크기만큼 키운다 (Enemies §7).
+        IEnumerator Warn(Vector2 pos, float scale)
         {
             pendingWarnings++;
             var marker = Instantiate(spawnWarningPrefab, pos, Quaternion.identity);
+            marker.transform.localScale *= scale;
             marker.Begin(spawnWarningDuration);
             pendingMarkers.Add(marker);
 

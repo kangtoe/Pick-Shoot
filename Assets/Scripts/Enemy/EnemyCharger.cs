@@ -17,7 +17,7 @@ namespace PickShoot
     [RequireComponent(typeof(SpriteWalkCycle))]
     [RequireComponent(typeof(EnemyAttackWarning))]
     [RequireComponent(typeof(EnemyHealth))]
-    public class EnemyCharger : EnemyMover, IEnemyTierSprites
+    public class EnemyCharger : EnemyMover
     {
         enum State { Approach, Windup, Charge, Recover }
 
@@ -59,9 +59,6 @@ namespace PickShoot
             attackWarning = GetComponent<EnemyAttackWarning>();
             health = GetComponent<EnemyHealth>();
         }
-
-        // 등급의 몸 색 사본 (Enemies §7). 걷기 프레임은 EnemyHealth가 SpriteWalkCycle에서 바꾼다.
-        public void UseTierSprites(EnemyTierArt art, int tier) => chargePose = art.For(chargePose, tier);
 
         protected override Vector2 Steer()
         {

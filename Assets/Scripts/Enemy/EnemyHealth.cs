@@ -26,13 +26,13 @@ namespace PickShoot
 
         // 원래 그림의 머티리얼 — 피격 점멸 중에는 렌더러의 것이 잠시 SpriteFlash라, 몸의 모습을 베끼는 쪽(돌진 잔상)이 대신 쓴다.
         public Material BodyMaterial => originalMaterial;
-        // 몸이 닿은 플레이어가 입는 피해. PlayerHealth가 접촉 충돌에서 읽는다 (Enemies §1). 등급·챔피언의 가산이 붙는다 (Enemies §7).
+        // 몸이 닿은 플레이어가 입는 피해. PlayerHealth가 접촉 충돌에서 읽는다 (Enemies §1). 챔피언·울트라의 가산이 붙는다 (Enemies §7).
         public int ContactDamage => data.ContactDamage + rank.DamageBonus;
         // HP가 다해 이번 프레임 끝에 파괴될 적. 유도 탄환(Bullet)이 표적에서 뺀다.
         public bool IsDead => current <= 0;
         // 등급의 이동 속도 배율. EnemyMover가 EnemyData의 이동 속도에 곱한다.
         public float SpeedMultiplier => rank.SpeedMultiplier;
-        // 입은 등급. 서펜트의 몸통·소환사의 졸개가 물려받는다 (Enemies §7).
+        // 입은 등급. 서펜트의 몸통은 그대로, 소환사의 졸개는 웨이브 강화만 물려받는다 (Enemies §7).
         public EnemyRank Rank => rank;
 
         int current;
@@ -59,8 +59,8 @@ namespace PickShoot
             if (flashing && Time.time >= flashUntil) EndFlash();
         }
 
-        // 등급·챔피언을 입힌다 (Enemies §7) — 스폰 직후 한 번, 맞기 전에. HP·접촉 피해·경험치는 여기서 바뀌고 이동 속도는 EnemyMover가 SpeedMultiplier로 읽는다.
-        // 2·3단계는 몸 색을 바꾼 사본 그림으로 갈아 끼우고(테두리는 그대로), 크기는 몸 전체(콜라이더 포함)를 키운다.
+        // 등급·웨이브 강화를 입힌다 (Enemies §7) — 스폰 직후 한 번, 맞기 전에. HP·접촉 피해·경험치는 여기서 바뀌고 이동 속도는 EnemyMover가 SpeedMultiplier로 읽는다.
+        // 등급은 색 없이 크기로만 읽힌다 — 몸 전체(콜라이더 포함)를 Scale만큼 키운다.
         public void ApplyRank(EnemyRank newRank)
         {
             if (rankApplied)
@@ -70,20 +70,7 @@ namespace PickShoot
             rank = newRank;
             rankApplied = true;
             current = Mathf.Max(1, Mathf.RoundToInt(data.MaxHp * rank.HpMultiplier));
-            if (rank.Tier > 1) UseTierSprites();
             transform.localScale *= rank.Scale;
-        }
-
-        // 지금 보이는 그림, 걷기 프레임, 상태에 따라 끼울 그림을 쥔 컴포넌트(돌진 포즈·서펜트 몸통)를 모두 이 단계의 사본으로 바꾼다.
-        void UseTierSprites()
-        {
-            if (rank.Art == null)
-                throw new System.Exception($"[PickShoot] EnemyHealth.ApplyRank: {rank.Tier}단계인데 몸 색 사본 짝(EnemyTierArt)이 없음 ({name}).");
-            sr.sprite = rank.Art.For(sr.sprite, rank.Tier);
-            if (TryGetComponent(out SpriteWalkCycle walkCycle))
-                walkCycle.SetFrames(rank.Art.For(walkCycle.Frames, rank.Tier));
-            foreach (var holder in GetComponents<IEnemyTierSprites>())
-                holder.UseTierSprites(rank.Art, rank.Tier);
         }
 
         public void TakeDamage(int amount)
