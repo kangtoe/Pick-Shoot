@@ -19,6 +19,8 @@ https://github.com/user-attachments/assets/0e4f5792-4f5f-472d-8d35-99d7b47b8456
 
 <div align="center">
 
+<sub>🔊 소리가 있는 영상입니다 — GitHub는 음소거로 재생하니 플레이어의 스피커 아이콘을 눌러 켜 주세요</sub>
+
 [어떤 게임인가요](#어떤-게임인가요) · [실행](#실행) · [만든 것](#만든-것) · [개발 과정](#개발-과정) · [개발 방법](#개발-방법) · [회고](#회고)
 
 </div>
@@ -58,7 +60,7 @@ https://github.com/user-attachments/assets/0e4f5792-4f5f-472d-8d35-99d7b47b8456
   </tr>
 </table>
 
-**플레이 영상** — 웨이브 1부터 4까지 2분 (자동 플레이 봇)
+**플레이 영상** — 웨이브 1부터 4까지 2분 (자동 플레이 봇) · 🔊 소리는 플레이어에서 켜 주세요
 
 https://github.com/user-attachments/assets/332c39ac-b163-4099-be50-e3d989c68cdb
 
