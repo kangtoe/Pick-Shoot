@@ -6,7 +6,7 @@
 
 | 하려는 일 | 문서 |
 |---|---|
-| 이 게임이 무엇인지, 무엇이 재미인지 | [README](../README.md) |
+| 이 게임이 무엇인지, 무엇이 재미인지 | [README](../README.ko.md) (영어판 [README.md](../README.md)) |
 | 기획 전체 — 규칙·수치 기준·레퍼런스 | [GDD](GDD.md) |
 | 지금 어느 단계인지, 다음에 무엇을 하는지, 지난 결정의 날짜와 이유 | [Roadmap](Roadmap.md) |
 | 개발 방침과 커밋 메시지 규칙 | [DEVELOPMENT](../DEVELOPMENT.md) |
