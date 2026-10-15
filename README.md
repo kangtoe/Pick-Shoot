@@ -13,7 +13,11 @@ Unity 6 프로토타입 · 2026.09 – 10 · 잠정 중단
 
 <img src="Docs/Media/preview.gif" alt="Pick & Shoot 플레이 장면" width="820">
 
-**▶ [소개 영상 (1분)](https://github.com/user-attachments/assets/0e4f5792-4f5f-472d-8d35-99d7b47b8456) · [플레이 영상 (2분)](https://github.com/user-attachments/assets/332c39ac-b163-4099-be50-e3d989c68cdb)**
+</div>
+
+https://github.com/user-attachments/assets/0e4f5792-4f5f-472d-8d35-99d7b47b8456
+
+<div align="center">
 
 [어떤 게임인가요](#어떤-게임인가요) · [실행](#실행) · [만든 것](#만든-것) · [개발 과정](#개발-과정) · [개발 방법](#개발-방법) · [회고](#회고)
 
@@ -53,6 +57,10 @@ Unity 6 프로토타입 · 2026.09 – 10 · 잠정 중단
     </td>
   </tr>
 </table>
+
+**플레이 영상** — 웨이브 1부터 4까지 2분 (자동 플레이 봇)
+
+https://github.com/user-attachments/assets/332c39ac-b163-4099-be50-e3d989c68cdb
 
 <br>
 
