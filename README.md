@@ -133,9 +133,9 @@ https://github.com/user-attachments/assets/332c39ac-b163-4099-be50-e3d989c68cdb
 |---|---|---|---|
 | 09-09 ~ 09-15 | 핵심 루프 | 쏘고·남기고·줍는 탄환, 적과 무한 웨이브, 무기 획득·레벨업 카드를 도형으로 만들어 확인 | [`825a124`…`6bdd10c`](https://github.com/kangtoe/Pick-Shoot/commits/6bdd10c) · 53 |
 | 09-16 ~ 09-22 | 아트 · 로그라이크 | Kenney 픽셀 아트와 픽셀 UI, 무기 12자루 슬롯, 대시 | [`1c1a4d7`…`d5f90dc`](https://github.com/kangtoe/Pick-Shoot/compare/6bdd10c...d5f90dc) · 107 |
-| 09-24 ~ 10-02 | 적 · 무기 | 런처와 폭발, 돌진형·서펜트 보스·수집형·소환사, 자동 녹화 봇 | [`ace2f90`…`2d3c3c7`](https://github.com/kangtoe/Pick-Shoot/compare/d5f90dc...2d3c3c7) · 68 |
-| 10-04 ~ 10-14 | 빌드 | 유물 7종·개조 4종·캐릭터 3종, 자루마다 동시 사격, 보상 화면과 빌드 격자 개편 | [`cd46f5e`…`0c23373`](https://github.com/kangtoe/Pick-Shoot/compare/2d3c3c7...0c23373) · 61 |
-| 10-14 | 잠정 중단 | 회고를 남기고 공개 준비 — 적 등급·챔피언, 영상, README | [`21da7e5`…](https://github.com/kangtoe/Pick-Shoot/compare/0c23373...main) |
+| 09-24 ~ 10-02 | 적 · 무기 | 런처와 폭발, 돌진형·서펜트 보스·수집형·소환사, 자동 녹화 봇 | [`ace2f90`…`0275702`](https://github.com/kangtoe/Pick-Shoot/compare/d5f90dc...0275702) · 68 |
+| 10-04 ~ 10-14 | 빌드 | 유물 7종·개조 4종·캐릭터 3종, 자루마다 동시 사격, 보상 화면과 빌드 격자 개편 | [`4f20e4e`…`6e19195`](https://github.com/kangtoe/Pick-Shoot/compare/0275702...6e19195) · 61 |
+| 10-14 | 잠정 중단 | 회고를 남기고 공개 준비 — 적 등급·챔피언, 영상, README | [`6e93915`…](https://github.com/kangtoe/Pick-Shoot/compare/6e19195...main) |
 
 <br>
 
