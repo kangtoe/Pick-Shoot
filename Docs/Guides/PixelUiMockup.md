@@ -82,7 +82,7 @@ cv.convert('RGB').save('Recordings/pause_mockup_2026-10-07.png')
 cv.resize((1280, 720), Image.NEAREST).convert('RGB').save('Recordings/pause_mockup_2026-10-07_720.png')
 ```
 
-- 산출물은 `Recordings/<주제>_mockup_<YYYY-MM-DD>[_vN].png`(git 무시). 고른 안과 버린 안의 이유, 파일명은 `Docs/Systems/PixelArtUI.md`(규칙이 바뀐 경우)나 `Docs/Roadmap.md`(진행 기록)에 적는다.
+- 산출물은 `Recordings/<주제>_mockup_<YYYY-MM-DD>[_vN].png`(작업 공간 — 고른 뒤에는 지운다, [DEVELOPMENT](../../DEVELOPMENT.md) 2장 4항). 고른 안과 버린 안의 이유, 파일명은 `Docs/Systems/PixelArtUI.md`(규칙이 바뀐 경우)나 `Docs/Roadmap.md`(진행 기록)에 적는다.
 - 언제 목업하나 (2026-10-08): **여러 안을 고를 때, 배치·크기 관계가 새로 생길 때, 상태(호버·비활성)가 있는 새 요소를 넣을 때**. 수치 하나를 바꾸는 일(배율·간격·글꼴 교체)은 컴파일 검사만 하고 에디터에서 본다. 비용은 세션 첫 목업(재현 조각을 다시 짜는 것)이 크고 그 뒤 안 하나는 싸다.
 - 스크립트는 저장소에 넣지 않는다. 다음에는 두 문서의 조각에서 다시 시작한다.
 

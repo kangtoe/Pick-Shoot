@@ -10,8 +10,20 @@
 # Memory captures — can get excessive if left in
 /[Mm]emoryCaptures/
 
-# Recorder can hold sensitive data
-/[Rr]ecordings/
+# Recordings — 작업 공간. 끝나면 README가 쓰는 것과 그 원본만 남긴다 (DEVELOPMENT 2장 4항, 2026-10-15).
+# 영상·음원·녹화기 실행 파일은 빼고 공개한 최종 영상(1080p 업로드본 둘)만 넣는다. 효과음 팩(Sonniss 등)은 원본 재배포 금지라 음원 규칙으로 빠진다.
+/[Rr]ecordings/**/*.mp4
+/[Rr]ecordings/**/*.wav
+/[Rr]ecordings/**/*.ogg
+/[Rr]ecordings/**/*.mp3
+/[Rr]ecordings/**/*.pdf
+!/[Rr]ecordings/intro_2026-10-15_v9_1080p.mp4
+!/[Rr]ecordings/showcase_play_2026-10-15_1080p.mp4
+/[Rr]ecordings/record.*
+/[Rr]ecordings/*.request
+/[Rr]ecordings/snapshot_*.png
+/[Rr]ecordings/**/seg_*/
+/[Rr]ecordings/**/__pycache__/
 
 # Uncomment if using Asset Store tools
 # /[Aa]ssets/AssetStoreTools*
