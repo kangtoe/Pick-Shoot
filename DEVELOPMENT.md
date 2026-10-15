@@ -23,6 +23,10 @@ Unity 프로젝트라면 어디서나 같은 방침(에디터 작업 자동화, 
 4. **에디터 도구** — 장기 보존하는 플레이 모드 디버그 도구는 `Assets/Editor`의 `DebugToolsWindow` 한 창(메뉴 `PickShoot/Debug Tools`)에 모은다. 플레이 영상 자동 녹화 도구(`Assets/Editor/PlayRecorder.cs`·`PickShootPlayDriver.cs`, 메뉴 `PickShoot/Record Play`)는 예외로 보존한다 — 2026-09-29 아트 전면 교체 전후를 같은 봇·해상도·길이로 찍어 비교하기 위해서이며, 비교가 끝나면 삭제 여부를 정한다. 산출물(영상·목업 PNG)은 `Recordings/`에 날짜와 HEAD 짧은 해시를 파일명에 넣어 남긴다. `Recordings/`는 작업 공간이다 — 작업이 끝나면 **README가 쓰는 것과 그 원본 촬영만** 남기고 지운다(목업·작업 문서·편집 스크립트 포함, 2026-10-15). 남긴 것은 영상까지 git으로 관리하고, 녹화기 실행 파일·편집 중간물·음원(효과음 팩은 재배포 금지)만 `.gitignore`로 뺀다. 문서에 남은 `Recordings/` 목업·작업 문서 경로는 당시 기록일 뿐 파일은 2026-10-15 정리 때 지웠다. 절차는 [AutoPlayRecording](Docs/Guides/AutoPlayRecording.md), 픽셀 UI 목업은 [PixelUiMockup](Docs/Guides/PixelUiMockup.md).
 5. **아트·픽셀 UI** — 기준 캔버스(세로 270텍셀)와 배율, `PixelUiSkin`·`PixelGui` 조각, 아이템 타일과 배지, 글꼴, 월드 아트, 스프라이트 팩 외곽선 규칙은 모두 [Docs/Systems/PixelArtUI.md](Docs/Systems/PixelArtUI.md).
 6. **프로젝트 폴더·솔루션 이름** — 모든 PC에서 프로젝트 폴더 이름은 저장소 이름과 같은 `Pick-Shoot`으로 두고, `.vscode/settings.json`의 `dotnet.defaultSolution`은 `Pick-Shoot.slnx`로 고정한다 (이유와 폴더 이름이 다른 PC의 복구 절차는 [UnityPrinciples §5](Docs/Guides/UnityPrinciples.md#5-프로젝트-폴더와-솔루션-이름)).
+7. **웹 빌드** (2026-10-15) — README에서 바로 플레이하는 WebGL 빌드. 에디터를 띄우지 않고 `Unity.exe -batchmode -quit -projectPath <프로젝트> -buildTarget WebGL -executeMethod PickShoot.WebBuild.Build -logFile <로그>`(`Assets/Editor/WebBuild.cs`)로 `Builds/WebGL`(git 무시)에 만든다 — 첫 빌드 약 15분, 스크립트를 고친 뒤 약 5분, 템플릿만 고치면 10초. 빌드하면 활성 빌드 대상이 WebGL로 남으므로 끝나면 `-buildTarget Win64 -quit`로 되돌린다.
+   - 페이지는 프로젝트 템플릿 `Assets/WebGLTemplates/PickShoot` — 창 안의 가장 큰 16:9 상자에 두고, 세로 1080보다 작은 창에서는 1080으로 그려 브라우저가 줄인다(픽셀 UI가 1보다 작은 배율에서 노이즈처럼 보였다). GitHub Pages는 압축 헤더를 붙이지 않으므로 Gzip + 압축 해제 대체(decompression fallback)로 둔다.
+   - 공개는 빌드 결과물만 담은 `gh-pages` 브랜치(빌드마다 커밋 하나)를 Pages가 낸다.
+   - WebGL은 IMGUI를 선형 공간에서 섞어 UI 색이 밝고 막이 옅게 나왔다 — `PixelGui`가 WebGL에서만 그리기 직전에 색을 보정한다. 웹에서 UI 색이 에디터와 다르면 여기부터 본다.
 
 ---
 

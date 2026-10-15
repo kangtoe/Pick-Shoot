@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="en-us">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pick &amp; Shoot</title>
+    <!--
+      Pick&Shoot 웹 빌드 템플릿 (2026-10-15). Unity Base/Default 템플릿에서 줄였다.
+      캔버스는 브라우저 창 안에 드는 가장 큰 16:9 상자로 가운데에 둔다(바깥은 검정) — 고정 크기 캔버스는 창보다 크면 잘린다.
+      그리는 해상도(canvas.width·height)는 그 상자의 장치 픽셀이되 세로 1080 아래로는 내리지 않는다 — 픽셀 UI(PixelGui, 1920×1080 기준)는 1보다 작은
+      배율에서 점이 빠지고 겹쳐 노이즈처럼 보였으므로, 작은 창에서는 1080으로 그리고 브라우저가 부드럽게 줄인다. 1080 이상이면 창 그대로 그린다.
+    -->
+    <style>
+      html, body { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; background: #000; }
+      #unity-canvas { position: fixed; display: block; background: #000; outline: none; }
+      #loading { position: fixed; left: 50%; top: 50%; transform: translate(-50%, -50%); width: 320px; text-align: center;
+                 font: 14px/1.4 system-ui, sans-serif; color: #bebad6; }
+      #loading .title { font-size: 20px; letter-spacing: 0.15em; color: #fff; margin-bottom: 14px; }
+      #bar { height: 10px; border: 2px solid #47324b; background: #130d16; }
+      #bar-full { height: 100%; width: 0; background: #f5a13c; }
+      #notice { margin-top: 14px; }
+      #warning { position: fixed; left: 0; right: 0; top: 0; text-align: center; font: 14px system-ui, sans-serif; display: none; }
+    </style>
+  </head>
+  <body>
+    <canvas id="unity-canvas" tabindex="-1"></canvas>
+    <div id="loading">
+      <div class="title">PICK &amp; SHOOT</div>
+      <div id="bar"><div id="bar-full"></div></div>
+      <div id="notice">Keyboard and mouse required</div>
+    </div>
+    <div id="warning"></div>
+    <script>
+      var canvas = document.querySelector("#unity-canvas");
+
+      function unityShowBanner(msg, type) {
+        var banner = document.querySelector("#warning");
+        var div = document.createElement("div");
+        div.innerHTML = msg;
+        div.style = "padding: 10px; background: " + (type == "error" ? "#c0392b" : "#e0b030") + ";";
+        banner.appendChild(div);
+        banner.style.display = "block";
+        if (type != "error") setTimeout(function () {
+          banner.removeChild(div);
+          if (!banner.children.length) banner.style.display = "none";
+        }, 5000);
+      }
+
+      var buildUrl = "Build";
+      var loaderUrl = buildUrl + "/{{{ LOADER_FILENAME }}}";
+      var config = {
+        arguments: [],
+        dataUrl: buildUrl + "/{{{ DATA_FILENAME }}}",
+        frameworkUrl: buildUrl + "/{{{ FRAMEWORK_FILENAME }}}",
+#if USE_THREADS
+        workerUrl: buildUrl + "/{{{ WORKER_FILENAME }}}",
+#endif
+#if USE_WASM
+        codeUrl: buildUrl + "/{{{ CODE_FILENAME }}}",
+#endif
+#if SYMBOLS_FILENAME
+        symbolsUrl: buildUrl + "/{{{ SYMBOLS_FILENAME }}}",
+#endif
+        streamingAssetsUrl: "StreamingAssets",
+        companyName: {{{ JSON.stringify(COMPANY_NAME) }}},
+        productName: {{{ JSON.stringify(PRODUCT_NAME) }}},
+        productVersion: {{{ JSON.stringify(PRODUCT_VERSION) }}},
+        showBanner: unityShowBanner,
+      };
+
+      // 캔버스 크기는 아래 fitCanvas가 정한다 (머리 주석).
+      config.matchWebGLToCanvasSize = false;
+      var MinRenderHeight = 1080;
+      function fitCanvas() {
+        var vw = window.innerWidth, vh = window.innerHeight;
+        var cssW = Math.min(vw, vh * 16 / 9), cssH = cssW * 9 / 16;
+        canvas.style.width = cssW + "px";
+        canvas.style.height = cssH + "px";
+        canvas.style.left = (vw - cssW) / 2 + "px";
+        canvas.style.top = (vh - cssH) / 2 + "px";
+        var h = Math.max(MinRenderHeight, Math.round(cssH * (window.devicePixelRatio || 1)));
+        var w = Math.round(h * 16 / 9);
+        if (canvas.width != w) canvas.width = w;
+        if (canvas.height != h) canvas.height = h;
+      }
+      fitCanvas();
+      window.addEventListener("resize", fitCanvas);
+
+      // 클릭하면 캔버스가 키보드를 받는다 (Space·WASD가 페이지 스크롤로 새지 않게).
+      canvas.addEventListener("pointerdown", function () { canvas.focus(); });
+
+      var script = document.createElement("script");
+      script.src = loaderUrl;
+      script.onload = function () {
+        createUnityInstance(canvas, config, function (progress) {
+          document.querySelector("#bar-full").style.width = 100 * progress + "%";
+        }).then(function () {
+          fitCanvas();   // 엔진이 시작하며 캔버스 크기를 건드렸어도 다시 맞춘다
+          document.querySelector("#loading").style.display = "none";
+          canvas.focus();
+        }).catch(function (message) {
+          alert(message);
+        });
+      };
+      document.body.appendChild(script);
+    </script>
+  </body>
+</html>
