@@ -123,11 +123,9 @@ namespace PickShoot
         const int StartCardHeightTiles = 8;
         // 제목 → 타일 줄 (패널 텍셀, 16px). 줄·카드 → 다음 구역은 CardGapTexels(40px).
         const int StartTitleTileGapTexels = 4;
-        // 오른쪽 아래 PLAY 버튼 — 시작 화면 타일과 같은 꼴(바깥 흰 선 1텍셀 + 판)에 일반 글꼴 패널 배율 글자. 판은 글자 줄 상자 둘레에 6텍셀(테두리 2 포함)이라
-        // 높이가 타일과 같은 28텍셀(112px). 캔버스 오른쪽·아래 끝에서 8텍셀(32px). 무기 카드가 열려 있을 때만 눌리고, 아니면 리롤 버튼의 0회처럼 어둡다.
+        // 오른쪽 아래 PLAY 버튼 — 시작 화면 타일과 같은 꼴의 누르는 판(PlateButtonPainter, 일시정지 화면의 MAIN MENU와 같다). 캔버스 오른쪽·아래 끝에서
+        // 8텍셀(32px). 무기 카드가 열려 있을 때만 눌리고, 아니면 리롤 버튼의 0회처럼 어둡다.
         const string PlayLabel = "PLAY";
-        const int PlayLabelScale = PixelGui.PanelScale;
-        const int PlayPadTexels = 6;
         const int PlayMarginTexels = 8;
 
         // 시작 화면에서 열려 있는 카드. 캐릭터 카드는 캐릭터 줄 아래, 무기 카드는 무기 줄 아래.
@@ -710,27 +708,11 @@ namespace PickShoot
         // 오른쪽 아래 PLAY 버튼 (헤더·상수 참조). 눌리면 초점 무기로 시작한다.
         void DrawPlayButton(PixelGui.CanvasScope canvas, bool enabled, Vector2 mouse)
         {
-            int scale = PixelGui.PanelScale;
-            int line = StartTileLineTexels * scale;
-            int pad = PlayPadTexels * scale;
-            int plateW = PixelGui.MeasureText(skin.FontPlain, PlayLabel, PlayLabelScale) + 2 * pad;
-            int plateH = skin.FontPlain.lineHeight * PlayLabelScale + 2 * pad;
-            int margin = PlayMarginTexels * scale;
-            var button = new Rect(canvas.Width - margin - plateW - 2 * line, canvas.Height - margin - plateH - 2 * line, plateW + 2 * line, plateH + 2 * line);
+            var size = PlateButtonPainter.Size(skin, PlayLabel);
+            int margin = PlayMarginTexels * PixelGui.PanelScale;
+            var button = new Rect(canvas.Width - margin - size.x, canvas.Height - margin - size.y, size.x, size.y);
             bool hovered = enabled && button.Contains(mouse);
-            var tint = enabled ? Color.white : DisabledTint;
-            if (hovered)
-            {
-                int o = UpgradeCardPainter.HoverOutlineTexels * scale;
-                PixelGui.FillPlateShape(new Rect(button.x - o, button.y - o, button.width + 2 * o, button.height + 2 * o), scale, Color.white);
-            }
-            PixelGui.FillPlateShape(button, scale, Color.white * tint);
-            var plate = new Rect(button.x + line, button.y + line, plateW, plateH);
-            PixelGui.DrawWeaponPlate(skin, plate, scale, tint);
-            var prevColor = GUI.color;
-            GUI.color = prevColor * tint;
-            PixelGui.DrawTextCentered(skin.FontPlain, PlayLabel, (int)plate.center.x, (int)plate.y + pad, PlayLabelScale);
-            GUI.color = prevColor;
+            PlateButtonPainter.Draw(skin, button, PlayLabel, hovered, enabled ? Color.white : DisabledTint);
             if (enabled && GUI.Button(button, GUIContent.none, GUIStyle.none))
                 Select(focusedWeapon);
         }
