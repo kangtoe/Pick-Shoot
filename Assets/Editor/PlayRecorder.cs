@@ -15,6 +15,8 @@ namespace PickShoot
     // 아트 교체 전후를 같은 봇·해상도·길이로 찍어 비교하는 동안 둔다. 구조·절차·함정은 Docs/Guides/AutoPlayRecording.md.
     // 흐름: 요청 파일 → 플레이 모드 진입 → 세션 MonoBehaviour가 봇(IPlayDriver)을 돌리며 매 프레임의 화면과 소리를 MediaEncoder에 넣는다 → 플레이 종료.
     // 상태는 전부 Recordings/record.* 파일로 주고받는다 — 플레이 모드 진입·종료의 도메인 리로드가 static 상태를 지우기 때문.
+    // Recordings/refresh.request가 있으면 지우고 AssetDatabase.Refresh()를 부른다 — 에디터는 포커스를 받아야 바뀐 스크립트를 다시 읽는데,
+    // 이걸로 창을 건드리지 않고(최소화한 채로도) 재컴파일시킨다. 끝나면 도메인 리로드가 record.log에 loaded.를 남긴다 (2026-10-15).
     public interface IPlayDriver
     {
         string Status { get; }
@@ -41,6 +43,8 @@ namespace PickShoot
         public static string ActivePath => Path.Combine(RecordingsDir, "record.active");
         public static string DonePath => Path.Combine(RecordingsDir, "record.done");
         public static string LogPath => Path.Combine(RecordingsDir, "record.log");
+        public static string RefreshPath => Path.Combine(RecordingsDir, "refresh.request");
+        public static string StopPath => Path.Combine(RecordingsDir, "stop.request");
 
         static PlayRecorderTrigger()
         {
@@ -102,7 +106,26 @@ namespace PickShoot
         {
             if (EditorApplication.timeSinceStartup < nextPoll) return;
             nextPoll = EditorApplication.timeSinceStartup + PollInterval;
+            // 녹화 세션 없이 플레이 모드에 남은 에디터를 밖에서 빠져나오게 한다 — 녹화 중 스크립트가 바뀌어 플레이 모드 안에서 재컴파일되면
+            // 세션은 끝나지만 에디터는 플레이 모드에 머물러 다음 요청을 받지 못한다 (2026-10-15).
+            if (File.Exists(StopPath))
+            {
+                File.Delete(StopPath);
+                if (EditorApplication.isPlaying && !File.Exists(ActivePath))
+                {
+                    Log("stop requested: exiting play mode.");
+                    EditorApplication.ExitPlaymode();
+                }
+                return;
+            }
             if (EditorApplication.isPlayingOrWillChangePlaymode) return;
+            if (File.Exists(RefreshPath))
+            {
+                File.Delete(RefreshPath);
+                Log("refresh requested.");
+                AssetDatabase.Refresh();
+                return;
+            }
             if (!File.Exists(RequestPath)) return;
 
             string text = File.ReadAllText(RequestPath);

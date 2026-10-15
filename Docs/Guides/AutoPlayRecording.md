@@ -43,7 +43,7 @@ Game view 크기 복원은 공개 API가 없어 reflection: `UnityEditor.GameVie
 
 ## 3. 사용 절차
 
-1. 스크립트를 `Assets/Editor/`에 넣고(Pick&Shoot에는 이미 있음) **Unity 창을 한 번 클릭**한다. 에디터는 포커스를 받을 때만 재컴파일한다. `record.log`에 `loaded.` 줄이 찍히면 준비 완료. 컴파일 에러는 `%LOCALAPPDATA%\Unity\Editor\Editor.log`에서 `error CS`로 찾는다.
+1. 스크립트를 `Assets/Editor/`에 넣고(Pick&Shoot에는 이미 있음) **Unity 창을 한 번 클릭**한다. 에디터는 포커스를 받을 때만 재컴파일한다. 녹화기가 한 번 올라온 뒤로는 `Recordings/refresh.request` 파일을 만들면 트리거가 `AssetDatabase.Refresh()`를 불러 창을 건드리지 않고(최소화한 채로도) 재컴파일한다 — 2026-10-15 확인, 약 8초. 녹화 세션 없이 플레이 모드에 남은 에디터는 `Recordings/stop.request`로 빠져나오게 한다. `record.log`에 `loaded.` 줄이 찍히면 준비 완료. 컴파일 에러는 `%LOCALAPPDATA%\Unity\Editor\Editor.log`에서 `error CS`로 찾는다.
 2. `Recordings/record.request`를 쓴다 (key=value, 한 줄에 하나. Pick&Shoot에서는 메뉴 `PickShoot/Record Play`가 대신 써 준다): `output`(mp4 절대 경로, 필수), `seconds`, `fps`, `flip`(DX12는 1), `width`/`height`(0이면 현재 크기), `restore_index`(되돌릴 Game view 크기 index, -1이면 시작 시점 값), `driver`(0이면 봇 없이 녹화), `audio`(0이면 소리 없이, 기본 1).
 3. `record.done`이 생길 때까지 5초 간격으로 `record.log`를 꼬리 출력하며 기다린다. 정상 흐름: `request accepted → EnteredPlayMode → session started → 해상도 요청 → screen … -> video … → progress N/M(10초마다) → finishing → finish`. 1080p는 프레임당 약 35ms라 90초 영상에 100초 안팎 걸린다.
 4. 검증: `ffmpeg -i play.mp4`로 길이·해상도 확인(`moov atom not found`면 깨진 파일), `ffmpeg -ss 30 -i play.mp4 -frames:v 1 f.png`로 프레임을 뽑아 HUD가 위에 있는지 본다. ffmpeg 없이는 `snapshot_*.png`로 방향만 확인. PATH에 없어도 다른 프로그램에 딸린 ffmpeg가 있을 수 있다(예: 이 PC는 `C:\Program Files\File Converter\ffmpeg.exe`).
@@ -53,7 +53,10 @@ Game view 크기 복원은 공개 API가 없어 reflection: `UnityEditor.GameVie
 
 | 증상 | 원인 → 해결 |
 |---|---|
-| `session started` 뒤 진행 없음, 예외도 없음 | **Unity 창이 완전히 가려지면**(전체화면 게임, 다른 창 뒤) 에디터 루프가 멈춘다. 포커스는 없어도 되지만 보여야 한다 → 창을 보이게 한다. 게임 포커스를 뺏지 않으려면 `SetWindowPos(HWND_TOPMOST, SWP_NOACTIVATE)`로 다른 모니터에 잠시 띄웠다 되돌린다. 백그라운드 프로세스의 `SetForegroundWindow`는 Windows가 막는다. 단, 2026-10-14에 "포커스를 잃으면 멈춤"(`runInBackground`, 아래 표)이 따로 있음을 확인했다 — 이전의 "가려지면 멈춤" 관찰에 그 원인이 섞여 있었을 수 있고, `runInBackground`를 켠 뒤 완전히 가려진 경우는 아직 다시 시험하지 않았다 |
+| `session started` 뒤 진행 없음, 예외도 없음 | **Unity 창이 완전히 가려지면**(전체화면 게임, 다른 창 뒤) 에디터 루프가 멈춘다. 포커스는 없어도 되지만 보여야 한다 → 창을 보이게 한다. 게임 포커스를 뺏지 않으려면 `SetWindowPos(HWND_TOPMOST, SWP_NOACTIVATE)`로 다른 모니터에 잠시 띄웠다 되돌린다. 백그라운드 프로세스의 `SetForegroundWindow`는 Windows가 막는다. 단, 2026-10-14에 "포커스를 잃으면 멈춤"(`runInBackground`, 아래 표)이 따로 있음을 확인했다 — 이전의 "가려지면 멈춤" 관찰에 그 원인이 섞여 있었을 수 있고, `runInBackground`를 켠 뒤 완전히 가려진 경우는 아직 다시 시험하지 않았다. **2026-10-15: `runInBackground`를 켠 녹화기로 에디터 창을 최소화한 채(`ShowWindow(hwnd, 7 = SW_SHOWMINNOACTIVE)`, 포커스를 뺏지 않음) 1080p 60fps 녹화가 정상 속도로 끝났고 프레임도 정상** — 사용자 화면을 가리지 않으려면 최소화해 두고 찍는다 |
+| 에디터를 최소화로 띄우려 했는데 보통 창으로 뜸 | `Start-Process … -WindowStyle Minimized`는 Unity가 무시한다(스플래시·본 창을 스스로 만든다) → 띄운 뒤 제목이 프로젝트 이름으로 시작하는 본 창이 생기면 그 창만 `SW_SHOWMINNOACTIVE`로 최소화한다. 그 전에 뜨는 창(진행 표시·대화상자)은 건드리지 않는다 — 대화상자를 최소화하면 보이지 않는 채로 진행이 멈춘다 |
+| 녹화가 `finish (beforeAssemblyReload)`로 중간에 끊기고 에디터가 플레이 모드에 남아 다음 요청을 안 받음 | 녹화 중에 `Assets/`의 스크립트를 고쳐 플레이 모드 안에서 재컴파일됐다(최소화한 창에서도 일어남, 2026-10-15). 끊긴 mp4는 그 프레임까지 정상이다 → 녹화 중에는 스크립트를 고치지 않는다. 남은 플레이 모드는 `stop.request`로 빠져나오고(새 코드가 올라간 뒤에만 됨), 안 되면 에디터를 정상 종료 후 다시 띄운다. 일괄 촬영 스크립트를 멈췄다면 그 셸 프로세스까지 남지 않았는지 본다 — 남은 프로세스가 대기 시간이 끝난 뒤 다음 `record.request`를 써 놓아 에디터를 띄우자마자 녹화가 시작된 적이 있다 |
+| 스크립트를 고친 뒤 에디터를 다시 띄웠더니 "It looks like another Unity instance is running with this project open" (제목 `Error!`) | 강제 종료(`Stop-Process -Force`) 직후 몇 초 안에 다시 띄워 프로젝트 잠금이 남아 있었다. 강제 종료하면 다음 실행에 "Recovering Scene Backups"도 뜬다 → `Process.CloseMainWindow()`로 정상 종료하고, 그 프로젝트의 Unity 프로세스(AssetImportWorker 포함)가 모두 사라진 걸 확인한 뒤 몇 초 기다려 띄운다(2026-10-15, 종료 2초·준비 약 1분 40초) |
 | 영상 상하 반전 | DX11/DX12 캡처 특성 → `flip=1`. 다른 그래픽 API에서 반대로 뒤집히면 0 |
 | ffmpeg로 뽑은 프레임이 게임보다 밝고 초록이 튐 | `MediaEncoder`의 H.264는 BT.709로 인코딩하지만 색 태그를 남기지 않아 ffmpeg(3.2에서 확인)가 BT.601로 푼다 → RGB로 뽑을 때(PNG·GIF·접촉 시트) `scale=in_color_matrix=bt709`를 앞에 두고, 다시 인코딩한 mp4에는 `-colorspace bt709 -color_primaries bt709 -color_trc bt709`로 태그를 단다. 확인은 외곽선·고정색 픽셀이 시트 값과 같은지로 (2026-10-14) |
 | 봇이 안 움직임 | Game view 포커스 없음 → §2의 두 설정 우회 확인 |

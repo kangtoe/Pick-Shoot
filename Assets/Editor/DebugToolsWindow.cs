@@ -7,12 +7,14 @@ namespace PickShoot
     // 플레이 모드 디버그 도구 창 (메뉴 PickShoot/Debug Tools). 장기 보존 도구 (DEVELOPMENT §2.1).
     // 씬 참조 없이 플레이 중인 오브젝트를 찾아 조작하므로 씬·프리팹을 건드리지 않고, 빌드에도 들어가지 않는다.
     // 현재 제공: 진행 중인 웨이브 즉시 클리어 / 적 종류를 골라 즉시 스폰 / 무기 종류를 골라 추가 / 마지막 무기 버리기 / 자루별 레벨업 / 경험치 더하기(레벨 업·리롤 적립 시험용)
-    //   / 자루와 개조를 골라 바로 붙이기 (Mods §6) / 유물 종류를 골라 획득 + 보유 유물·스탯 총계 표시 (Relics §2).
+    //   / 자루와 개조를 골라 바로 붙이기 (Mods §6) / 유물 종류를 골라 획득 + 보유 유물·스탯 총계 표시 (Relics §2)
+    //   / 영상 촬영용 HUD 숨기기와 적 여러 마리·등급(챔피언·울트라) 지정 스폰 (2026-10-15, 녹화 봇의 hud=0·spawn과 같은 일을 손으로 플레이하며 찍을 때).
     public class DebugToolsWindow : EditorWindow
     {
         // 드롭다운 옆 실행 버튼(Spawn/Add) 너비. 드롭다운이 남는 폭을 다 차지한다.
         const float ActionButtonWidth = 64f;
         const float SeparatorMargin = 6f;
+        const int MaxSpawnCount = 20;
         static readonly Color SeparatorColor = new Color(0.5f, 0.5f, 0.5f, 0.5f);
 
         // 프로젝트의 모든 WeaponData 자산. 획득 카드 풀(UpgradeManager.weaponPool)에 아직 없는 무기도 시험할 수 있게
@@ -25,6 +27,11 @@ namespace PickShoot
         GameObject[] enemyPrefabs = new GameObject[0];
         string[] enemyNames = new string[0];
         int selectedEnemy;
+        int spawnCount = 1;
+        EnemyRankKind spawnRank = EnemyRankKind.Normal;
+        // HUD 숨기기 — GameHud(HUD·머리 위 게이지·크로스헤어)와 DamageNumbers(피해·경험치 숫자)는 OnGUI로 그리므로 컴포넌트를 끄면 그리지 않는다.
+        // 재시작으로 씬이 다시 불리면 새 인스턴스가 생기므로 창이 다시 그려질 때마다 맞춘다.
+        bool hideHud;
         // 프로젝트의 모든 RelicData 자산. 유물 풀(UpgradeManager.relicPool)에 아직 없는 유물도 시험할 수 있게 자산 DB에서 직접 찾는다.
         RelicData[] relicAssets = new RelicData[0];
         string[] relicNames = new string[0];
@@ -146,6 +153,9 @@ namespace PickShoot
                 EditorGUILayout.HelpBox("플레이 모드에서만 동작합니다.", MessageType.Info);
                 return;
             }
+            DrawCapture();
+            DrawSeparator();
+
             var waves = FindFirstObjectByType<WaveManager>();
             if (waves == null)
                 EditorGUILayout.HelpBox("씬에 WaveManager가 없습니다.", MessageType.Warning);
@@ -189,6 +199,16 @@ namespace PickShoot
             DrawAddRelic(stats);
             DrawSeparator();
             DrawRelics(stats);
+        }
+
+        void DrawCapture()
+        {
+            GUILayout.Label("Capture", EditorStyles.boldLabel);
+            hideHud = EditorGUILayout.Toggle("Hide HUD", hideHud);
+            var hud = FindFirstObjectByType<GameHud>();
+            if (hud != null && hud.enabled == hideHud) hud.enabled = !hideHud;
+            var numbers = FindFirstObjectByType<DamageNumbers>();
+            if (numbers != null && numbers.enabled == hideHud) numbers.enabled = !hideHud;
         }
 
         // 드롭다운에서 유물 종류를 고르고 Add — 카드 없이 곧바로 획득한다 (Relics §2, 커먼 유물은 몇 번이든 중첩). 효과는 각 스탯을 읽는 쪽이 바로 반영한다.
@@ -253,8 +273,15 @@ namespace PickShoot
             using (new EditorGUILayout.HorizontalScope())
             {
                 selectedEnemy = EditorGUILayout.Popup(selectedEnemy, enemyNames);
+                spawnRank = (EnemyRankKind)EditorGUILayout.EnumPopup(spawnRank, GUILayout.Width(80f));
+                spawnCount = Mathf.Clamp(EditorGUILayout.IntField(spawnCount, GUILayout.Width(32f)), 1, MaxSpawnCount);
                 if (GUILayout.Button("Spawn", GUILayout.Width(ActionButtonWidth)))
-                    waves.SpawnNow(enemyPrefabs[selectedEnemy]);
+                    for (int i = 0; i < spawnCount; i++)
+                    {
+                        // 노멀은 예전처럼 예고 없이 곧바로, 챔피언·울트라는 등급 크기의 예고를 거쳐 나온다.
+                        if (spawnRank == EnemyRankKind.Normal) waves.SpawnNow(enemyPrefabs[selectedEnemy]);
+                        else waves.SpawnNow(enemyPrefabs[selectedEnemy], spawnRank);
+                    }
             }
         }
 
