@@ -1,5 +1,6 @@
 using UnityEngine;
 using UnityEngine.InputSystem;
+using UnityEngine.SceneManagement;
 
 namespace PickShoot
 {
@@ -13,6 +14,8 @@ namespace PickShoot
     // 화면 가운데, 격자는 12칸 폭의 왼쪽 끝이라 정렬 축이 둘로 갈려 자루가 적을 때 흩어져 보였고, 배지는 보상 화면이 2026-10-08 걷은 꼴이 여기만 남아 있었다.
     // 버튼(RESUME·RESTART)을 더한 안, 두 열(왼쪽 상태 카드·버튼, 오른쪽 6열 격자) 안과 아이템이 적을 때·많을 때로 비교해 이 꼴을 골랐다
     // (Recordings/pause_mockup_2026-10-12_*.png). 아이템이 적으면 띠 양 끝 사이가 빈다.
+    // 캔버스 아래 가운데에 `MAIN MENU` 버튼 (2026-10-15, 웹 빌드를 공개하며 사용자 요청) — 시작 화면 PLAY와 같은 누르는 판(PlateButtonPainter)이고, 누르면 확인 없이
+    // 씬을 다시 불러 시작 화면(캐릭터·무기 고르기)으로 간다 — 사망 뒤 R 재시작(GameOverScreen)과 같은 길. 묶음은 그대로 세로 가운데라 버튼은 묶음 아래 빈자리에 든다.
     // 일시정지 중엔 HUD가 숨으므로 웨이브도 여기서 보이고, 누적 경험치 총량은 여기서만 보인다 (GDD §3.3).
     // 타일에 마우스를 올리면 그 자루·유물·캐릭터의 보기 카드(UpgradeCardPainter.DrawOwnedWeapon·DrawOwnedRelic·DrawOwnedCharacter — 보상 화면 카드와 같은 틀의 회색 카드)가 뜬다
     // (2026-10-12, 그전엔 툴팁). 하드웨어 커서는 멈춘 동안 GameHud가 되살린다.
@@ -48,6 +51,9 @@ namespace PickShoot
         // 스탯 표 (StatPanelPainter) — 3열이면 8개가 3줄(96px)로 띠 → 격자 간격(160px)에 든다. 열 사이는 패널 텍셀 16(64px).
         const int StatColumns = 3;
         const int StatGutterTexels = 16;
+        // 아래 가운데 버튼 — 캔버스 아래 끝에서 시작 화면 PLAY와 같은 8텍셀(32px).
+        const string MainMenuLabel = "MAIN MENU";
+        const int MainMenuMarginTexels = 8;
 
         bool paused;
         float prevTimeScale;
@@ -113,10 +119,30 @@ namespace PickShoot
             paused = false;
         }
 
+        // 씬을 다시 불러 시작 화면으로. 멈춘 timeScale은 파괴될 때 OnDestroy가 되돌린다.
+        void ReturnToMainMenu()
+        {
+            SceneManager.LoadScene(SceneManager.GetActiveScene().buildIndex);
+        }
+
+        // 버튼 자리는 캔버스 크기만으로 정해진다 — 클릭 판정(모든 이벤트)과 그리기(Repaint)가 같은 자리를 쓴다.
+        Rect MainMenuButtonRect(PixelGui.CanvasScope canvas)
+        {
+            var size = PlateButtonPainter.Size(skin, MainMenuLabel);
+            int margin = MainMenuMarginTexels * PixelGui.PanelScale;
+            return new Rect(canvas.Width / 2 - size.x / 2, canvas.Height - margin - size.y, size.x, size.y);
+        }
+
         void OnGUI()
         {
             if (!paused) return;
-            if (Event.current.type != EventType.Repaint) return;
+            // 클릭 판정(GUI.Button)은 Repaint 밖의 이벤트에서, 그리기는 Repaint에서만.
+            if (Event.current.type != EventType.Repaint)
+            {
+                using var input = PixelGui.BeginCanvas();
+                if (GUI.Button(MainMenuButtonRect(input), GUIContent.none, GUIStyle.none)) ReturnToMainMenu();
+                return;
+            }
 
             int scale = PixelGui.PanelScale;
             int textScale = PixelGui.TextScale;
@@ -178,7 +204,14 @@ namespace PickShoot
             BuildGridPainter.DrawTitle(skin, BuildGridPainter.RelicTitle(stats), left, relicTitleY);
             var relic = BuildGridPainter.DrawRelicGrid(skin, stats, left, relicTitleY + rowTitleH, gridScale, columns, relicRows, mouse, out bool characterHovered, out var relicTile);
 
-            // 보기 카드는 다 그린 뒤 맨 마지막에 — 위 띠·이웃 타일 위로 뜬다.
+            // 아래 가운데 MAIN MENU. 호버 테두리까지 묶음 아래에 들어야 한다 — 유물이 12칸 한 줄을 넘어 묶음이 커지면 예외.
+            var menuButton = MainMenuButtonRect(canvas);
+            int hoverOutline = UpgradeCardPainter.HoverOutlineTexels * PixelGui.PanelScale;
+            if (menuButton.y - hoverOutline < y + blockH)
+                throw new System.Exception($"[PickShoot] PauseScreen: MAIN MENU 버튼(y {menuButton.y})이 묶음 아래 끝({y + blockH})과 겹침 (유물 {relicRows}줄). 버튼 자리를 옮길 것.");
+            PlateButtonPainter.Draw(skin, menuButton, MainMenuLabel, menuButton.Contains(mouse), Color.white);
+
+            // 보기 카드는 다 그린 뒤 맨 마지막에 — 위 띠·이웃 타일·버튼 위로 뜬다.
             if (slot >= 0)
                 UpgradeCardPainter.DrawOwnedWeapon(skin, canvas, weapons.Slots[slot], stats, weaponTile);
             else if (characterHovered)
