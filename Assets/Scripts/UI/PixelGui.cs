@@ -22,6 +22,19 @@ namespace PickShoot
         // 지금 열려 있는 캔버스의 1픽셀이 차지하는 화면 픽셀 수. 캔버스 밖에서는 1. SnapToScreenPixels가 쓴다.
         static float currentPixelSize = 1f;
 
+        // WebGL의 IMGUI 색을 에디터·Windows와 같게 (2026-10-15, 웹 빌드). Linear 색 공간의 WebGL2는 sRGB 쓰기를 끌 수 없어 IMGUI가 선형 공간에서 섞인다 —
+        // 감마 공간에서 섞는 에디터·Windows와 달리 GUI.color의 RGB가 한 번 더 감마 인코딩돼 밝아지고(단색 판 153 → 203), 반투명 막은 옅어진다
+        // (검정 70% 막 아래 바닥 67 → 129). 시트 조각의 색은 텍스처가 sRGB라 같다. 그래서 그리기 직전에만 GUI.color를 바꾼다: RGB는 선형으로,
+        // 알파는 검은 막이 감마 공간에서 섞일 때와 같아지게 1 − lin(1 − a)로 — 검정·불투명은 정확하고, 밝은 색의 반투명은 근사다.
+        // 호출자는 늘 감마 색을 GUI.color에 둔다. 바꾸는 곳은 아래 그리기 셋(FillScreen·FillRect·DrawSpritePart)뿐이다.
+        static readonly bool linearGuiBlend = Application.platform == RuntimePlatform.WebGLPlayer && QualitySettings.activeColorSpace == ColorSpace.Linear;
+
+        static Color DrawColor(Color c)
+        {
+            if (!linearGuiBlend) return c;
+            return new Color(Mathf.GammaToLinearSpace(c.r), Mathf.GammaToLinearSpace(c.g), Mathf.GammaToLinearSpace(c.b), 1f - Mathf.GammaToLinearSpace(1f - c.a));
+        }
+
         // BeginCanvas가 연 기준 캔버스. Dispose에서 GUI.matrix를 되돌리므로 using으로 감싼다.
         // 캔버스가 열려 있는 동안 Event.current.mousePosition도 캔버스 좌표다 (GUI.matrix의 역변환이 적용됨).
         public readonly struct CanvasScope : System.IDisposable
@@ -72,7 +85,7 @@ namespace PickShoot
         {
             var r = ScreenLetterbox.GuiRect;
             var prev = GUI.color;
-            GUI.color = color;
+            GUI.color = DrawColor(color);
             GUI.DrawTexture(new Rect(r.x, r.y, r.width, r.height), Texture2D.whiteTexture);
             GUI.color = prev;
         }
@@ -81,7 +94,7 @@ namespace PickShoot
         public static void FillRect(Rect screenRect, Color color)
         {
             var prev = GUI.color;
-            GUI.color = new Color(color.r, color.g, color.b, color.a * prev.a);
+            GUI.color = DrawColor(new Color(color.r, color.g, color.b, color.a * prev.a));
             GUI.DrawTexture(screenRect, Texture2D.whiteTexture);
             GUI.color = prev;
         }
@@ -362,7 +375,10 @@ namespace PickShoot
             float u1 = (tr.x + tr.width * right) / tex.width;
             float v0 = (tr.y + tr.height * (1f - bottom)) / tex.height;
             float v1 = (tr.y + tr.height * (1f - top)) / tex.height;
+            var prev = GUI.color;
+            GUI.color = DrawColor(prev);
             GUI.DrawTextureWithTexCoords(screenRect, tex, new Rect(u0, v0, u1 - u0, v1 - v0), true);
+            GUI.color = prev;
         }
     }
 }
