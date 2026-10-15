@@ -41,29 +41,6 @@ https://github.com/user-attachments/assets/0e4f5792-4f5f-472d-8d35-99d7b47b8456
 - **탄이 떨어지면 주우러 갑니다**<br>적 사이로 들어가야 하니, 어디에 쏘고 언제 주울지가 핵심입니다.
 - **웨이브마다 빌드를 키웁니다**<br>무기·개조·유물을 고르고, 무기는 최대 12자루까지 동시에 쏩니다.
 
-<table>
-  <tr>
-    <td colspan="2" align="center">
-      <img src="Docs/Media/combat.png" alt="전투"><br>
-      <b>전투</b> — 웨이브 8, 회수 펄스와 바닥에 쌓인 탄
-    </td>
-  </tr>
-  <tr>
-    <td width="50%" align="center">
-      <img src="Docs/Media/start.png" alt="시작 화면"><br>
-      <b>시작</b> — 캐릭터 3종과 시작 무기 고르기
-    </td>
-    <td width="50%" align="center">
-      <img src="Docs/Media/reward.png" alt="보상 화면"><br>
-      <b>보상</b> — 웨이브마다 개조·새 무기·강화 중 하나
-    </td>
-  </tr>
-</table>
-
-**플레이 영상** — 웨이브 1부터 4까지 2분 (자동 플레이 봇) · 🔊 소리는 플레이어에서 켜 주세요
-
-https://github.com/user-attachments/assets/332c39ac-b163-4099-be50-e3d989c68cdb
-
 <br>
 
 ## 실행
