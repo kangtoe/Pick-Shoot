@@ -99,7 +99,7 @@ namespace PickShoot
         const int CardGapTexels = 10;
         // 상태 열의 섹션 사이 (STATS → WEAPONS → RELICS, 패널 텍셀 24px).
         const int StatusSectionGapTexels = 6;
-        // 상태 열의 스탯 표 (StatPanelPainter) — 2열, 열 사이 패널 텍셀 12(48px). 8개가 4줄.
+        // 상태 열의 스탯 표 (StatPanelPainter) — 2열, 열 사이 패널 텍셀 12(48px). 8개가 4줄 — 왼쪽 공격·생존, 오른쪽 기동·회수 (PlayerStat 순서).
         const string StatsTitle = "STATS";
         const int StatColumns = 2;
         const int StatGutterTexels = 12;

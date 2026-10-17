@@ -2,17 +2,19 @@ using UnityEngine;
 
 namespace PickShoot
 {
-    // 유물·캐릭터가 올리는 플레이어 스탯 8개 (Relics §2, Characters §3). 수정치 묶음(PlayerStatModifiers)의 칸과 카드의 줄 순서가 이 순서다.
+    // 유물·캐릭터가 올리는 플레이어 스탯 8개 (Relics §2, Characters §3). 카드의 줄과 스탯 표의 순서가 이 순서다 — 성장축끼리 둘씩 붙여 공격·생존·기동·회수
+    // (2026-10-17). 스탯 표는 위에서 아래로 먼저 채우므로 보상 화면 2열은 공격·생존 | 기동·회수, 일시정지 화면 4열은 한 열이 한 축이다.
+    // 그전엔 커먼 유물을 넣은 순서(공격력·이동·체력·재생·회수 둘·리차지·최대 탄약)였다. 수정치 묶음의 필드 순서는 직렬화 순서라 그대로 둔다.
     public enum PlayerStat
     {
         Damage,         // 공격력 배율 (%) — 모든 무기의 피해에 곱한다
-        MoveSpeed,      // 이동속도 (%)
+        MaxAmmo,        // 최대 탄약 (+정수) — 모든 자루의 최대 탄약에 더한다 (Weapon). 캐릭터(HUNTER)가 쓰는 여덟째 칸 (Characters §3, 2026-10-13)
         MaxHp,          // 최대 체력 (+정수)
         Regen,          // 재생 (+정수) — 주기마다 체력 1 회복, 수치가 클수록 주기가 짧다 (PlayerHealth)
+        MoveSpeed,      // 이동속도 (%)
+        Recharge,       // 능력 리차지 속도 — 대시 등 모든 능력의 쿨다운에 공통 (%)
         PickupRadius,   // 탄환 회수 범위 — 자석 반경 (%)
         PickupSpeed,    // 탄환 회수 속도 — 자석이 끌어오는 속도 (%)
-        Recharge,       // 능력 리차지 속도 — 대시 등 모든 능력의 쿨다운에 공통 (%)
-        MaxAmmo,        // 최대 탄약 (+정수) — 모든 자루의 최대 탄약에 더한다 (Weapon). 캐릭터(HUNTER)가 쓰는 여덟째 칸 (Characters §3, 2026-10-13)
     }
 
     // 플레이어 스탯에 더하는 수정치 묶음. 유물 하나·캐릭터 하나가 묶음 하나를 가지고, PlayerStats가 캐릭터와 보유 유물의 묶음을 전부 더해 총계를 만든다.
@@ -82,21 +84,25 @@ namespace PickShoot
         }
 
         // 카드 줄의 항목 이름. 줄임말 대신 읽어서 바로 아는 말로 둔다 (2026-10-07, 그전엔 DMG·SPEED·RANGE·PULL·SKILL 5글자) — 유물 카드가
-        // 설명 문구 없이 이 줄 하나로 효과를 말하기 때문이다 (Relics §2). 폭은 가장 긴 PICKUP RANGE·PICKUP SPEED가 244px이고, 값 열에 세 자리
-        // 퍼센트("+100%" 108px)와 사이 공백을 더해도 카드 안쪽 폭 368px(7타일) 안이다. 더 긴 이름(WEAPON DAMAGE·DASH RECHARGE)은 넘쳐서 뺐고,
-        // 넘치면 UpgradeCardPainter가 예외로 알린다.
+        // 설명 문구 없이 이 줄 하나로 효과를 말하기 때문이다 (Relics §2). 2026-10-17에 둘을 고쳤다 — GUN DAMAGE는 총밖에 없는 게임에서 군말이라
+        // DAMAGE로, RECHARGE는 빨라지는 것인지 늘어나는 것인지 말하지 않아 RECHARGE RATE로 (값이 클수록 빨리 찬다는 뜻이 RATE에 든다. COOLDOWN은
+        // +%가 쿨다운이 늘어나는 쪽으로 읽힌다). 같은 날 ABILITY HASTE였다가 바꿨다 — 리차지라는 말이 낫고, 이 게임에서 리차지되는 것은 능력뿐이다.
+        // ABILITY RECHARGE(264px)는 가로 카드 표에 `+10%`만 붙어도 348px로 넘친다. 두 단어 통일(MAX HEALTH·MAGNET RANGE 등)과 한 단어 통일
+        // (HEALTH·MAGNET·HASTE 등) 안도 봤으나 나머지는 그대로 두었다.
+        // 폭(일반 글꼴, 글자 배율 2)은 가장 긴 RECHARGE RATE가 226px — 가장 좁은 자리인 보상 화면 가로 카드의 표(340px)에 수정치 "+100%"(92px)와
+        // 공백을 더해도 328px로 든다. 일시정지 화면 4열(열 332px)·보상 화면 2열(360px)의 총계도 같다. 넘치면 UpgradeCardPainter·StatPanelPainter가 예외로 알린다.
         public static string Label(PlayerStat stat)
         {
             switch (stat)
             {
-                case PlayerStat.Damage: return "GUN DAMAGE";
-                case PlayerStat.MoveSpeed: return "MOVE SPEED";
+                case PlayerStat.Damage: return "DAMAGE";
+                case PlayerStat.MaxAmmo: return "MAX AMMO";
                 case PlayerStat.MaxHp: return "MAX HP";
                 case PlayerStat.Regen: return "HP REGEN";
+                case PlayerStat.MoveSpeed: return "MOVE SPEED";
+                case PlayerStat.Recharge: return "RECHARGE RATE";
                 case PlayerStat.PickupRadius: return "PICKUP RANGE";
                 case PlayerStat.PickupSpeed: return "PICKUP SPEED";
-                case PlayerStat.Recharge: return "RECHARGE";
-                case PlayerStat.MaxAmmo: return "MAX AMMO";
                 default: throw new System.Exception($"[PickShoot] PlayerStatModifiers.Label: 알 수 없는 스탯 {stat}.");
             }
         }

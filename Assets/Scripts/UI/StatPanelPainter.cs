@@ -3,7 +3,8 @@ using UnityEngine;
 namespace PickShoot
 {
     // 플레이어 스탯 총계 표 (Relics §7, 2026-10-14) — 캐릭터 + 보유 유물의 수정치 합(PlayerStats.Total)을 스탯마다 한 줄. 일시정지 화면은 띠와 격자 사이에
-    // 3열(PauseScreen), 보상 화면은 왼쪽 상태 열의 맨 위에 2열(UpgradeManager)로 둔다. 열은 위에서 아래로 먼저 채운다.
+    // 4열(PauseScreen), 보상 화면은 왼쪽 상태 열의 맨 위에 2열(UpgradeManager)로 둔다. 열은 위에서 아래로 먼저 채운다 — 줄 순서(PlayerStat)가 성장축끼리
+    // 둘씩이라 4열은 한 열이 한 축, 2열은 한 열이 두 축이다 (2026-10-17).
     // 줄은 라벨이 열 왼쪽, 값이 열 오른쪽 끝 — 카드의 표와 같은 꼴. 값은 총계 표기(PlayerStatModifiers.Format — 부호는 음수에만)이고 색은:
     //   흰색 — 0이 아닌 총계. 초록은 쓰지 않는다 — 초록은 화면 어디서나 "고르면 얻는 값"이다 (카드의 얻는 값과 아래 미리보기).
     //   빨강(PixelUiSkin.PenaltyText) — 음수 총계 (패널티가 있는 유물).

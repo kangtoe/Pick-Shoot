@@ -7,7 +7,7 @@ namespace PickShoot
     // ESC로 게임을 멈추고 화면을 어둡게 덮는 일시정지 화면. PixelUiSkin(Kenney Interface 시트)으로 OnGUI에 그린다.
     // 구성은 보상 화면(UpgradeManager)과 같은 결 (2026-10-12): 빌드 격자의 12칸 폭이 묶음의 좌우 끝이고, 그 위 띠의 왼쪽에 제목 `PAUSED`(패널 없는
     // 아웃라인 글꼴, 패널 배율)와 부제 재개 안내(일반 글꼴, 글자 배율), 오른쪽 끝에 같은 꼴의 `WAVE N`과 `LEVEL 5   XP 230`(라벨 일반·값 아웃라인 글꼴)을 둔다.
-    // 띠 아래 160px(HeaderGapTexels — 보기 카드가 무기 줄 위에 들 자리. 그 가운데에 스탯 총계 표 3열, StatPanelPainter, 2026-10-14) 아래에
+    // 띠 아래 160px(HeaderGapTexels — 보기 카드가 무기 줄 위에 들 자리. 그 가운데에 스탯 총계 표 4열, StatPanelPainter, 2026-10-14·17) 아래에
     // 현재 빌드 격자(BuildGridPainter — 제목 `WEAPONS (7/12)` 아래 보유 무기 한 줄,
     // 제목 `RELICS (5)` 아래 유물 격자, 패널 배율 타일).
     // 그전(2026-10-02 ~ 10-12)엔 가운데 회색 상태 카드(위 끝에 걸친 파란 `PAUSED` 배지, WAVE·LEVEL·XP 표) 아래 격자, 맨 아래 가운데 재개 안내였다 — 카드는
@@ -48,8 +48,9 @@ namespace PickShoot
         // 보기 카드가 더 길어지면 위 여백이 그만큼 줄고, 24px를 넘으면 다시 화면 끝에 붙는다.
         const int HeaderGapTexels = 40;
         const int SectionGapTexels = 12;     // 무기 줄 아래 → 유물 제목 (글자 텍셀). 제목과 그 타일 사이(BuildGridPainter, 4)보다 넓어 섹션이 갈린다.
-        // 스탯 표 (StatPanelPainter) — 3열이면 8개가 3줄(96px)로 띠 → 격자 간격(160px)에 든다. 열 사이는 패널 텍셀 16(64px).
-        const int StatColumns = 3;
+        // 스탯 표 (StatPanelPainter) — 4열이면 8개가 2줄(64px)이고 한 열이 성장축 하나(공격·생존·기동·회수, PlayerStat 순서)다 (2026-10-17).
+        // 그전 3열(3줄 96px)은 짝이 열 사이에서 끊겼다. 열 폭은 (1520 − 3 × 64) ÷ 4 = 332px — 가장 긴 줄 RECHARGE RATE -100%가 328px. 열 사이는 패널 텍셀 16(64px).
+        const int StatColumns = 4;
         const int StatGutterTexels = 16;
         // 아래 가운데 버튼 — 캔버스 아래 끝에서 시작 화면 PLAY와 같은 8텍셀(32px).
         const string MainMenuLabel = "MAIN MENU";
@@ -188,7 +189,7 @@ namespace PickShoot
             PixelGui.DrawTextRight(skin.FontOutlined, wave, right, y, scale);
             DrawStatLine(right, y + titleH, textScale);
 
-            // 스탯 총계 표는 띠와 격자 사이 간격의 세로 가운데에, 묶음 폭 3열 (StatPanelPainter, 2026-10-14). 이 간격은 무기 줄 위에 보기 카드가 들 자리라
+            // 스탯 총계 표는 띠와 격자 사이 간격의 세로 가운데에, 묶음 폭 4열 (StatPanelPainter, 2026-10-14). 이 간격은 무기 줄 위에 보기 카드가 들 자리라
             // 타일에 마우스를 올리면 카드가 표를 잠시 덮는다 — 띠와 격자 자리를 그대로 두는 쪽을 골랐다 (Recordings/pause_two_column_mockup_2026-10-14_*.png).
             int statsH = StatPanelPainter.Height(skin, StatColumns);
             if (statsH > headerGap)
