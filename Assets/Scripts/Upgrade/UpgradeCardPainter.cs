@@ -223,7 +223,9 @@ namespace PickShoot
         }
 
         // 보상 화면의 선택 카드 — 세로 카드(Draw)와 같은 내용(Build)을 가로로 편다 (2026-10-14). 세 장을 세로로 쌓아 오른쪽 표가 같은 x에 서므로 카드끼리
-        // 값을 위아래로 비교한다. 시작 화면·보기 카드는 세로 카드 그대로다. 크기는 고정(LandscapeSize)이라 내용이 넘치면 예외.
+        // 줄을 위아래로 비교한다. 표의 줄은 라벨 바로 뒤에 값을 잇는 한 줄 문구다 (2026-10-17) — 그전엔 라벨은 표 왼쪽, 값은 오른쪽 끝으로 갈라 값이 한 열에
+        // 섰지만 라벨과 값 사이 빈칸이 넓었다 (세로 카드가 2026-10-09에 한 줄 문구로 바꾼 이유와 같다).
+        // 시작 화면·보기 카드는 세로 카드 그대로다. 크기는 고정(LandscapeSize)이라 내용이 넘치면 예외.
         public static void DrawLandscape(PixelUiSkin skin, UpgradeOption option, PlayerWeapons weapons, PlayerStats stats, Rect rect, int scale, int textScale, bool hovered)
         {
             var c = Build(skin, option, weapons, stats);
@@ -256,9 +258,9 @@ namespace PickShoot
             if (innerTop + middleH > innerBottom)
                 throw new System.Exception($"[PickShoot] UpgradeCardPainter.DrawLandscape: '{c.Name}' 가운데 열 높이 {middleH}px가 카드 안쪽을 넘음.");
 
-            // 표: 스탯 줄 → (본문 간격) → 본문 줄 → 설명. 줄마다 라벨 왼쪽, 값 덩이 오른쪽 끝.
+            // 표: 스탯 줄 → (본문 간격) → 본문 줄 → 설명. 줄마다 라벨 바로 뒤에 값을 잇는 한 줄 문구를 표 왼쪽 끝부터 — 문구 전체의 폭으로 잰다.
             for (int i = 0; i < c.StatLabels.Length; i++)
-                RequireFits(PixelGui.MeasureText(skin.FontPlain, c.StatLabels[i], textScale) + space + RowWidth(skin, null, c.StatNow[i], c.StatNext[i], iconSize, space, textScale),
+                RequireFits(RowWidth(skin, c.StatLabels[i], c.StatNow[i], c.StatNext[i], iconSize, space, textScale),
                     tableW, $"{c.StatLabels[i]} {c.StatNow[i]} > {c.StatNext[i]}", "가로 카드 표");
             for (int i = 0; i < c.BodyLines.Length; i++)
                 RequireFits(PixelGui.MeasureText(skin.FontPlain, BodyText(c.BodyLines[i], c.BodyValues[i]), textScale), tableW, BodyText(c.BodyLines[i], c.BodyValues[i]), "가로 카드 표");
@@ -299,13 +301,10 @@ namespace PickShoot
                 DrawRowAt(skin, null, null, c.SubLine, c.SubLineTint, textX, y, iconSize, space, textScale);
 
             // 오른쪽 표 — 세로 가운데.
-            int tableRight = tableX + tableW;
             y = tableTop + (tableRoom - tableH) / 2;
             for (int i = 0; i < c.StatLabels.Length; i++)
             {
-                PixelGui.DrawText(skin.FontPlain, c.StatLabels[i], tableX, y, textScale);
-                int valueW = RowWidth(skin, null, c.StatNow[i], c.StatNext[i], iconSize, space, textScale);
-                DrawRowAt(skin, null, c.StatNow[i], c.StatNext[i], c.StatTints[i], tableRight - valueW, y, iconSize, space, textScale);
+                DrawRowAt(skin, c.StatLabels[i], c.StatNow[i], c.StatNext[i], c.StatTints[i], tableX, y, iconSize, space, textScale);
                 y += lineH;
             }
             if (c.StatLabels.Length > 0 && bodyCount > 0) y += BodyGapTexels * scale;
@@ -318,7 +317,7 @@ namespace PickShoot
                 if (c.BodyValues[i] != null)
                 {
                     GUI.color = prevColor * valueTint;
-                    PixelGui.DrawTextRight(skin.FontPlain, c.BodyValues[i], tableRight, y, textScale);
+                    PixelGui.DrawText(skin.FontPlain, c.BodyValues[i], BodyValueX(skin, c.BodyLines[i], tableX, textScale), y, textScale);
                     GUI.color = prevColor;
                 }
                 y += lineH;
@@ -658,9 +657,7 @@ namespace PickShoot
                 {
                     var prevBody = GUI.color;
                     GUI.color = prevBody * valueTint;
-                    // 한 문구로 그릴 때와 같은 자리 — 공백 뒤 글자 간격까지.
-                    int vx = bx + PixelGui.MeasureText(skin.FontPlain, c.BodyLines[i] + " ", textScale) + skin.FontPlain.letterSpacing * textScale;
-                    PixelGui.DrawText(skin.FontPlain, c.BodyValues[i], vx, y, textScale);
+                    PixelGui.DrawText(skin.FontPlain, c.BodyValues[i], BodyValueX(skin, c.BodyLines[i], bx, textScale), y, textScale);
                     GUI.color = prevBody;
                 }
                 y += lineH;
@@ -978,13 +975,19 @@ namespace PickShoot
             return value != null ? line + " " + value : line;
         }
 
+        // 본문 줄을 x부터 그릴 때 값을 놓을 자리 — BodyText를 한 문구로 그릴 때와 같은 자리(공백 뒤 글자 간격까지). 값만 색이 달라 따로 그린다.
+        static int BodyValueX(PixelUiSkin skin, string line, int x, int textScale)
+        {
+            return x + PixelGui.MeasureText(skin.FontPlain, line + " ", textScale) + skin.FontPlain.letterSpacing * textScale;
+        }
+
         // 스탯 줄 한 줄을 centerX 가운데에. 다음 값만 nextTint로 곱한다 — 얻는 값의 초록·유물 등급 색·개조 이름의 개조 색. 라벨·현재 값·화살표는 흰색.
         static void DrawRow(PixelUiSkin skin, string label, string now, string next, Color nextTint, int centerX, int y, int iconSize, int space, int textScale)
         {
             DrawRowAt(skin, label, now, next, nextTint, centerX - RowWidth(skin, label, now, next, iconSize, space, textScale) / 2, y, iconSize, space, textScale);
         }
 
-        // 같은 줄을 왼쪽 끝 x부터 (가로 카드의 가운데 열·표의 값 덩이).
+        // 같은 줄을 왼쪽 끝 x부터 (가로 카드의 가운데 열·표).
         static void DrawRowAt(PixelUiSkin skin, string label, string now, string next, Color nextTint, int x, int y, int iconSize, int space, int textScale)
         {
             if (label != null)
