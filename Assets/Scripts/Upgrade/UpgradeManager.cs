@@ -14,7 +14,8 @@ namespace PickShoot
     // 게임 흐름 제어를 위해 Time.timeScale=0로 일시정지, 선택 시 원복. WaveManager가 코루틴으로 호출.
     // 카드는 IMGUI 위에 PixelUiSkin(Kenney Interface 시트)으로 그린다. 글꼴이 A-Z 0-9만 있어 UI 문구는 영문 대문자.
     // 배치 (2026-10-14): 두 열 — 왼쪽 상태 열에 제목 `WAVE N CLEAR`(아웃라인 글꼴, 패널 배율)와 부제, `STATS` 스탯 총계 표(StatPanelPainter, 2열),
-    // `WEAPONS (7/12)`·`RELICS (5)` 빌드 격자(BuildGridPainter, 패널 배율·6열), 오른쪽 선택지 열에 가로 카드 세 장(UpgradeCardPainter.DrawLandscape)을
+    // `WEAPONS (7/12)`·`RELICS (5)` 빌드 격자(BuildGridPainter, 패널 배율·6열) — 이 상태 열은 StatusColumnPainter가 그리고 일시정지 화면도 같은 열을
+    // 가운데에 둔다(2026-10-17) — , 오른쪽 선택지 열에 가로 카드 세 장(UpgradeCardPainter.DrawLandscape)을
     // 세로로 쌓고 그 아래 회색 리롤 칸. 유물 카드에 마우스를 올리면 그 수정치를 더한 새 총계가 스탯 표의 바뀌는 줄에 초록으로 뜬다(미리보기).
     // 16:9 고정(ScreenLetterbox)으로 캔버스가 늘 1920px라 화면 가장자리까지 쓴다. 가로 카드는 세 장의 표가 같은 x에 서서 값을 위아래로 비교하고, 고르는 것과
     // 그 결과(스탯 표)가 좌우로 붙는다. 선택지·상태 좌우를 바꾼 안, 제목을 카드 열 위에 둔 안, 리롤 칸의 색·자리·아이콘을 목업으로 비교해 골랐다
@@ -95,19 +96,10 @@ namespace PickShoot
         const int SideMarginTexels = 24;
         const int ColumnGapTexels = 16;
         const int CardStackGapTexels = 6;
-        // 제목 띠 → 다음 구역 (패널 텍셀, 40px). 보상 화면은 제목 → STATS, 시작 화면은 줄·카드 → 다음 구역. 보상 화면에선 2026-10-08부터 띠 → 카드 간격이었다.
+        // 시작 화면의 줄·카드 → 다음 구역 (패널 텍셀, 40px) — 상태 열의 띠 → STATS(StatusColumnPainter)와 같은 값. 보상 화면에선 2026-10-08 ~ 10-14 띠 → 카드,
+        // 그 뒤 2026-10-17까지 제목 → STATS 간격이었다.
         const int CardGapTexels = 10;
-        // 상태 열의 섹션 사이 (STATS → WEAPONS → RELICS, 패널 텍셀 24px).
-        const int StatusSectionGapTexels = 6;
-        // 상태 열의 스탯 표 (StatPanelPainter) — 2열, 열 사이 패널 텍셀 12(48px). 8개가 4줄 — 왼쪽 공격·생존, 오른쪽 기동·회수 (PlayerStat 순서).
-        const string StatsTitle = "STATS";
-        const int StatColumns = 2;
-        const int StatGutterTexels = 12;
-        // 상태 열 빌드 격자의 타일 배율 — 일시정지 화면 격자·카드 전시 타일과 같은 패널 배율(112px), 상태 열 폭(768px)에 6열 (2026-10-14).
-        // 무기 두 줄(12자루)을 잡고 나면 유물 격자는 두 줄 — 12칸, 캐릭터 빼고 유물 11종이 한계다. 넘치면 BuildGridPainter가 예외로 알린다.
-        // 그전엔 중간 배율 3(84px, 8열 × 유물 3줄 24칸)이었다 — 카드 밑에 12칸 한 줄씩 두던 때(2026-10-07~14)는 세로가 없어 패널 배율이 들지 않았다.
-        // 글자 배율(2, 56px)은 레벨 배지 `LV5`(64px)가 타일보다 넓어 이웃 배지와 붙는다.
-        const int StripTileScale = PixelGui.PanelScale;
+        // 왼쪽 상태 열(제목·부제·STATS·WEAPONS·RELICS)은 StatusColumnPainter가 그린다 — 일시정지 화면과 같은 열 (2026-10-17).
 
         // 시작 화면 (PresentStartAndWait) 두 구역의 제목. 보상 화면 제목과 같은 아웃라인 글꼴 패널 배율, 각 줄 위 제 줄에.
         const string CharacterTitle = "CHARACTER";
@@ -493,30 +485,18 @@ namespace PickShoot
                 return;
             }
 
-            // 오른쪽 선택지 열 — 가로 카드(UpgradeCardPainter.DrawLandscape, 크기 고정)를 세로로 쌓고 그 아래 리롤 칸. 열 전체를 화면 세로 가운데에 두고, 왼쪽 상태 열의
-            // 제목이 같은 위 끝에서 시작한다.
+            // 두 열 (StatusColumn) — 오른쪽 선택지 열은 가로 카드(UpgradeCardPainter.DrawLandscape, 크기 고정)를 세로로 쌓고 그 아래 리롤 칸, 왼쪽 상태 열은
+            // 그 위 끝에서 시작한다.
+            int cardCount = currentCards.Length;
+            var status = StatusColumn(canvas.Width, canvas.Height, cardCount, out int cardsX);
             var cardSize = UpgradeCardPainter.LandscapeSize(skin, scale);
             int stackGap = CardStackGapTexels * scale;
             int rerollH = RerollRowTiles * tile;
-            int cardCount = currentCards.Length;
-            int columnH = cardCount * cardSize.y + cardCount * stackGap + rerollH;
-            if (columnH > canvas.Height)
-                throw new System.Exception($"[PickShoot] UpgradeManager: 선택지 열 높이 {columnH}px가 캔버스 {canvas.Height}px를 넘음. 카드 수·간격을 줄일 것.");
-            int topY = (canvas.Height - columnH) / 2;
-            int sideMargin = SideMarginTexels * scale;
-            int cardsX = canvas.Width - sideMargin - cardSize.x;
-            int statusX = sideMargin;
-            int statusW = cardsX - ColumnGapTexels * scale - statusX;
+            int topY = status.y;
 
             string title = $"WAVE {clearedWave} CLEAR";
             // 부제가 이 화면의 종류를 알린다 — 유물 화면은 RELIC, 무기 화면은 획득·레벨업·개조가 섞이므로 CARD.
             string subtitle = rewardKind == RewardKind.Relic ? "CHOOSE A RELIC" : "CHOOSE A CARD";
-            // 제목은 패널 없이 아웃라인 글꼴 패널 배율, 부제는 바로 아래 글자 배율 (96px).
-            int titleH = skin.FontOutlined.lineHeight * scale;
-            int lineH = skin.FontPlain.lineHeight * textScale;
-            int headerH = titleH + lineH;
-            if (PixelGui.MeasureText(skin.FontOutlined, title, scale) > statusW)
-                throw new System.Exception($"[PickShoot] UpgradeManager: 제목 '{title}'이 상태 열 폭 {statusW}px를 넘음.");
 
             var mouse = Event.current.mousePosition;
             // 마지막 카드까지 멎기 전에는 카드도 리롤 칸도 반응하지 않는다 — 날아가는 카드는 자리가 정해지지 않았다.
@@ -540,26 +520,8 @@ namespace PickShoot
             if (hoveredCard >= 0 && currentCards[hoveredCard].Kind == UpgradeKind.Relic)
                 preview = currentCards[hoveredCard].RelicData.Modifiers;
 
-            // 왼쪽 상태 열 — 제목·부제, STATS(2열), WEAPONS·RELICS 격자(패널 배율, 열 폭에 드는 6열). 무기 격자는 최대 슬롯만큼 줄을 잡아 유물 구역이 움직이지 않는다.
-            PixelGui.DrawText(skin.FontOutlined, title, statusX, topY, scale);
-            PixelGui.DrawText(skin.FontPlain, subtitle, statusX, topY + titleH, textScale);
-            int rowTitleH = BuildGridPainter.TitleHeight(skin);
-            int sectionGap = StatusSectionGapTexels * scale;
-            int y = topY + headerH + CardGapTexels * scale;
-            BuildGridPainter.DrawTitle(skin, StatsTitle, statusX, y);
-            y += rowTitleH;
-            StatPanelPainter.Draw(skin, stats.Total, preview, statusX, y, statusW, StatColumns, StatGutterTexels * scale);
-            y += StatPanelPainter.Height(skin, StatColumns) + sectionGap;
-
-            int stripScale = StripTileScale;
-            int columns = BuildGridPainter.ColumnsFitting(stripScale, statusW);
-            BuildGridPainter.DrawTitle(skin, BuildGridPainter.WeaponTitle(weapons), statusX, y);
-            int slot = BuildGridPainter.DrawWeaponGrid(skin, weapons, statusX, y + rowTitleH, stripScale, columns, mouse, out var weaponTile);
-            y += rowTitleH + BuildGridPainter.Height(skin, stripScale, BuildGridPainter.WeaponRows(columns)) + sectionGap;
-            BuildGridPainter.DrawTitle(skin, BuildGridPainter.RelicTitle(stats), statusX, y);
-            int relicTop = y + rowTitleH;
-            int relicRows = BuildGridPainter.RowsFitting(skin, stripScale, topY + columnH - relicTop);
-            var relic = BuildGridPainter.DrawRelicGrid(skin, stats, statusX, relicTop, stripScale, columns, relicRows, mouse, out bool characterHovered, out var relicTile);
+            // 왼쪽 상태 열 — 제목·부제, STATS, WEAPONS·RELICS 격자 (StatusColumnPainter, 일시정지 화면과 같은 열).
+            var hover = StatusColumnPainter.Draw(skin, status, title, subtitle, weapons, stats, preview, mouse);
 
             // 리롤 칸 — 카드 열 아래. 리롤이 뜻 없는 화면(후보가 카드 수 이하)에는 그리지 않는다 (자리는 비워 둔다).
             if (RerollOffered)
@@ -579,14 +541,30 @@ namespace PickShoot
 
             // 보기 카드는 하나만, 다 그린 뒤 맨 마지막에 — 카드 위로 뜬다. 멎기 전에는 카드처럼 호버에 반응하지 않는다.
             if (interactable && Event.current.type == EventType.Repaint)
-            {
-                if (slot >= 0)
-                    UpgradeCardPainter.DrawOwnedWeapon(skin, canvas, weapons.Slots[slot], stats, weaponTile);
-                else if (characterHovered)
-                    UpgradeCardPainter.DrawOwnedCharacter(skin, canvas, stats.Character, relicTile);
-                else if (relic != null)
-                    UpgradeCardPainter.DrawOwnedRelic(skin, canvas, relic, stats.CountOf(relic), relicTile);
-            }
+                hover.DrawViewCard(skin, canvas, weapons, stats);
+        }
+
+        // 보상 화면의 두 열 (캔버스 픽셀). 오른쪽 선택지 열 — 가로 카드 cardCount장(크기 고정)을 세로로 쌓고 그 아래 리롤 칸 — 을 세로 가운데에 두고,
+        // 왼쪽 상태 열(StatusColumnPainter)은 그 위 끝에서 아래 끝까지 같은 높이다. cardsX는 선택지 열의 왼쪽 끝.
+        RectInt StatusColumn(int canvasWidth, int canvasHeight, int cardCount, out int cardsX)
+        {
+            int scale = PixelGui.PanelScale;
+            var cardSize = UpgradeCardPainter.LandscapeSize(skin, scale);
+            int columnH = cardCount * cardSize.y + cardCount * CardStackGapTexels * scale + RerollRowTiles * skin.TileSize * scale;
+            if (columnH > canvasHeight)
+                throw new System.Exception($"[PickShoot] UpgradeManager: 선택지 열 높이 {columnH}px가 캔버스 {canvasHeight}px를 넘음. 카드 수·간격을 줄일 것.");
+            int sideMargin = SideMarginTexels * scale;
+            cardsX = canvasWidth - sideMargin - cardSize.x;
+            return new RectInt(sideMargin, (canvasHeight - columnH) / 2, cardsX - ColumnGapTexels * scale - sideMargin, columnH);
+        }
+
+        // 일시정지 화면(PauseScreen)의 열 — 카드가 cardsToShow장일 때의 상태 열을 크기·y 그대로, x만 캔버스 가운데로 (2026-10-17). 두 화면을 오가도
+        // 열 안의 배치가 같고 보기 카드도 같은 높이에 뜬다.
+        public RectInt CenteredStatusColumn(int canvasWidth, int canvasHeight)
+        {
+            var area = StatusColumn(canvasWidth, canvasHeight, cardsToShow, out _);
+            area.x = (canvasWidth - area.width) / 2;
+            return area;
         }
 
         // 시작 화면 배경 — 땅 타일을 월드 텍셀 배율(패널 배율)로 캔버스 가득 깔고, 칸마다 정해진 해시로 startVariantRarity분의 1꼴로 잔무늬 변형을 덧놓은 뒤 막을 덮는다.

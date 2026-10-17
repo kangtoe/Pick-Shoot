@@ -5,23 +5,20 @@ namespace PickShoot
 {
     // 현재 러닝의 빌드를 타일 격자(ItemTilePainter)로 (2026-10-06, 그전의 두 줄 띠 BuildStripPainter를 대체).
     // 브로타토식 — 줄마다 위에 제목과 수량(`WEAPONS (7/12)`·`RELICS (5)`)을 글자 배율 일반 글꼴로 격자 왼쪽 끝에 맞춰 두고, 그 아래 타일.
-    // 무기 줄은 슬롯 순서로 보유 자루만 한 줄 — 남은 슬롯 수는 제목의 `n/12`가 말한다. 처음엔 빈 슬롯을 어두운 타일로 12칸 채웠는데 제목에
-    // 수량이 붙으면서 같은 정보의 반복이라 뺐다 (2026-10-06, 같은 날 뒤집음). 줄의 왼쪽 끝은 12칸(PlayerWeapons.MaxSlots) 폭을 가운데 둔 자리라
-    // 자루가 늘어도 줄이 움직이지 않는다.
+    // 무기 격자는 슬롯 순서로 보유 자루만 — 남은 슬롯 수는 제목의 `n/12`가 말한다. 처음엔 빈 슬롯을 어두운 타일로 12칸 채웠는데 제목에
+    // 수량이 붙으면서 같은 정보의 반복이라 뺐다 (2026-10-06, 같은 날 뒤집음). 격자의 왼쪽 끝은 상태 열의 왼쪽 끝이라 자루가 늘어도 움직이지 않는다.
     // 유물 격자는 종류별(처음 얻은 순서) 한 칸씩 무기와 같은 열 수에 왼쪽부터 채우고 넘치면 다음 줄 — 종류가 언커먼·레어로 늘어도 접힌다. 없어도 한 줄 자리는 둔다.
     // 첫 칸은 늘 캐릭터다 (2026-10-14, Characters §4) — 캐릭터를 러닝 시작에 받는 유물로 보고 같은 줄에 둔다. 그림은 캐릭터의 아이콘(CharacterData.Icon),
     // 배지는 `X1`, 제목 수량에도 센다. 러닝 중 능력·보너스를 다시 볼 곳이 여기뿐이다 (보기 카드 UpgradeCardPainter.DrawOwnedCharacter).
-    // 일시정지 화면(PauseScreen)은 패널 배율 12열(WideColumns)로 두 격자를 다 보이고(전체 인벤토리), 보상 화면(UpgradeManager)도 같은 패널 배율에
-    // 6열로 왼쪽 상태 열에 둘 다 둔다 — 열 수는 그리는 쪽이 넘기고, 무기도 그 열 수에서 다음 줄로 접힌다 (2026-10-14 보상 화면 가로 카드 배치. 그전엔
-    // 카드 밑 12열 한 줄씩이었다). 10월 4일 "보상 화면에는 두지 않는다"를 2026-10-07에 뒤집은 것 — 제목의 남은 슬롯 수와 호버(보유 자루와 카드 비교)로 줄에
+    // 보상 화면(UpgradeManager)과 일시정지 화면(PauseScreen)이 같은 상태 열(StatusColumnPainter)에 패널 배율 6열로 둘 다 둔다 — 열 수는 그리는 쪽이 넘기고,
+    // 무기도 그 열 수에서 다음 줄로 접힌다 (보상 화면은 2026-10-14 가로 카드 배치부터, 그전엔 카드 밑 12열 한 줄씩. 일시정지 화면은 2026-10-17부터, 그전엔
+    // 12열 — 무기가 한 줄이었다). 10월 4일 "보상 화면에는 두지 않는다"를 2026-10-07에 뒤집은 것 — 제목의 남은 슬롯 수와 호버(보유 자루와 카드 비교)로 줄에
     // 기능이 생겼다 (Roadmap).
     // 패널 배경은 없다 — 어두운 막 위에 바로 그린다. 줄 제목은 "총과 열쇠라 그림으로 갈린다"며 두지 않다가 수량이 붙어 쓸모가 생기면서 넣었다.
     // 무기 줄은 탄창을 보이지 않는다 — 카드 화면은 sweep 직후라 늘 가득하고, 여기서 필요한 것은 종류와 레벨뿐이다 (Weapons §3).
     // 호버한 타일을 돌려주고, 그 보기 카드(UpgradeCardPainter.DrawOwnedWeapon·DrawOwnedRelic·DrawOwnedCharacter)는 화면이 맨 마지막에 그린다 (2026-10-12, 그전엔 툴팁).
     public static class BuildGridPainter
     {
-        // 일시정지 화면의 열 수 — 무기 최대 슬롯이 한 줄에 든다.
-        public const int WideColumns = PlayerWeapons.MaxSlots;
         const int ColumnGapTexels = 4;   // 타일 사이 (타일 배율)
         const int RowGapTexels = 4;      // 줄 사이 (타일 배율)
         const int TitleGapTexels = 4;    // 제목 줄 아래 → 타일 (글자 배율)
@@ -50,13 +47,7 @@ namespace PickShoot
             return $"RELICS ({RelicCellCount(stats)})";
         }
 
-        // columns칸 폭 — 격자의 한 줄. 일시정지 화면은 12칸이 격자 묶음을 가운데 두는 기준이다.
-        public static int Width(int scale, int columns)
-        {
-            return columns * ItemTilePainter.Size(scale) + (columns - 1) * ColumnGapTexels * scale;
-        }
-
-        // 그 폭에 드는 최대 열 수 (보상 화면 상태 열 768px · 패널 배율 → 6).
+        // 그 폭에 드는 최대 열 수 (상태 열 768px · 패널 배율 → 6).
         public static int ColumnsFitting(int scale, int width)
         {
             int pitch = ItemTilePainter.Size(scale) + ColumnGapTexels * scale;
@@ -75,18 +66,10 @@ namespace PickShoot
             return rows * RowPitch(skin, scale) - RowGapTexels * scale;
         }
 
-        // height 안에 드는 줄 수 (보상 화면 상태 열의 유물 격자 자리).
+        // height 안에 드는 줄 수 (상태 열의 유물 격자 자리).
         public static int RowsFitting(PixelUiSkin skin, int scale, int height)
         {
             return (height + RowGapTexels * scale) / RowPitch(skin, scale);
-        }
-
-        // 한 줄이 캔버스 폭을 넘으면 예외 — 패널 배율 12칸은 1520px, 캔버스는 늘 1920px (화면비 16:9 고정, ScreenLetterbox).
-        public static void RequireFits(int scale, int columns, int canvasWidth)
-        {
-            int w = Width(scale, columns);
-            if (w > canvasWidth)
-                throw new System.Exception($"[PickShoot] BuildGridPainter: 격자 폭 {w}px가 캔버스 폭 {canvasWidth}px를 넘음 (배율 {scale}). 열 수를 줄이거나 배율을 낮출 것.");
         }
 
         // 보유 유물의 종류 (처음 얻은 순서).
