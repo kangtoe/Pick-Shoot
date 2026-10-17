@@ -110,7 +110,9 @@ def hexints(h):                                                  # Unity YAML의
 | csc가 참조를 못 찾고 경로가 `C:/Program`에서 끊김 | 공백 경로를 셸 루프로 조립 → rsp 파일에 한 줄씩 큰따옴표로 |
 | CS0433 "형식이 두 어셈블리에 있음" 수백 개 | `Managed/UnityEngine.dll`(바깥의 모놀리식 사본)을 모듈과 함께 참조 → 모듈 폴더 안의 `Managed/UnityEngine/UnityEngine.dll`만 |
 | CS0436 "형식이 가져온 형식과 충돌" 다수 | `Assembly-CSharp*.dll`을 참조에 넣음 → 뺀다 |
-| 패키지 형식(`Unity.InputSystem` 등)을 못 찾음 | `Library/ScriptAssemblies`가 비어 있음(새 클론·Library 삭제 직후) → 에디터를 한 번 열어 임포트한 뒤 재시도 |
+| 패키지 형식(`Unity.InputSystem` 등)을 못 찾음 | `Library/ScriptAssemblies`가 비어 있음(새 클론·Library 삭제 직후) → 에디터를 한 번 열어 임포트한 뒤 재시도. 임포트할 수 없으면 쓰는 형식·멤버만 같은 네임스페이스의 최소 스텁(§2 방식)으로 스크래치 폴더에 두고 함께 넘긴다 |
+| 패키지 `using` 오류 몇 줄만 나고 다른 오류가 하나도 없음 | 선언 단계 오류(CS0234·CS0246)가 있으면 csc가 메서드 본문을 검사하지 않는다 — "다른 오류 0"은 통과가 아니다 → 위 스텁으로 선언 오류를 없앤 뒤 다시 본다 (2026-10-17) |
+| PowerShell 5.1로 돌린 스크립트가 엉뚱한 줄에서 null 오류 | BOM 없는 UTF-8을 시스템 코드 페이지(한국어 Windows는 CP949)로 읽어 한글 주석이 줄바꿈을 삼켰다 → 스크립트를 UTF-8 BOM으로 저장. Python이 없는 PC에서 §3 대신 PowerShell + System.Drawing으로 디코드·목업할 때 (2026-10-17) |
 | `#if UNITY_EDITOR` 안의 오류가 안 잡힘 | define 없음 → `-define:UNITY_EDITOR` 추가 |
 | `DotNetSdkRoslyn`·`NetCoreRuntime` 폴더가 없음 | Unity 2020.3 이하 → 이 방법은 쓸 수 없다. 에디터에서 컴파일한다 |
 | 목업의 스프라이트가 엉뚱한 조각 | `rect.y`를 위 원점으로 씀 → `top = 시트 높이 − y − height` |
