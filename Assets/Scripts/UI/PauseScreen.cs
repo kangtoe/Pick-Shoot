@@ -49,9 +49,10 @@ namespace PickShoot
         const int HeaderGapTexels = 40;
         const int SectionGapTexels = 12;     // 무기 줄 아래 → 유물 제목 (글자 텍셀). 제목과 그 타일 사이(BuildGridPainter, 4)보다 넓어 섹션이 갈린다.
         // 스탯 표 (StatPanelPainter) — 4열이면 8개가 2줄(64px)이고 한 열이 성장축 하나(공격·생존·기동·회수, PlayerStat 순서)다 (2026-10-17).
-        // 그전 3열(3줄 96px)은 짝이 열 사이에서 끊겼다. 열 폭은 (1520 − 3 × 64) ÷ 4 = 332px — 가장 긴 줄 RECHARGE RATE -100%가 328px. 열 사이는 패널 텍셀 16(64px).
+        // 그전 3열(3줄 96px)은 짝이 열 사이에서 끊겼다. 열 사이는 패널 텍셀 8(32px) — 같은 날 줄 앞에 스탯 아이콘(32px)이 붙으며 16(64px)에서 줄였다.
+        // 열 폭 (1520 − 3 × 32) ÷ 4 = 356px에 가장 긴 줄(아이콘 + RECHARGE RATE + "100%")이 342px로 든다.
         const int StatColumns = 4;
-        const int StatGutterTexels = 16;
+        const int StatGutterTexels = 8;
         // 아래 가운데 버튼 — 캔버스 아래 끝에서 시작 화면 PLAY와 같은 8텍셀(32px).
         const string MainMenuLabel = "MAIN MENU";
         const int MainMenuMarginTexels = 8;

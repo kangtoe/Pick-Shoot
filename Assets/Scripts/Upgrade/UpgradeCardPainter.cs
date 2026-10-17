@@ -53,7 +53,8 @@ namespace PickShoot
     // 그전엔 4텍셀 들림(띠→카드 간격 40px일 때 배지가 부제를 가림)·선택 테두리·비정수 배율 키우기(텍셀이 갈려 깨져 보이고 아래 빌드 줄 제목을 덮음)를 거쳤다.
     // 유물 카드(Relics §2)도 같은 패널 구성이다 — 제목은 `NEW`, 전시 칸에 유물 아이콘(배지 `X n`이 고른 뒤 보유 수), 무기 카드의 레벨 줄 자리에
     // 등급 이름 한 줄(`COMMON` — 라벨 없이 값만, 등급 색)뿐이고, 본문 줄에 그 유물이 더하는 수정치를 `DAMAGE +10%`처럼 한 줄로 적는다
-    // (2026-10-07, 등급 줄은 2026-10-09 — 처음엔 `GRADE COMMON`이었다가 같은 날 라벨을 뺐다).
+    // (2026-10-07, 등급 줄은 2026-10-09 — 처음엔 `GRADE COMMON`이었다가 같은 날 라벨을 뺐다). 수정치 줄 맨 앞에는 그 스탯 아이콘(PixelUiSkin.StatIcon,
+    // 스탯 표와 같은 것)이 붙는다 — 세로 카드는 줄 덩이 안, 가로 카드는 표 왼쪽 바깥 (2026-10-17, BodyIcons). 캐릭터 카드의 스탯 보너스 줄도 같다.
     // 등급은 2026-10-08까지 제목 자리였다. 그 사이 이름 밑 부제 줄(`COMMON`·무기는 `LEVEL +1`)로 옮기고 레벨 줄을 빼는 안, 부제의 외곽선·이름 음영을 끄는 안을
     // 목업했으나 레벨 줄로 돌아왔다 (Recordings/card_subtitle_mockup_2026-10-08*.png·card_text_*_mockup_2026-10-09*.png·card_grade_row_mockup_2026-10-09.png).
     // 캐릭터 카드(DrawCharacter, Characters §4, 2026-10-13)는 시작 화면의 캐릭터 카드 — 유물 카드와 같은 틀에서 종류 제목 없이 이름부터. 전시 칸은 32×32 그림이 드는
@@ -153,6 +154,9 @@ namespace PickShoot
             // (선택 카드), 아니면 흰색(보기 카드 — 이미 가진 것).
             public string[] BodyLines;
             public string[] BodyValues;
+            // BodyLines[i] 앞의 아이콘(글자 배율 타일) — 유물·캐릭터의 수정치 줄은 그 스탯 아이콘 (2026-10-17). 배열이 null이면 아이콘 없는 본문(무기의 특성).
+            // 세로 카드는 아이콘·문구·값을 한 덩이로 가운데에, 가로 카드는 표 왼쪽 바깥에 매단다 (DrawLandscape).
+            public Sprite[] BodyIcons;
             public bool BodyValuesGain;
             public string Note;
         }
@@ -183,7 +187,8 @@ namespace PickShoot
         {
             var bonuses = new List<string>();
             var bonusValues = new List<string>();
-            ModifierLines(character.Modifiers, $"캐릭터 '{character.DisplayName}'", bonuses, bonusValues);
+            var bonusIcons = new List<Sprite>();
+            ModifierLines(skin, character.Modifiers, $"캐릭터 '{character.DisplayName}'", bonuses, bonusValues, bonusIcons);
             var c = new CardContent
             {
                 Title = null,
@@ -203,6 +208,7 @@ namespace PickShoot
                 StatTints = NoTints,
                 BodyLines = bonuses.ToArray(),
                 BodyValues = bonusValues.ToArray(),
+                BodyIcons = bonusIcons.ToArray(),
                 BodyValuesGain = true,
                 Note = null,
             };
@@ -230,7 +236,12 @@ namespace PickShoot
             int tableW = LandscapeTableWidthTexels * scale;
             int textX = LandscapeTextX(rect, scale);
             int tableX = (int)rect.xMax - pad - tableW;
-            int middleW = tableX - LandscapeColumnGapTexels * scale - textX;
+            // 본문 줄의 아이콘은 표 왼쪽 바깥에 매달아(표 안의 글자 자리는 그대로 — 아이콘까지 표에 넣으면 RECHARGE RATE +30%가 340px를 넘는다) 열 사이 틈을
+            // 아이콘이 대신한다 (2026-10-17, Recordings/stat_icons_mockup_2026-10-17_B.png).
+            int bodyIconW = 0;
+            for (int i = 0; i < c.BodyLines.Length; i++)
+                bodyIconW = Mathf.Max(bodyIconW, BodyIconWidth(c, i, iconSize));
+            int middleW = tableX - Mathf.Max(LandscapeColumnGapTexels * scale, bodyIconW) - textX;
 
             // 가운데 열의 폭·높이 검사.
             RequireFits(TitleWidth(skin, c, textScale, out int titleTextW), middleW, $"{c.Title} {c.TitleTag}", "가로 카드 가운데 열(제목)");
@@ -301,6 +312,8 @@ namespace PickShoot
             var valueTint = c.BodyValuesGain ? skin.UpgradeText : Color.white;
             for (int i = 0; i < c.BodyLines.Length; i++)
             {
+                if (BodyIconWidth(c, i, iconSize) > 0)
+                    PixelGui.DrawSprite(c.BodyIcons[i], new Rect(tableX - iconSize, y, iconSize, iconSize));
                 PixelGui.DrawText(skin.FontPlain, c.BodyLines[i], tableX, y, textScale);
                 if (c.BodyValues[i] != null)
                 {
@@ -421,7 +434,8 @@ namespace PickShoot
         {
             var effects = new List<string>();
             var effectValues = new List<string>();
-            ModifierLines(relic.Modifiers, $"유물 '{relic.DisplayName}'", effects, effectValues);
+            var effectIcons = new List<Sprite>();
+            ModifierLines(skin, relic.Modifiers, $"유물 '{relic.DisplayName}'", effects, effectValues, effectIcons);
             var c = new CardContent
             {
                 Title = null,
@@ -438,6 +452,7 @@ namespace PickShoot
                 StatTints = NoTints,
                 BodyLines = effects.ToArray(),
                 BodyValues = effectValues.ToArray(),
+                BodyIcons = effectIcons.ToArray(),
                 BodyValuesGain = false,
                 Note = relic.Description,
             };
@@ -452,7 +467,8 @@ namespace PickShoot
         {
             var bonuses = new List<string>();
             var bonusValues = new List<string>();
-            ModifierLines(character.Modifiers, $"캐릭터 '{character.DisplayName}'", bonuses, bonusValues);
+            var bonusIcons = new List<Sprite>();
+            ModifierLines(skin, character.Modifiers, $"캐릭터 '{character.DisplayName}'", bonuses, bonusValues, bonusIcons);
             var c = new CardContent
             {
                 Title = null,
@@ -469,6 +485,7 @@ namespace PickShoot
                 StatTints = new[] { Color.white, Color.white },
                 BodyLines = bonuses.ToArray(),
                 BodyValues = bonusValues.ToArray(),
+                BodyIcons = bonusIcons.ToArray(),
                 BodyValuesGain = false,
                 Note = null,
             };
@@ -527,7 +544,7 @@ namespace PickShoot
             for (int i = 0; i < c.BodyLines.Length; i++)
             {
                 string line = BodyText(c.BodyLines[i], c.BodyValues[i]);
-                RequireFits(PixelGui.MeasureText(skin.FontPlain, line, textScale), innerW, line, "카드 안쪽");
+                RequireFits(BodyIconWidth(c, i, iconSize) + PixelGui.MeasureText(skin.FontPlain, line, textScale), innerW, line, "카드 안쪽");
             }
             var noteLines = string.IsNullOrEmpty(c.Note)
                 ? EmptyLines
@@ -628,8 +645,14 @@ namespace PickShoot
             var valueTint = c.BodyValuesGain ? skin.UpgradeText : Color.white;
             for (int i = 0; i < c.BodyLines.Length; i++)
             {
-                // 값이 있으면 문구(흰색)와 값을 한 덩이로 가운데에.
-                int bx = centerX - PixelGui.MeasureText(skin.FontPlain, BodyText(c.BodyLines[i], c.BodyValues[i]), textScale) / 2;
+                // 값이 있으면 문구(흰색)와 값을, 아이콘이 있으면 그것까지 한 덩이로 가운데에.
+                int iconW = BodyIconWidth(c, i, iconSize);
+                int bx = centerX - (iconW + PixelGui.MeasureText(skin.FontPlain, BodyText(c.BodyLines[i], c.BodyValues[i]), textScale)) / 2;
+                if (iconW > 0)
+                {
+                    PixelGui.DrawSprite(c.BodyIcons[i], new Rect(bx, y, iconSize, iconSize));
+                    bx += iconW;
+                }
                 PixelGui.DrawText(skin.FontPlain, c.BodyLines[i], bx, y, textScale);
                 if (c.BodyValues[i] != null)
                 {
@@ -771,7 +794,8 @@ namespace PickShoot
                     // 수정치 값(`+10%`)은 얻는 값이라 초록 (2026-10-11).
                     var effects = new List<string>();
                     var effectValues = new List<string>();
-                    ModifierLines(d.Modifiers, $"유물 '{d.DisplayName}'", effects, effectValues);
+                    var effectIcons = new List<Sprite>();
+                    ModifierLines(skin, d.Modifiers, $"유물 '{d.DisplayName}'", effects, effectValues, effectIcons);
                     int owned = stats.CountOf(d);
                     return new CardContent
                     {
@@ -792,6 +816,7 @@ namespace PickShoot
                         StatTints = NoTints,
                         BodyLines = effects.ToArray(),
                         BodyValues = effectValues.ToArray(),
+                        BodyIcons = effectIcons.ToArray(),
                         BodyValuesGain = true,
                         // 설명 문구는 스탯 줄이 못 하는 말이 있을 때만 — 커먼 7종은 비어 있다 (Relics §2).
                         Note = d.Description,
@@ -886,9 +911,9 @@ namespace PickShoot
             return flags.ToArray();
         }
 
-        // 수정치 묶음을 한 줄씩 — 라벨(`DAMAGE`)과 값(`+10%`, 양수에도 부호). 유물의 선택 카드·보기 카드(1개분)와 캐릭터 카드(스탯 보너스)가 같이 쓴다.
-        // owner는 예외 문구용.
-        static void ModifierLines(PlayerStatModifiers m, string owner, List<string> labels, List<string> values)
+        // 수정치 묶음을 한 줄씩 — 아이콘(PixelUiSkin.StatIcon)·라벨(`DAMAGE`)·값(`+10%`, 양수에도 부호). 유물의 선택 카드·보기 카드(1개분)와 캐릭터 카드(스탯 보너스)가
+        // 같이 쓴다. owner는 예외 문구용.
+        static void ModifierLines(PixelUiSkin skin, PlayerStatModifiers m, string owner, List<string> labels, List<string> values, List<Sprite> icons)
         {
             if (m.IsZero)
                 throw new System.Exception($"[PickShoot] UpgradeCardPainter: {owner}의 수정치가 전부 0 — 효과 없음. 자산 확인.");
@@ -896,9 +921,19 @@ namespace PickShoot
             {
                 int v = m.Get(s);
                 if (v == 0) continue;
+                icons.Add(skin.StatIcon(s));
                 labels.Add(PlayerStatModifiers.Label(s));
                 values.Add(PlayerStatModifiers.FormatSigned(s, v));
             }
+        }
+
+        // 본문 줄 i 앞 아이콘의 폭 — 아이콘이 없으면 0.
+        static int BodyIconWidth(CardContent c, int i, int iconSize)
+        {
+            if (c.BodyIcons == null) return 0;
+            if (c.BodyIcons.Length != c.BodyLines.Length)
+                throw new System.Exception($"[PickShoot] UpgradeCardPainter: '{c.Name}'의 BodyIcons({c.BodyIcons.Length})와 BodyLines({c.BodyLines.Length}) 길이가 다름.");
+            return c.BodyIcons[i] != null ? iconSize : 0;
         }
 
         // 무기 카드의 설명 문단 — 무기 설명 뒤에 개조 설명(둘 다 선택, 지금 자산은 모두 비어 있다). 한 문단으로 이어 단어 단위로 접는다.

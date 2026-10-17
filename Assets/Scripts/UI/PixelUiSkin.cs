@@ -65,6 +65,10 @@ namespace PickShoot
         // 되돌이 화살표 16×16 — 보상 화면의 리롤 칸 (Assets/Art/UI/reroll_icon.png, 2026-10-14). Kenney Cursor Pixel Pack의 `cursors_209`에서 순검정 외곽선만
         // 잉크색으로 바꾼 사본이다 — 사막 팩 인터페이스 시트에 되돌이 아이콘이 없다. 그전엔 리롤 버튼에 글자 `R`이 자리를 맡고 있었다.
         [SerializeField] Sprite iconReroll;
+        // 플레이어 스탯 아이콘 16×16 × 8 — PlayerStat 순서 (Assets/Art/UI/stat_icons.png, 2026-10-17). 스탯 표·유물 카드·캐릭터 카드의 스탯 줄 앞에 글자와 같은
+        // 배율로 그린다 (StatPanelPainter·UpgradeCardPainter). 시트 인터페이스 아이콘(총알·해골)과 같은 결 — 2텍셀 잉크색 외곽선, 팩 팔레트 — 이고, MAX AMMO는
+        // 그 총알(`ui_58`) 그대로다. 색은 그 스탯을 올리는 유물의 열쇠 색(Relics §2)이고, 하트만 HP 게이지와 같은 빨강이다.
+        [SerializeField] Sprite[] statIcons;
         // 무기 스프라이트 밑의 작은 판(HUD 무기 줄·빌드 띠, PixelGui.DrawWeaponPlate) 색: 시트 외곽선 색 테두리 + 회색 패널 바탕색 (DEVELOPMENT §2).
         [SerializeField] Color weaponPlateFill = new Color32(153, 154, 196, 255);
         [SerializeField] Color weaponPlateOutline = new Color32(71, 50, 75, 255);
@@ -99,6 +103,7 @@ namespace PickShoot
         public Sprite IconCross => iconCross;
         public Sprite IconSkull => iconSkull;
         public Sprite IconReroll => iconReroll;
+        public Sprite StatIcon(PlayerStat stat) => statIcons[(int)stat];
         public Color WeaponPlateFill => weaponPlateFill;
         public Color WeaponPlateOutline => weaponPlateOutline;
         public Color HighlightText => highlightText;
@@ -127,6 +132,12 @@ namespace PickShoot
             if (iconCross == null) throw Missing(nameof(iconCross));
             if (iconSkull == null) throw Missing(nameof(iconSkull));
             if (iconReroll == null) throw Missing(nameof(iconReroll));
+            int statCount = PlayerStatModifiers.Stats.Length;
+            if (statIcons == null || statIcons.Length != statCount)
+                throw new System.Exception($"[PickShoot] PixelUiSkin '{name}'.statIcons: 스탯 수({statCount})만큼 PlayerStat 순서로 있어야 함 (지금 {(statIcons == null ? 0 : statIcons.Length)}).");
+            for (int i = 0; i < statCount; i++)
+                if (statIcons[i] == null)
+                    throw Missing($"{nameof(statIcons)}[{i}] ({PlayerStatModifiers.Stats[i]})");
         }
 
         System.Exception Missing(string field)
